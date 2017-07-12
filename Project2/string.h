@@ -368,9 +368,9 @@ namespace uuz
 				Chartype * temp = new Chartype[core->size() - pos + 1];
 				//memcpy(temp, core->c_str() + pos, size() - pos);
 				//memmove(core->c_str() + pos, t, s);
-				//memcpy(core->c_str() + pos + s, temp, size() - pos);
-				std::copy(t, t + s, core->c_str() + pos);
+				//memcpy(core->c_str() + pos + s, temp, size() - pos);		
 				std::copy(core->c_str() + pos, core->c_str() + core->size(), temp);
+				std::copy(t, t + s, core->c_str() + pos);
 				std::copy(temp, temp + core->size() - pos, core->c_str() + pos + s);
 				delete[] temp;
 				core->setsize(core->size() + s);

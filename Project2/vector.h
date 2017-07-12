@@ -141,7 +141,12 @@ namespace uuz
 		{
 			if (s + size() <= max_size)
 			{
-
+				auto temp = (T*)malloc((size() - pos + 1) * sizeof(T));
+				std::copy(begin + pos, begin + ssize, temp);
+				std::copy(p, p + s, begin + pos);
+				std::copy(temp, temp + ssize - pos, begin + pos + s);
+				free(temp);
+				ssize += s;
 			}
 			else
 			{

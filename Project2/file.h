@@ -35,7 +35,7 @@ namespace uuz
 		}
 		string getline()
 		{
-			string::size_t dd = 0;
+			typename string::size_t dd = 0;
 			string p;
 			if (avail == limit)
 				getnew();
