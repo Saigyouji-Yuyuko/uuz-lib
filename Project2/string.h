@@ -394,28 +394,6 @@ namespace uuz
 				core->core.more.maxsize = p + sso_size;
 			}
 		}
-		void assign(const Chartype* t, const size_t s)
-		{
-			if (s <= core->max_size())
-			{
-				//memcpy(core->c_str(), t, s);
-				std::copy(t, t + s, core->c_str());
-				core->setsize(s);
-			}
-			else
-			{
-				Chartype * temp = new Chartype[s + sso_size];
-				//memcpy(temp, t, s);
-				std::copy(t, t + s, temp);
-				if (flag)
-					delete[] core->c_str();
-				else
-					flag = true;
-				core->core.more.data = temp;
-				core->setsize(p);
-				core->core.more.maxsize = s + sso_size;
-			}
-		}
 		void append(const Chartype* t, const size_t s)
 		{
 			if (core->size() + s <= core->max_size())
@@ -445,7 +423,7 @@ namespace uuz
 		{
 			//memcpy(core->c_str() + pos1, core->c_str() + pos2, core->size() - pos2);
 			std::copy(core->c_str() + pos2, core->c_str() + core->size(), core->c_str() + pos1);
-			core->setsize(core->size() - pos2);
+			core->setsize(core->size() - pos2 + pos1);
 		}
 		void getmore(const size_t t)
 		{

@@ -92,9 +92,11 @@ namespace uuz
 			assert(begin);
 		}
 		self(const self& t):begin((T*)malloc(t.ssize*sizeof(T))),
-							max_size(t.ssize)
+							max_size(t.ssize),
+							ssize(t.ssize)
 		{
-			std::copy(t.begin, t.begin + ssize, begin);
+			for (auto i = t.begin; i != t.begin + t.ssize; ++i)
+				auto p = new(begin + (i - t.begin)) T(*i);
 		}
 		self(self&& t)
 		{
@@ -142,18 +144,59 @@ namespace uuz
 			if (s + size() <= max_size)
 			{
 				auto temp = (T*)malloc((size() - pos + 1) * sizeof(T));
+				assert(temp);
+				/*std::copy(begin + pos, begin + ssize, temp);
+				std::copy(p, p + s, begin + pos);
+				std::copy(temp, temp + ssize - pos, begin + pos + s);*/
 				std::copy(begin + pos, begin + ssize, temp);
 				std::copy(p, p + s, begin + pos);
-				std::copy(temp, temp + ssize - pos, begin + pos + s);
+				mulitmove(temp, temp + ssize - pos, begin + pos + s);
 				free(temp);
 				ssize += s;
 			}
 			else
 			{
-
+				auto ss = (ssize *vector_speed >= ssize + s) ? ssize *vector_speed : ssize + s;
+				auto temp = (T*)malloc(ss * sizeof(T));
+				assert(temp);
+				/*std::copy(begin, begin + pos, temp);
+				std::copy(p, p + s, temp + pos);
+				std::copy(begin + pos, begin + ssize, temp + pos + s);*/
+				std::copy(begin, begin + pos, temp);
+				std::copy(p, p + s, temp + pos);
+				mulitmove(begin + pos, begin + ssize, temp + pos + s);
+				free(begin);
+				begin = temp;
+				ssize += s;
+				max_size = ss;
 			}
 		}
-
+		void append(const T* p, const size_t s)
+		{
+			if (s + size() <= max_size)
+			{
+				std::copy(p, p + s, begin + size);
+				ssize += s;
+			}
+			else
+			{
+				auto ss = (ssize *vector_speed >= ssize + s) ? ssize *vector_speed : ssize + s;
+				auto temp = (T*)malloc(ss * sizeof(T));
+				assert(temp);
+				std::copy(begin, begin + ssize, temp);
+				std::copy(p, p + s, temp + ssize);
+				free(begin);
+				ssize += s;
+				max_size = ss;
+			}
+		}
+		void erase(const size_t pos1, const size_t pos2)
+		{
+			for (auto i = begin + pos1; i != begin + pos2; ++i)
+				i->~T();
+			mulitmove(begin + pos2, begin + ssize, begin + pos1);
+			ssize -= pos2 - pos1;
+		}
 
 		~self()
 		{
@@ -162,17 +205,6 @@ namespace uuz
 		T* begin = nullptr;
 		size_t ssize = 0;
 		size_t max_size = 0;
-
-
-
-		T* getacopy(const size_t p)
-		{
-			auto t = (T*)malloc(p * sizeof(T));
-			assert(t);
-			std::copy(begin,begin+ssize,t);
-			//max_size = p;
-			return t;
-		}
 
 	};
 
@@ -185,13 +217,30 @@ namespace uuz
 		using size_t = uint32_t;
 		friend vector_iterator<T>;
 		
-
+		vector_impl core;
 		
 		
 	public:
+		self() = default;
+		self(const size_t n):core{n}{}
+		self(const self& t):core{t.core}{}
+		self(self&& t):core{std::move(t.core)}{}
+		template<int N>
+		self(const T(&a)[N]) : core{ N } { core.insert(a, N); }
+		self(const T* a, const size_t p) :core{ p } { core.insert(a,p); }
+		self(const iterator& a, const iterator& b)
+		{
+			core.assign(a.data, b - a);
+		}
+		template<int U>
+		self(const U& a, const U&b)
+		{
+			core.assign(&(*a), b - a);
+		}
 
 
-	
+
+		~vector() = default;
 	private:
 	
 	};

@@ -1,4 +1,5 @@
 #pragma once
+#include<type_traits>
 namespace uuz
 {
 
@@ -42,11 +43,11 @@ namespace uuz
 		return static_cast<typename uuz::remove_reference<T>::type&&>(what);
 	}
 	template<typename T>
-	void mulitmove(T* b,T* e,T*d) noexcept
+	void mulitmove(const T* b,const T* e,const T*d) noexcept
 	{
 		for (auto it = b; it != e; ++it)
-			*(d + (it - b)) = move(*it);
+			auto p = new(d + (it - b)) T(std::move_if_noexcept(*it));
 	}
 	using std::swap;
-	using std::forward;
+	using std::forward;	
 }
