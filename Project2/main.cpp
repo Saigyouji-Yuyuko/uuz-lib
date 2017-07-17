@@ -24,19 +24,36 @@
 #include<numeric>
 #include <iomanip>
 #pragma warning(disable:4996)
+void print_vec(const uuz::vector<int>& vec)
+{
+	for (auto x : vec) {
+		std::cout << ' ' << x;
+	}
+	std::cout << '\n';
+}
+
 int main()
 {
-	// Create a vector containing integers
-	uuz::vector<int> v = { 7, 5, 16, 8 };
+	uuz::vector<int> vec(3, 100);
+	print_vec(vec);
 
-	// Add two more integers to vector
-	v.push_back(25);
-	v.push_back(13);
+	auto it = vec.begin();
+	it = vec.insert(it, 200);
+	print_vec(vec);
 
-	// Iterate and print values of vector
-	for (int n : v) {
-		std::cout << n << '\n';
-	}
+	vec.insert(it, 2, 300);
+	print_vec(vec);
+
+	// "it" no longer valid, get a new one:
+	it = vec.begin();
+
+	uuz::vector<int> vec2(2, 400);
+	//vec.insert(it + 2, vec2.begin(), vec2.end());
+	//print_vec(vec);
+
+	int arr[] = { 501,502,503 };
+	vec.insert(vec.begin(), arr, arr + 3);
+	print_vec(vec);
 	system("pause");
 	return 0;
 

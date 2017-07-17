@@ -182,7 +182,9 @@ namespace uuz
 			initfrom(init.begin(), init.end());
 		}
 		//ÖØ´ó bug 
-		template<typename InputIt>
+		template<typename InputIt, std::enable_if_t<
+			std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value,
+			int> = 0>
 		self(InputIt first, InputIt last)
 		{
 			initfrom(first, last);
@@ -216,7 +218,10 @@ namespace uuz
 			auto temp= self( count,value );
 			this->swap(temp);
 		}
-		template< class InputIt >
+		//bug
+		template< class InputIt, std::enable_if_t<
+			std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value,
+			int> = 0>
 		void assign(const InputIt& first,const InputIt& last)
 		{
 			auto temp{ first,last };
@@ -382,7 +387,10 @@ namespace uuz
 			ssize += count;
 			return begin() + p ;
 		}
-		template< typename InputIt >
+		//bug
+		template< typename InputIt, std::enable_if_t<
+			std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value,
+			int> = 0>
 		iterator insert(const iterator pos,  InputIt first, InputIt last)
 		{
 			auto p = pos - begin();
