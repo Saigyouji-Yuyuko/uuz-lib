@@ -48,8 +48,8 @@ int main()
 	it = vec.begin();
 
 	uuz::vector<int> vec2(2, 400);
-	//vec.insert(it + 2, vec2.begin(), vec2.end());
-	//print_vec(vec);
+	vec.insert(it + 2, vec2.begin(), vec2.end());
+	print_vec(vec);
 
 	int arr[] = { 501,502,503 };
 	vec.insert(vec.begin(), arr, arr + 3);

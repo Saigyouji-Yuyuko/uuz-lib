@@ -181,10 +181,7 @@ namespace uuz
 		{
 			initfrom(init.begin(), init.end());
 		}
-		//ÖØ´ó bug 
-		template<typename InputIt, std::enable_if_t<
-			std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value,
-			int> = 0>
+		template<typename InputIt, typename = decltype(*(std::declval<InputIt>()))>
 		self(InputIt first, InputIt last)
 		{
 			initfrom(first, last);
@@ -218,10 +215,7 @@ namespace uuz
 			auto temp= self( count,value );
 			this->swap(temp);
 		}
-		//bug
-		template< class InputIt, std::enable_if_t<
-			std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value,
-			int> = 0>
+		template< class InputIt, typename = decltype(*(std::declval<InputIt>()))>
 		void assign(const InputIt& first,const InputIt& last)
 		{
 			auto temp{ first,last };
@@ -387,17 +381,15 @@ namespace uuz
 			ssize += count;
 			return begin() + p ;
 		}
-		//bug
-		template< typename InputIt, std::enable_if_t<
-			std::is_base_of<std::input_iterator_tag, typename std::iterator_traits<InputIt>::iterator_category>::value,
-			int> = 0>
+		template< typename InputIt, typename = decltype(*(std::declval<InputIt>()))>
 		iterator insert(const iterator pos,  InputIt first, InputIt last)
 		{
 			auto p = pos - begin();
 			auto dis = last - first;
 			auto temp = (T*)malloc(dis * sizeof(T));
 			assert(temp);
-			std::copy(first, last, temp);
+			for (auto i = 0; i != dis; ++i)
+				auto k = new(temp + i) T(*(first + i));
 			reserve(size() + dis);
 			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + dis));
 			for (int i = 0; i < dis; ++i)
