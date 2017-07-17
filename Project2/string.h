@@ -146,13 +146,13 @@ namespace uuz
 		self(self&&) = default;
 		self& operator=(const self&) = default;
 		self& operator=(self&&) = default;
-		self& operator+=(const size_t opps)
+		self& operator+=(const int opps)
 		{
 			//assert(static_cast <size_t>(data) + opps > opps && static_cast<size_t>(data) + opps > static_cast<size_t>(data));
 			data += opps;
 			return *this;
 		}
-		self& operator-=(const size_t opps)
+		self& operator-=(const int opps)
 		{
 			assert(opps <= static_cast <size_t>(data));
 			data -= opps;
@@ -161,9 +161,9 @@ namespace uuz
 		Chartype& operator*()noexcept { return *data; }
 		const Chartype& operator*()const noexcept { return *data; }
 		self& operator++() { *this += 1; return *this; }
-		self operator++(int) { auto p{ *this } *this += 1; return p; }
+		self operator++(int) { auto p{ *this }; *this += 1; return p; }
 		self& operator--() { *this -= 1; return *this; }
-		self operator--(int) { auto p{ *this } *this -= 1; return p; }
+		self operator--(int) { auto p{ *this }; *this -= 1; return p; }
 
 		friend bool operator==(const self& a, const self& b)noexcept
 		{
@@ -189,13 +189,13 @@ namespace uuz
 		{
 			return a > b || a == b;
 		}
-		friend self operator+(const self& a, const size_t b)
+		friend self operator+(const self& a, const int b)
 		{
 			self c{ a };
 			c += b;
 			return c;
 		}
-		friend size_t operator-(const self& a, const self& b)noexcept
+		friend int operator-(const self& a, const self& b)noexcept
 		{
 			return a.data - b.data;
 		}
@@ -205,7 +205,8 @@ namespace uuz
 			c -= b;
 			return c;
 		}
-		~string_base_iterator() = default;
+
+		//~string_base_iterator() = default;
 	private:
 		self(Chartype *p) :data{ p } {  }
 		self(const Chartype *p) :data{ const_cast<Chartype*>(p) } { }

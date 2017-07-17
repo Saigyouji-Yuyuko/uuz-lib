@@ -5,47 +5,86 @@
 #include<initializer_list>
 #include<cassert>
 #include<cmath>
+#include<algorithm>
 #include<iostream>
 namespace uuz
 {
 	constexpr float vector_speed = 1.5;
-	/*template<typename T>
-	class vector_iterator 
+	template<typename T>
+	class vector_iterator
 	{
-		using self = vector_iterator<T>;
-		friend vector<T>;
+		using self = vector_iterator;
 	public:
-		self() = default;
-		self(const self& d) :p{ d.p } {}
-
-		self& operator=(const self& d) { p = d.p; return *this; }
-
-		virtual use_type& operator*()override { return *p; }
-		virtual const use_type& operator*()const override { return *p; }
-
-		virtual self& operator++()override { ++p; return *this; }
-		self operator++(int) { auto l = *this; ++p; return l; }
-		virtual self& operator--()override { --p; return *this; }
-		self operator--(int) { auto l = *this; --p; return l; }
-
-		virtual self& operator-=(const int i)override { p -= i; return *this; }
-		virtual self& operator+=(const int i)override { p += i; return *this; }
-		friend int operator-(const self& a, const self& b)
+		vector_iterator() = delete;
+		self(const self& t):dat{t.dat}{}
+		self(self&& t) :dat{ t.dat } { t.dat = nullptr; }
+	
+		self& operator=(const self& t)noexcept
 		{
-			return a.p - b.p;
+			dat = t.dat;
+			return *this;
 		}
-		friend int operator-(const self& a, const size_t b)
+		self& operator=(self&& t)noexcept
 		{
-			return self{ a.p - b };
+			if (this == &t)
+				return *this;
+			dat = t.dat;
+			t.dat = nullptr;
 		}
-		friend self operator+ (const self& a, const size_t b)
+		self& operator+=(const int t)noexcept
 		{
-			return self{ a.p + b };
+			dat += t;
+			return *this;
+		}
+		self& operator-=(const int t)
+		{
+			dat -= t;
+			return *this;
+
+		}
+		self& operator++() noexcept 
+		{ 
+			*this += 1;
+			return *this;
+		}
+		self operator++(int)noexcept 
+		{ 
+			auto p{ *this };
+			*this += 1;
+			return p;
+		}
+		self& operator--()noexcept
+		{ 
+			*this -= 1;
+			return *this; 
+		}
+		self operator--(int) noexcept 
+		{
+			auto p{ *this }; 
+			*this -= 1;
+			return p;
+		}
+
+		T& operator*()noexcept
+		{
+			return *dat;
+		}
+		const T& operator*()const noexcept
+		{
+			return *dat;
+		}
+		T* operator->()noexcept
+		{
+			return dat;
+		}
+		const T* operator->()const noexcept
+		{
+			return dat;
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
 		{
-			return a.p == b.p;
+			return a.dat == b.dat;
 		}
 		friend bool operator!=(const self& a, const self& b)noexcept
 		{
@@ -53,7 +92,7 @@ namespace uuz
 		}
 		friend bool operator<(const self& a, const self& b)noexcept
 		{
-			return a.p < b.p;
+			return a.dat < b.dat;
 		}
 		friend bool operator>(const self& a, const self& b)noexcept
 		{
@@ -65,149 +104,32 @@ namespace uuz
 		}
 		friend bool operator>=(const self& a, const self& b)noexcept
 		{
-			return b < a || a == b;
+			return a > b || a == b;
 		}
 
-		~vector_iterator() = default;
+		friend self operator+(const self& a, const size_t b)
+		{
+			self c{ a };
+			c += b;
+			return c;
+		}
+		friend int operator-(const self& a, const self& b)noexcept
+		{
+			return a.dat - b.dat;
+		}
+		friend self operator-(const self& a, const int b)
+		{
+			self c{ a };
+			c -= b;
+			return c;
+		}
+
+		//~vector_iterator(){}
 	private:
-		self(const T* d) :p{ d } {  }
-		self(void* d) :p{ (T*)d } {  }
-		T* p = nullptr;
-	};*/
-	template<typename T>
-	class vector_iterator
-	{
-
+		explicit self(T* t) :dat{ dat; }{}
+		explicit self(const T* t) :dat{ const_cast<T*>(t) } {}
+		T* dat = nullptr;
 	};
-
-	template<typename T>
-	struct vector_impl
-	{
-		using size_t = uint32_t;
-		using self = vector_impl;
-		self() = default;
-		self(const size_t t) :begin((T*)malloc(t * sizeof(T))),
-							  max_size(t)
-		{
-			assert(begin);
-		}
-		self(const self& t):begin((T*)malloc(t.ssize*sizeof(T))),
-							max_size(t.ssize),
-							ssize(t.ssize)
-		{
-			for (auto i = t.begin; i != t.begin + t.ssize; ++i)
-				auto p = new(begin + (i - t.begin)) T(*i);
-		}
-		self(self&& t)
-		{
-			using std::swap;
-			swap(t.begin, begin);
-			swap(ssize, t.ssize);
-			swap(max_size, t.max_size);
-		}
-
-		self& operator=(const self& t)
-		{
-			auto temp{ t };
-			swap(t.begin, begin);
-			swap(ssize, t.ssize);
-			swap(max_size, t.max_size);
-		}
-		self& operator=(self&& t)
-		{
-			auto temp{ std::move(t) };
-			swap(t.begin, begin);
-			swap(ssize, t.ssize);
-			swap(max_size, t.max_size);
-		}
-
-		void clear()noexcept
-		{
-			clean();
-			free(begin);
-			begin = nullptr;
-			max_size = 0;
-		}
-		void clean()noexcept
-		{
-			for (auto i = begin; i != begin + ssize; ++i)
-				i->~T();
-			ssize = 0;
-		}
-		size_t size()const noexcept
-		{
-			return ssize;
-		}
-
-		void insert(const size_t pos, const T* p, const size_t s)
-		{
-			if (s + size() <= max_size)
-			{
-				auto temp = (T*)malloc((size() - pos + 1) * sizeof(T));
-				assert(temp);
-				/*std::copy(begin + pos, begin + ssize, temp);
-				std::copy(p, p + s, begin + pos);
-				std::copy(temp, temp + ssize - pos, begin + pos + s);*/
-				std::copy(begin + pos, begin + ssize, temp);
-				std::copy(p, p + s, begin + pos);
-				mulitmove(temp, temp + ssize - pos, begin + pos + s);
-				free(temp);
-				ssize += s;
-			}
-			else
-			{
-				auto ss = (ssize *vector_speed >= ssize + s) ? ssize *vector_speed : ssize + s;
-				auto temp = (T*)malloc(ss * sizeof(T));
-				assert(temp);
-				/*std::copy(begin, begin + pos, temp);
-				std::copy(p, p + s, temp + pos);
-				std::copy(begin + pos, begin + ssize, temp + pos + s);*/
-				std::copy(begin, begin + pos, temp);
-				std::copy(p, p + s, temp + pos);
-				mulitmove(begin + pos, begin + ssize, temp + pos + s);
-				free(begin);
-				begin = temp;
-				ssize += s;
-				max_size = ss;
-			}
-		}
-		void append(const T* p, const size_t s)
-		{
-			if (s + size() <= max_size)
-			{
-				std::copy(p, p + s, begin + size);
-				ssize += s;
-			}
-			else
-			{
-				auto ss = (ssize *vector_speed >= ssize + s) ? ssize *vector_speed : ssize + s;
-				auto temp = (T*)malloc(ss * sizeof(T));
-				assert(temp);
-				std::copy(begin, begin + ssize, temp);
-				std::copy(p, p + s, temp + ssize);
-				free(begin);
-				ssize += s;
-				max_size = ss;
-			}
-		}
-		void erase(const size_t pos1, const size_t pos2)
-		{
-			for (auto i = begin + pos1; i != begin + pos2; ++i)
-				i->~T();
-			mulitmove(begin + pos2, begin + ssize, begin + pos1);
-			ssize -= pos2 - pos1;
-		}
-
-		~self()
-		{
-			clear();
-		}
-		T* begin = nullptr;
-		size_t ssize = 0;
-		size_t max_size = 0;
-
-	};
-
 
 	template<typename T>
 	class vector
@@ -216,35 +138,403 @@ namespace uuz
 		using self = vector<T>;
 		using size_t = uint32_t;
 		friend vector_iterator<T>;
-		
-		vector_impl core;
-		
-		
+					
 	public:
 		self() = default;
-		self(const size_t n):core{n}{}
-		self(const self& t):core{t.core}{}
-		self(self&& t):core{std::move(t.core)}{}
-		template<int N>
-		self(const T(&a)[N]) : core{ N } { core.insert(a, N); }
-		self(const T* a, const size_t p) :core{ p } { core.insert(a,p); }
-		self(const iterator& a, const iterator& b)
+		self(const size_t t, const T& value)
 		{
-			core.assign(a.data, b - a);
+			reserve(t);
+			for (auto i = 0; i < t; ++i)
+				auto k = new(shuju + i) T{ value };
+			ssize = t;
 		}
-		template<int U>
-		self(const U& a, const U&b)
+		self(const size_t t)
 		{
-			core.assign(&(*a), b - a);
+			reserve(t);
+		}
+		template< class InputIt >
+		self(const InputIt& first, const InputIt& last)
+		{
+			initfrom(first, last);
+		}
+		self(const self& t)
+		{
+			initfrom(t.begin(), t.end()));
+		}
+		self(self&& t):self()
+		{
+			this->swap(t);
+		}
+		self(const std::initializer_list<T>& init)
+		{
+			initfrom(init.begin(), init.end()));
 		}
 
+		self& operator=(const self& other)
+		{
+			if (this == &other)
+				return *this;
+			auto temp{ other };
+			this->swap(temp);
+			return *this;
+		}
+		self& operator=(self&& other)
+		{
+			if (this == &other)
+				return *this;
+			auto temp{ std::move(other) }; 
+			this->swap(temp);
+			return *this;
+		}
+		self& operator=(const std::initializer_list<T>& ilist)
+		{
+			auto temp{ ilist };
+			this->swap(temp);
+			return *this;
+		}
 
+		void assign(const size_t count, const T& value)
+		{
+			auto temp{ count,value };
+			this->swap(temp);
+		}
+		template< class InputIt >
+		void assign(const InputIt& first,const InputIt& last)
+		{
+			auto temp{ first,last };
+			this->swap(temp);
+		}
+		void assign(const std::initializer_list<T>& ilist)
+		{
+			auto temp{ ilist };
+			this->swap(temp);
+		}
 
-		~vector() = default;
+		T& at(const size_t pos)
+		{
+			assert(pos < size());
+			return  *(data() + pos);
+		}
+		const T& at(const size_t pos) const
+		{
+			assert(pos < size());
+			return  *(data() + pos);
+		}
+
+		T& operator[](size_t pos)noexcept
+		{
+			return *(data() + pos);
+		}
+		const T& operator[](size_t pos) const noexcept
+		{
+			return *(data() + pos);
+		}
+
+		T& front()noexcept
+		{
+			return *begin();
+		}
+		const T& front() const noexcept
+		{
+			return *begin();
+		}
+
+		T& back()noexcept
+		{
+			return *(end() - 1);
+		}
+		const T& back() const noexcept
+		{
+			return *(end() - 1);
+		}
+
+		T* data()noexcept
+		{
+			return shuju;
+		}
+		const T* data() const noexcept
+		{
+			return shuju;
+		}
+
+		iterator begin() noexcept
+		{
+			return iterator{ shuju };
+		}
+		const iterator begin() const noexcept
+		{
+			return iterator{ shuju };
+		}
+		const iterator cbegin() const noexcept
+		{
+			return iterator{ shuju };
+		}
+
+		iterator end() noexcept
+		{
+			return iterator{ shuju + size() };
+		}
+		const iterator end() const noexcept
+		{
+			return iterator{ shuju + size() };
+		}
+		const iterator cend() const noexcept
+		{
+			return iterator{ shuju + size() };
+		}
+
+		bool empty() const noexcept
+		{
+			return size() == 0;
+		}
+
+		size_t size() const noexcept
+		{
+			return ssize;
+		}
+
+		size_t max_size() const noexcept
+		{
+			return maxsize;
+		}
+
+		void reserve(size_t new_cap)
+		{
+			if (new_cap <= max_size())
+				return;
+			auto temp = (T*)malloc(new_cap * sizeof(T));
+			assert(temp);
+			if (shuju)
+			{
+				memcpy(temp, shuju, shuju * sizeof(T));
+				free(shuju);
+			}
+			shuju = temp;
+			maxsize = new_cap;
+		}
+
+		size_t capacity() const noexcept
+		{
+			return max_size();
+		}
+
+		void shrink_to_fit()noexcept
+		{
+			reserve(size());
+		}
+		
+		void clean()noexcept
+		{
+			for (auto i = shuju; i != shuju + ssize; ++i)
+				i->~T();
+		}
+
+		void clear()noexcept
+		{
+			if (shuju)
+				clear();
+			free(shuju);
+			shuju = nullptr;
+			ssize = 0;
+			maxsize = 0;
+		}
+
+		iterator insert(const iterator pos, const T& value)
+		{
+			auto temp{ value };
+			return insert(pos, std::move(value));
+		}
+		iterator insert(const iterator pos, T&& value)
+		{
+			auto p = std::distance(begin(), pos);
+			reserve(size() + 1);
+			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + 1));
+			auto k = new(data()+p) T(std::move(value));
+			++ssize;
+			return begin() + p ;
+		}
+		iterator insert(const iterator pos, size_t count, const T& value)
+		{
+			auto temp{ value };
+			auto p = std::distance(begin(), pos);
+			reserve(size() + count);
+			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + count));
+			for (int i = 0; i < count; ++i)
+				auto k = new(data() + p + i) T(temp);
+			ssize += count;
+			return begin() + p ;
+		}
+		template< typename InputIt >
+		iterator insert(const iterator pos, const InputIt& first, const InputIt& last)
+		{
+			auto p = std::distance(begin(), pos);
+			auto dis = std::distance(first, last);
+			auto temp = (T*)malloc(dis * sizeof(T));
+			assert(temp);
+			std::copy(first, last, temp);
+			reserve(size() + dis);
+			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + dis));
+			for (int i = 0; i < dis; ++i)
+				auto k = new(data() + p + i) T(std::move(*(temp + i)));
+			ssize += dis;
+			return begin() + p;
+		}
+		iterator insert(const iterator pos, std::initializer_list<T> ilist)
+		{
+			return insert(pos, ilist.begin(), ilist.end());
+		}
+
+		template< typename... Args >
+		iterator emplace(const iterator pos, Args&&... args)
+		{
+			auto k = T{ std::forward<Args>(args)... };
+			insert(pos, std::move(k));
+		}
+
+		iterator erase(const iterator pos)
+		{
+			erase(pos, pos + 1);
+		}
+		iterator erase(const iterator first, const iterator last)
+		{
+			for (auto i = first; i != last; ++i)
+				i->~T();
+			auto dis1 = std::distance(begin(), first);
+			auto dis2 = std::distance(first, last);
+			std::copy((char*)(data() + dis1 + dis2), (char*)(data() + size()), (char*)(data() + dis1));
+			ssize -= dis2;
+		}
+
+		void push_back(const T& value)
+		{
+			auto temp{ value };
+			auto k = emplace_back(std::move(temp));
+		}
+		void push_back(T&& value)
+		{
+			auto k = emplace_back(std::move(value));
+		}
+
+		template< class... Args >
+		T& emplace_back(Args&&... args)
+		{
+			if (size() == max_size())
+				reserve(size()*vector_speed);
+			auto k = new(data() + size()) T(std::forward<Args>(args)...);
+			++ssize;
+			return *k;
+		}
+
+		void pop_back()
+		{
+			erase(end());
+		}
+
+		void resize(const size_t count)
+		{
+			resize(count, T{});
+		}
+		void resize(const size_t count, const T& value)
+		{
+			auto temp = T{ value };
+			if (count < size())
+				erase(begin() + count, end());
+			else if (count > size())
+			{
+				reserve(count);
+				for (int i = size(); i != count; ++i)
+					auto k = new(data() + i) T(temp);
+				ssize = count;
+			}
+
+		}
+
+		void swap(self& other)noexcept
+		{
+			using std::swap;
+			swap(other.shuju, shuju);
+			swap(ssize, other.ssize);
+			swap(maxsize, other.maxsize);
+		}
+		
+		friend void swap(self& a, self&b)noexcept
+		{
+			a.swap(b);
+		}
+
+		template<typename T1, typename T2>
+		friend bool operator==(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
+		{
+			if (lhs.size() != rhs.size())
+				return false;
+			return lhs.comp(rhs) == 0;
+		}
+
+		template<typename T1, typename T2>
+		friend bool operator!=(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
+		{
+			return !(lhs == rhs);
+		}
+
+		template<typename T1, typename T2>
+		friend bool operator<(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
+		{
+			return lhs.comp(rhs) == -1;
+		}
+
+		template<typename T1, typename T2>
+		friend bool operator<=(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
+		{
+			return lhs.comp(rhs) <= 0;
+		}
+
+		template<typename T1, typename T2>
+		friend bool operator>(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
+		{
+			return lhs.comp(rhs) == 1;
+		}
+
+		template<typename T1, typename T2>
+		friend bool operator>=(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
+		{
+			return lhs.comp(rhs) >= 0;
+		}
+
+		~self()noexcept
+		{
+			clear();
+		}
 	private:
-	
-	};
+		template<typename U>
+		void initfrom(const U& a, const U& b)
+		{
+			auto dis = std::distance(a, b);
+			assert(dis >= 0);
+			reserve(dis);
+			std::copy(a, b, shuju);
+			ssize = dis;
+		}
 
-	
+		int comp(const self& t)const noexcept
+		{
+			auto k = std::min(size(), t.size());
+			for (int i = 0; i != k; ++i)
+			{
+				if (this->operator[](i) < t[i])
+					return -1;
+				else if (this->operator[](i) > t[i])
+					return 1;
+			}
+			if (size() > k)
+				return 1;
+			else if (t.size() > k)
+				return -1;
+			return 0;
+		}
+
+		T* shuju = nullptr;
+		size_t ssize = 0;
+		size_t maxsize = 0;
+	};
 
 }

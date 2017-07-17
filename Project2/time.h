@@ -13,6 +13,7 @@ namespace uuz
 	{
 	public:
 		time(const char* p):start{ std::chrono::system_clock::now()},l{p}{}
+		time() :start{ std::chrono::system_clock::now() }, l{ "" } {};
 		time(const time&) = delete;
 		time(time&&) = delete;
 		time& operator=(const time&) = delete;
