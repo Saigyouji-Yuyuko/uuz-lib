@@ -11,9 +11,13 @@ namespace uuz
 {
 	constexpr float vector_speed = 1.5;
 	template<typename T>
+	class vector;
+
+	template<typename T>
 	class vector_iterator
 	{
 		using self = vector_iterator;
+		friend vector<T>;
 	public:
 		vector_iterator() = delete;
 		self(const self& t):dat{t.dat}{}
@@ -125,8 +129,8 @@ namespace uuz
 		}
 
 		//~vector_iterator(){}
-	private:
-		explicit self(T* t) :dat{ dat; }{}
+	//private:
+		explicit self(T* t) :dat{ t }{}
 		explicit self(const T* t) :dat{ const_cast<T*>(t) } {}
 		T* dat = nullptr;
 	};
@@ -139,6 +143,7 @@ namespace uuz
 		using size_t = uint32_t;
 		friend vector_iterator<T>;
 					
+
 	public:
 		self() = default;
 		self(const size_t t, const T& value)
@@ -159,7 +164,7 @@ namespace uuz
 		}
 		self(const self& t)
 		{
-			initfrom(t.begin(), t.end()));
+			initfrom(t.begin(), t.end());
 		}
 		self(self&& t):self()
 		{
@@ -167,7 +172,7 @@ namespace uuz
 		}
 		self(const std::initializer_list<T>& init)
 		{
-			initfrom(init.begin(), init.end()));
+			initfrom(init.begin(), init.end());
 		}
 
 		self& operator=(const self& other)
@@ -188,14 +193,14 @@ namespace uuz
 		}
 		self& operator=(const std::initializer_list<T>& ilist)
 		{
-			auto temp{ ilist };
+			auto temp( ilist );
 			this->swap(temp);
 			return *this;
 		}
 
 		void assign(const size_t count, const T& value)
 		{
-			auto temp{ count,value };
+			auto temp= self( count,value );
 			this->swap(temp);
 		}
 		template< class InputIt >
@@ -232,20 +237,20 @@ namespace uuz
 
 		T& front()noexcept
 		{
-			return *begin();
+			return *(data());
 		}
 		const T& front() const noexcept
 		{
-			return *begin();
+			return *(data());
 		}
 
 		T& back()noexcept
 		{
-			return *(end() - 1);
+			return *(data()+size() - 1);
 		}
 		const T& back() const noexcept
 		{
-			return *(end() - 1);
+			return *(data() + size() - 1);
 		}
 
 		T* data()noexcept
@@ -259,28 +264,28 @@ namespace uuz
 
 		iterator begin() noexcept
 		{
-			return iterator{ shuju };
+			return iterator{ data() };
 		}
 		const iterator begin() const noexcept
 		{
-			return iterator{ shuju };
+			return iterator{ data() };
 		}
 		const iterator cbegin() const noexcept
 		{
-			return iterator{ shuju };
+			return iterator{ data() };
 		}
 
 		iterator end() noexcept
 		{
-			return iterator{ shuju + size() };
+			return iterator{ data() + size() };
 		}
 		const iterator end() const noexcept
 		{
-			return iterator{ shuju + size() };
+			return iterator{ data() + size() };
 		}
 		const iterator cend() const noexcept
 		{
-			return iterator{ shuju + size() };
+			return iterator{ data() + size() };
 		}
 
 		bool empty() const noexcept
@@ -306,7 +311,7 @@ namespace uuz
 			assert(temp);
 			if (shuju)
 			{
-				memcpy(temp, shuju, shuju * sizeof(T));
+				memcpy(temp, shuju, size() * sizeof(T));
 				free(shuju);
 			}
 			shuju = temp;
@@ -325,17 +330,17 @@ namespace uuz
 		
 		void clean()noexcept
 		{
-			for (auto i = shuju; i != shuju + ssize; ++i)
+			for (auto i = shuju; i != shuju + size(); ++i)
 				i->~T();
+			ssize = 0;
 		}
 
 		void clear()noexcept
 		{
 			if (shuju)
-				clear();
+				clean();
 			free(shuju);
 			shuju = nullptr;
-			ssize = 0;
 			maxsize = 0;
 		}
 
@@ -387,7 +392,7 @@ namespace uuz
 		template< typename... Args >
 		iterator emplace(const iterator pos, Args&&... args)
 		{
-			auto k = T{ std::forward<Args>(args)... };
+			auto k = T( std::forward<Args>(args)... );
 			insert(pos, std::move(k));
 		}
 
@@ -419,7 +424,7 @@ namespace uuz
 		T& emplace_back(Args&&... args)
 		{
 			if (size() == max_size())
-				reserve(size()*vector_speed);
+				reserve(size() == 0 ? 1 : size()*vector_speed);
 			auto k = new(data() + size()) T(std::forward<Args>(args)...);
 			++ssize;
 			return *k;
@@ -500,7 +505,7 @@ namespace uuz
 			return lhs.comp(rhs) >= 0;
 		}
 
-		~self()noexcept
+		~vector()noexcept
 		{
 			clear();
 		}
@@ -508,10 +513,11 @@ namespace uuz
 		template<typename U>
 		void initfrom(const U& a, const U& b)
 		{
-			auto dis = std::distance(a, b);
+			auto dis = b-a;
 			assert(dis >= 0);
 			reserve(dis);
-			std::copy(a, b, shuju);
+			for (auto i = 0; i != dis; ++i)
+				auto k = new(shuju + i) T(*(a + i));
 			ssize = dis;
 		}
 

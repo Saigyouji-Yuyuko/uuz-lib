@@ -480,8 +480,9 @@ namespace uuz
 		{
 			if (this != &p)
 			{
+				using std::swap;
 				auto temp{ p };
-				swap(this->core, temp->core);
+				swap(this->core, temp.core);
 			}
 			return *this;
 		}
@@ -492,7 +493,7 @@ namespace uuz
 			{
 				using std::swap;
 				auto temp{ std::move(p) };
-				swap(this->core, temp.core);
+				::swap(this->core, temp.core);
 			}
 			return *this;
 		}
