@@ -4,6 +4,7 @@ namespace uuz
 {
 
 	class nil {};
+	class allocator {};
 	template<typename T, typename b>
 	struct pre_less
 	{

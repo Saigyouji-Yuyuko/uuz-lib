@@ -10,14 +10,13 @@
 namespace uuz
 {
 	constexpr float vector_speed = 1.5;
-	template<typename T>
+	template<typename T,typename A>
 	class vector;
 
 	template<typename T>
 	class vector_iterator
 	{
 		using self = vector_iterator;
-		friend vector<T>;
 	public:
 		vector_iterator() = delete;
 		self(const self& t):dat{t.dat}{}
@@ -135,18 +134,31 @@ namespace uuz
 		T* dat = nullptr;
 	};
 
-	template<typename T>
+	template<typename T,typename Allocator = uuz::allocator>
 	class vector
 	{
-		using iterator = vector_iterator<T>;
-		using self = vector<T>;
+		using self = vector<T, Allocator>;
 		using size_t = uint32_t;
+		
+
+		using value_type = T;
+		using allocator_type = Allocator;
+		using size_type = uint32_t;
+		using difference_type = int;
+		using reference =value_type&;
+		using const_reference = const value_type&;
+//		using pointer = std::allocator_traits<Allocator>::pointer;
+//		using const_pointer = std::allocator_traits<Allocator>::const_pointer;
+		using iterator = vector_iterator<T>;
+		using const_iterator=const  vector_iterator<T>;
+		using reverse_iterator = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
 		friend vector_iterator<T>;
-					
 
 	public:
 		self() = default;
-		self(const size_t t, const T& value)
+		self(size_t t, const T& value)
 		{
 			reserve(t);
 			for (auto i = 0; i < t; ++i)
@@ -156,12 +168,7 @@ namespace uuz
 		self(const size_t t)
 		{
 			reserve(t);
-		}
-		template< class InputIt >
-		self(const InputIt& first, const InputIt& last)
-		{
-			initfrom(first, last);
-		}
+		}	
 		self(const self& t)
 		{
 			initfrom(t.begin(), t.end());
@@ -173,6 +180,12 @@ namespace uuz
 		self(const std::initializer_list<T>& init)
 		{
 			initfrom(init.begin(), init.end());
+		}
+		//ÖØ´ó bug 
+		template<typename InputIt>
+		self(InputIt first, InputIt last)
+		{
+			initfrom(first, last);
 		}
 
 		self& operator=(const self& other)
@@ -351,7 +364,7 @@ namespace uuz
 		}
 		iterator insert(const iterator pos, T&& value)
 		{
-			auto p = std::distance(begin(), pos);
+			auto p = pos-begin();
 			reserve(size() + 1);
 			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + 1));
 			auto k = new(data()+p) T(std::move(value));
@@ -361,7 +374,7 @@ namespace uuz
 		iterator insert(const iterator pos, size_t count, const T& value)
 		{
 			auto temp{ value };
-			auto p = std::distance(begin(), pos);
+			auto p = pos - begin();
 			reserve(size() + count);
 			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + count));
 			for (int i = 0; i < count; ++i)
@@ -370,10 +383,10 @@ namespace uuz
 			return begin() + p ;
 		}
 		template< typename InputIt >
-		iterator insert(const iterator pos, const InputIt& first, const InputIt& last)
+		iterator insert(const iterator pos,  InputIt first, InputIt last)
 		{
-			auto p = std::distance(begin(), pos);
-			auto dis = std::distance(first, last);
+			auto p = pos - begin();
+			auto dis = last - first;
 			auto temp = (T*)malloc(dis * sizeof(T));
 			assert(temp);
 			std::copy(first, last, temp);
@@ -398,33 +411,35 @@ namespace uuz
 
 		iterator erase(const iterator pos)
 		{
-			erase(pos, pos + 1);
+			return erase(pos, pos + 1);
 		}
 		iterator erase(const iterator first, const iterator last)
 		{
 			for (auto i = first; i != last; ++i)
-				i->~T();
-			auto dis1 = std::distance(begin(), first);
-			auto dis2 = std::distance(first, last);
+				(*i).~T();
+			
+			auto dis1 = first - begin();
+			auto dis2 = last - first;
 			std::copy((char*)(data() + dis1 + dis2), (char*)(data() + size()), (char*)(data() + dis1));
 			ssize -= dis2;
+			return first;
 		}
 
 		void push_back(const T& value)
 		{
 			auto temp{ value };
-			auto k = emplace_back(std::move(temp));
+			emplace_back(std::move(temp));
 		}
 		void push_back(T&& value)
 		{
-			auto k = emplace_back(std::move(value));
+			 emplace_back(std::move(value));
 		}
 
 		template< class... Args >
 		T& emplace_back(Args&&... args)
 		{
 			if (size() == max_size())
-				reserve(size() == 0 ? 1 : size()*vector_speed);
+				reserve(size() == 0 ? 1 : ceil(size()*vector_speed));
 			auto k = new(data() + size()) T(std::forward<Args>(args)...);
 			++ssize;
 			return *k;

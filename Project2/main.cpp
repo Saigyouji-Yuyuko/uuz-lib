@@ -22,15 +22,20 @@
 #include<array>
 #include<algorithm>
 #include<numeric>
+#include <iomanip>
 #pragma warning(disable:4996)
 int main()
 {
-	uuz::vector<char> characters;
+	// Create a vector containing integers
+	uuz::vector<int> v = { 7, 5, 16, 8 };
 
-	characters.assign(5, 'a');
+	// Add two more integers to vector
+	v.push_back(25);
+	v.push_back(13);
 
-	for (char c : characters) {
-		std::cout << c << '\n';
+	// Iterate and print values of vector
+	for (int n : v) {
+		std::cout << n << '\n';
 	}
 	system("pause");
 	return 0;
