@@ -10,12 +10,13 @@ namespace uuz
 		using self = list_iterator;
 		friend list<T, Allocator>;
 	public:
-
+	
 	private:
-		T* dat = nullptr;
+		T dat;
 		list_iterator* next = nullptr;
 		list_iterator* last = nullptr;
 	};
+
 	template<typename T,typename Allocator = uuz::allocator>
 	class list
 	{
@@ -89,33 +90,58 @@ namespace uuz
 			return *(end() - 1);
 		}
 
-		iterator begin()noexcept;
-		const iterator begin()const noexcept;
-		const iterator cbegin()const noexcept;
+		iterator begin()noexcept
+		{
+			return *head;
+		}
+		const iterator begin()const noexcept
+		{
+			return *head;
+		}
+		const iterator cbegin()const noexcept
+		{
+			return *head;
+		}
 
-		iterator end()noexcept;
-		const iterator end()const noexcept;
-		const iterator end()const noexcept;
+		iterator end()noexcept
+		{
+			return *(nil->next);
+		}
+		const iterator end()const noexcept
+		{
+			return  *(nil->next);
+		}
+		const iterator end()const noexcept
+		{
+			return  *(nil->next);
+		}
 
 		bool empty()const noexcept
 		{
-			return size()==0;
+			return head == nil;
 		}
 
 		size_t size()const noexcept
 		{
-			return num;
+			size_t t = 0;
+			auto p = head;
+			while (p != nullptr)
+			{
+				p = p->next;
+				++t;
+			}
+			return t;
 		}
 
 		size_t max_size()const noexcept
 		{
-			return num
+			return size();
 		}
 
 		void clear()noexcept
 		{
-			shuju->destory();
-			num = 0;
+			head->destory();
+			head = nil = nullptr;
 		}
 
 		iterator insert(const_iterator pos, const T& value);
@@ -131,22 +157,42 @@ namespace uuz
 		iterator erase(const iterator& pos)
 		{
 			return erase(pos, pos->next);
-
 		}
 		iterator erase(const iterator& first, const iterator& last)
 		{
-
+			if (first == begin() && last == end())
+				clear();
+			else
+			{
+				first->last->next = last;
+				last->last->next = nullptr;
+				last->last = first->last;
+				first.destroy();
+			}
+			return last;
 		}
 
 		void push_back(const T& value)
 		{
-			auto temp{ value };
-
+			emplace_back(std::move(temp));
 		}
-		void push_back(T&& value);
+		void push_back(T&& value)
+		{
+			emplace_back(std::move(value));
+		}
 
-		template< class... Args >
-		reference emplace_back(Args&&... args);
+		template< typename... Args >
+		T& emplace_back(Args&&... args)
+		{
+			T temp(std::forward<Args>(args)...);
+			auto  k = new iterator(std::move(temp));
+			k->next = nil->next;
+			
+			nil->next = k;
+			k->last = nil->last;
+			nil->last = k;
+			return k->dat;
+		}
 
 		void pop_back();
 
@@ -164,8 +210,8 @@ namespace uuz
 		void swap(list& other)noexcept
 		{
 			using std::swap;
-			swap(shuju, other.shuju);
-			swap(num, other.shuju);
+			swap(head, other.head);
+			swap(nil, other.nil);
 		}
 
 		void merge(list& other);
@@ -233,7 +279,8 @@ namespace uuz
 			clear();
 		}
 	private:
-		iterator* shuju = nullptr;
-		size_t num = 0;
+		void link()
+		iterator* head = nullptr;
+		iterator* nil = nullptr;
 	};
 }
