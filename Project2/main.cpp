@@ -24,37 +24,19 @@
 #include<numeric>
 #include <iomanip>
 #pragma warning(disable:4996)
-void print_vec(const uuz::vector<int>& vec)
+template<int N>
+struct addd
 {
-	for (auto x : vec) {
-		std::cout << ' ' << x;
-	}
-	std::cout << '\n';
-}
-
+	static const int value = N + addd<N-1>::value;
+};
+template<>
+struct addd<1>
+{
+	static const int value = 1;
+};
 int main()
 {
-	uuz::vector<int> vec(3, 100);
-	print_vec(vec);
+	std::cout << addd<60>::value << std::endl;
 
-	auto it = vec.begin();
-	it = vec.insert(it, 200);
-	print_vec(vec);
-
-	vec.insert(it, 2, 300);
-	print_vec(vec);
-
-	// "it" no longer valid, get a new one:
-	it = vec.begin();
-
-	uuz::vector<int> vec2(2, 400);
-	vec.insert(it + 2, vec2.begin(), vec2.end());
-	print_vec(vec);
-
-	int arr[] = { 501,502,503 };
-	vec.insert(vec.begin(), arr, arr + 3);
-	print_vec(vec);
-	system("pause");
 	return 0;
-
 }

@@ -13,10 +13,11 @@ namespace uuz
 	template<typename T,typename A>
 	class vector;
 
-	template<typename T>
+	template<typename T,typename A>
 	class vector_iterator
 	{
 		using self = vector_iterator;
+		friend class vector<T, A>;
 	public:
 		vector_iterator() = delete;
 		self(const self& t):dat{t.dat}{}
@@ -128,7 +129,7 @@ namespace uuz
 		}
 
 		//~vector_iterator(){}
-	//private:
+	private:
 		explicit self(T* t) :dat{ t }{}
 		explicit self(const T* t) :dat{ const_cast<T*>(t) } {}
 		T* dat = nullptr;
@@ -149,8 +150,8 @@ namespace uuz
 		using const_reference = const value_type&;
 //		using pointer = std::allocator_traits<Allocator>::pointer;
 //		using const_pointer = std::allocator_traits<Allocator>::const_pointer;
-		using iterator = vector_iterator<T>;
-		using const_iterator=const  vector_iterator<T>;
+		using iterator = vector_iterator<T,Allocator>;
+		using const_iterator=const  vector_iterator<T, Allocator>;
 		using reverse_iterator = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -218,7 +219,7 @@ namespace uuz
 		template< class InputIt, typename = decltype(*(std::declval<InputIt>()))>
 		void assign(const InputIt& first,const InputIt& last)
 		{
-			auto temp{ first,last };
+			auto temp( first,last );
 			this->swap(temp);
 		}
 		void assign(const std::initializer_list<T>& ilist)
@@ -415,6 +416,11 @@ namespace uuz
 		}
 		iterator erase(const iterator first, const iterator last)
 		{
+			if (first == begin() && last == end())
+			{
+				clear();
+				return begin();
+			}
 			for (auto i = first; i != last; ++i)
 				(*i).~T();
 			

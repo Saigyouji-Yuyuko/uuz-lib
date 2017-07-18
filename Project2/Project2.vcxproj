@@ -22,6 +22,7 @@
     <ClInclude Include="debug.h" />
     <ClInclude Include="file.h" />
     <ClInclude Include="functor.h" />
+    <ClInclude Include="list.h" />
     <ClInclude Include="map.h" />
     <ClInclude Include="math.h" />
     <ClInclude Include="pair.h" />
