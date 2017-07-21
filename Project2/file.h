@@ -16,9 +16,10 @@ namespace uuz
 {
 	class file 
 	{
-		const static unsigned int maxline = 4096;
+		static constexpr unsigned int maxline = 4096;
 	public:
 		file() : begin((char*)malloc(maxline+1)), limit(begin + maxline), avail(limit) { assert(p && begin && limit && avail); };
+		file(FILE* t): p(t), begin((char*)malloc(maxline + 1)), limit(begin + maxline), avail(limit) { assert(p && begin && limit && avail); };
 		file(const char* c, const char* w = "rb+") : begin((char*)malloc(maxline+1)), limit(begin + maxline), avail(limit) { fopen_s(&p, c, w); assert(p && begin && limit && avail); }
 		~file()
 		{

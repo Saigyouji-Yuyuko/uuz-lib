@@ -458,6 +458,10 @@ namespace uuz
 	template<typename T>
 	class string_base
 	{
+		
+
+	public:
+
 		using Chartype = T;
 		using self = string_base;
 		using size_t = uint32_t;
@@ -468,7 +472,6 @@ namespace uuz
 		string_base_core<T>* core = nullptr;
 		static iterator npos;
 
-	public:
 		self() :core{ new string_base_core<T>()} {}
 		self(const Chartype* p) :core{ new string_base_core<T>(p,strlen(p)) } {}
 		self(const self& p) :core{ new string_base_core<T>(*(p.core)) } {}
@@ -493,7 +496,7 @@ namespace uuz
 			{
 				using std::swap;
 				auto temp{ std::move(p) };
-				::swap(this->core, temp.core);
+				swap(this->core, temp.core);
 			}
 			return *this;
 		}

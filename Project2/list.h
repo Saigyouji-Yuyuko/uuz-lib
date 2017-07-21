@@ -4,17 +4,118 @@ namespace uuz
 {
 	template<typename T,typename A>
 	class list;
+
+	template<typename T,typename A>
+	struct list_node
+	{
+		T dat;
+		self* next = nullptr;
+		self* last = nullptr;
+
+		void destroy()
+		{
+			if (next == nullptr)
+			{
+				delete this;
+				return;
+			}
+			next->destroy();
+			delete this;
+			return;
+		}
+
+		void tuoli()
+		{
+			last->next = next;
+			next->last = last;
+
+		}
+
+		void insert(list_node* a)
+		{
+			auto p = a->next;
+			a->next = this;
+			p->last = this;
+			this->last = a;
+			this->next = p;
+		}
+	};
+
 	template<typename T, typename Allocator = uuz::allocator>
 	class list_iterator
 	{
 		using self = list_iterator;
 		friend list<T, Allocator>;
 	public:
-	
+		self& operator++() noexcept
+		{
+			t= t->next;
+			return *this;
+		}
+		self operator++(int)noexcept
+		{
+			auto p{ *this };
+			t = t->next;
+			return p;
+		}
+		self& operator--()noexcept
+		{
+			t = t->last;
+			return *this;
+		}
+		self operator--(int) noexcept
+		{
+			auto p{ *this };
+			t = t->last;
+			return p;
+		}
+
+		T& operator*()noexcept
+		{
+			return t->dat;
+		}
+		const T& operator*()const noexcept
+		{
+			return t->dat;
+		}
+		T* operator->()noexcept
+		{
+			return &(t->dat);
+		}
+		const T* operator->()const noexcept
+		{
+			return &(t->dat);
+		}
+
+		friend bool operator==(const self& a, const self& b)noexcept
+		{
+			return a.t == b.t;
+		}
+		friend bool operator!=(const self& a, const self& b)noexcept
+		{
+			return !(a == b);
+		}
+		friend bool operator<(const self& a, const self& b)noexcept
+		{
+			return a.t < b.t;
+		}
+		friend bool operator>(const self& a, const self& b)noexcept
+		{
+			return b < a;
+		}
+		friend bool operator<=(const self& a, const self& b)noexcept
+		{
+			return a < b || a == b;
+		}
+		friend bool operator>=(const self& a, const self& b)noexcept
+		{
+			return a > b || a == b;
+		}
+
 	private:
-		T dat;
-		list_iterator* next = nullptr;
-		list_iterator* last = nullptr;
+		self(list_node* tt):t(tt){}
+		self(const list_node* tt):t(const_cast<list_node*>(tt)){}
+		list_node* t = nullptr;
 	};
 
 	template<typename T,typename Allocator = uuz::allocator>
@@ -92,40 +193,40 @@ namespace uuz
 
 		iterator begin()noexcept
 		{
-			return *head;
+			return iterator{ head };
 		}
 		const iterator begin()const noexcept
 		{
-			return *head;
+			return iterator{ head };
 		}
 		const iterator cbegin()const noexcept
 		{
-			return *head;
+			return iterator{ head };
 		}
 
 		iterator end()noexcept
 		{
-			return *(nil->next);
+			return iterator{ null };
 		}
 		const iterator end()const noexcept
 		{
-			return  *(nil->next);
+			return  iterator{ null };
 		}
 		const iterator end()const noexcept
 		{
-			return  *(nil->next);
+			return iterator{ null };
 		}
 
 		bool empty()const noexcept
 		{
-			return head == nil;
+			return head == null;
 		}
 
 		size_t size()const noexcept
 		{
 			size_t t = 0;
 			auto p = head;
-			while (p != nullptr)
+			while (p != null)
 			{
 				p = p->next;
 				++t;
@@ -140,8 +241,9 @@ namespace uuz
 
 		void clear()noexcept
 		{
-			head->destory();
-			head = nil = nullptr;
+			null->next = nullptr;
+			head->destory();	
+			head = null = nullptr;
 		}
 
 		iterator insert(const_iterator pos, const T& value);
@@ -185,12 +287,9 @@ namespace uuz
 		T& emplace_back(Args&&... args)
 		{
 			T temp(std::forward<Args>(args)...);
-			auto  k = new iterator(std::move(temp));
-			k->next = nil->next;
-			
-			nil->next = k;
-			k->last = nil->last;
-			nil->last = k;
+			auto  k = new list_node();
+			k.dat = std::move(temp);
+			k->insert(nill);
 			return k->dat;
 		}
 
@@ -211,7 +310,7 @@ namespace uuz
 		{
 			using std::swap;
 			swap(head, other.head);
-			swap(nil, other.nil);
+			swap(null, other.null);
 		}
 
 		void merge(list& other);
@@ -279,8 +378,8 @@ namespace uuz
 			clear();
 		}
 	private:
-		void link()
-		iterator* head = nullptr;
-		iterator* nil = nullptr;
+		list_node* head = nullptr;
+		list_node* nill = nullptr;
+		list_node null;
 	};
 }
