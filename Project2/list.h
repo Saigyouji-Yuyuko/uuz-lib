@@ -8,6 +8,9 @@ namespace uuz
 	template<typename T,typename A>
 	struct list_node
 	{
+		list_node() = default;
+		list_node(const T& p):dat{p}{}
+		list_node(T&& p):dat{std::move(p)}{}
 		T dat;
 		self* next = nullptr;
 		self* last = nullptr;
@@ -28,7 +31,8 @@ namespace uuz
 		{
 			last->next = next;
 			next->last = last;
-
+			next = nullptr;
+			last = nullptr;
 		}
 
 		void insert(list_node* a)
@@ -123,15 +127,50 @@ namespace uuz
 	{
 		using iterator = list_iterator<T, Allocator>;
 		using self = list;
+		using node = list_node<T, Allocator>;
 		using size_t = _Uint32t;
 	public:
-		explicit list(size_t t);
-		list(size_t t,const T& p);
+		list()
+		{
+			null->next = null->last = &null;
+		}
+		explicit list(size_t t):list()
+		{
+			for (int i = 0; i < t; ++i)
+			{
+				auto k = new node();
+				k->insert(null);
+			}
+		}
+		list(size_t t, const T& p):list()
+		{
+			for (int i = 0; i < t; ++i)
+			{
+				auto k = new node(p);
+				k->insert(null);
+			}
+		}
 		template< typename InputIt,typename = decltype(*(std::declval<InputIt>()))>
-		list(const InputIt& first,const InputIt& last);
-		list(const std::initializer_list<T>& init);
-		list(const self& t);
-		list(self&& t);
+		list(const InputIt& first,const InputIt& last):list()
+		{
+			for (const auto& i = first; i != last; ++i)
+			{
+				auto k = new node(*i);
+				k->insert(null->last);
+			}
+		}
+		list(const std::initializer_list<T>& init)
+		{
+			list(init.begin(), init.end()));
+		}
+		list(const self& t)
+		{
+			list(t.begin(), t.end());
+		}
+		list(self&& t):list()
+		{
+			this->swap(t);
+		}
 
 		list& operator=(const list& other)noexcept
 		{
@@ -184,24 +223,24 @@ namespace uuz
 
 		T& back()noexcept
 		{
-			return *(end() - 1);
+			return *(rbein());
 		}
 		const T& back()const noexcept
 		{
-			return *(end() - 1);
+			return *(rbegin());
 		}
 
 		iterator begin()noexcept
 		{
-			return iterator{ head };
+			return iterator{ null->next };
 		}
 		const iterator begin()const noexcept
 		{
-			return iterator{ head };
+			return iterator{ null->next };
 		}
 		const iterator cbegin()const noexcept
 		{
-			return iterator{ head };
+			return iterator{ null->next };
 		}
 
 		iterator end()noexcept
@@ -219,21 +258,21 @@ namespace uuz
 
 		bool empty()const noexcept
 		{
-			return head == null;
+			return null->last == &null;
 		}
 
 		size_t size()const noexcept
 		{
 			size_t t = 0;
-			auto p = head;
-			while (p != null)
+			auto k = null->next;
+			while (k != null)
 			{
-				p = p->next;
+				k = k->next;
 				++t;
 			}
 			return t;
 		}
-
+		
 		size_t max_size()const noexcept
 		{
 			return size();
@@ -241,20 +280,38 @@ namespace uuz
 
 		void clear()noexcept
 		{
-			null->next = nullptr;
-			head->destory();	
-			head = null = nullptr;
+			if (!empty())
+			{
+				auto k = null->next;
+				null->last->next = nullptr;
+				null->next = null->last = &null;
+				k->destroy();
+			}
 		}
 
-		iterator insert(const_iterator pos, const T& value);
-		iterator insert(const_iterator pos, T&& value);
-		iterator insert(const_iterator pos, size_type count, const T& value);
-		template< class InputIt >
-		iterator insert(const_iterator pos, InputIt first, InputIt last);
-		iterator insert(const_iterator pos, std::initializer_list<T> ilist);
+		iterator insert(const iterator& pos, const T& value)
+		{
+			return emplace(pos, value);
+		}
+		iterator insert(const iterator& pos, T&& value)
+		{
+			return emplace(pos, std::move(value));
+		}
+		iterator insert(const iterator& pos, size_t count, const T& value)
+		{
+
+		}
+		template<typename InputIt ,typename = decltype(*(std::declval<InputIt>()))>
+		iterator insert(const iterator& pos,const InputIt& first,const InputIt& last);
+		iterator insert(const iterator& pos, std::initializer_list<T> ilist);
 
 		template< class... Args >
-		iterator emplace(const_iterator pos, Args&&... args);
+		iterator emplace(const iterator& pos, Args&&... args)
+		{
+			auto k = new node(T(std::forward<Args>(args)...));
+			k->insert(pos->t);
+			return iterator{ k };
+		}
 
 		iterator erase(const iterator& pos)
 		{
@@ -263,14 +320,14 @@ namespace uuz
 		iterator erase(const iterator& first, const iterator& last)
 		{
 			if (first == begin() && last == end())
-				clear();
-			else
 			{
-				first->last->next = last;
-				last->last->next = nullptr;
-				last->last = first->last;
-				first.destroy();
+				clear();
+				return end();
 			}
+			last.t->last->next = nullptr;
+			last.t->last = first.t->last;
+			first.t->last->next = last;
+			first.t->destroy();
 			return last;
 		}
 
@@ -286,30 +343,48 @@ namespace uuz
 		template< typename... Args >
 		T& emplace_back(Args&&... args)
 		{
-			T temp(std::forward<Args>(args)...);
-			auto  k = new list_node();
-			k.dat = std::move(temp);
-			k->insert(nill);
-			return k->dat;
+			return emplace(iterator{ null->last }, std::forward<Args>(args)...)->dat;
 		}
 
-		void pop_back();
+		void pop_back()
+		{
+			null->last->last->next = null;
+			null->last->next = nullptr;
+			auto k = null->last;
+			null->last = null->last->last;
+			k->destroy();
+		}
 
-		void push_front(const T& value);
-		void push_front(T&& value);
+		void push_front(const T& value)
+		{
+			emplace_front(temp);
+		}
+		void push_front(T&& value)
+		{
+			emplace_front(std::move(temp));
+		}
 
 		template< class... Args >
-		reference emplace_front(Args&&... args);
+		T& emplace_front(Args&&... args)
+		{
+			return emplace(iterator{ &null }, std::forward<Args>(args)...)->dat;
+		}
 
-		void pop_front();
+		void pop_front()
+		{
+			null->next->next->last = null;
+			null->next->next = nullptr;
+			auto k = null->next;
+			null->next = null->next->next;
+			k->destroy();
+		}
 
-		void resize(size_type count);
-		void resize(size_type count, const value_type& value);
+		void resize(size_t count);
+		void resize(size_t count, const T& value);
 
 		void swap(list& other)noexcept
 		{
 			using std::swap;
-			swap(head, other.head);
 			swap(null, other.null);
 		}
 
@@ -378,8 +453,6 @@ namespace uuz
 			clear();
 		}
 	private:
-		list_node* head = nullptr;
-		list_node* nill = nullptr;
 		list_node null;
 	};
 }
