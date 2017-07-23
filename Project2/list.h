@@ -1,5 +1,6 @@
 #pragma once
 #include"prepare.h"
+#include<cassert>
 namespace uuz
 {
 	template<typename T,typename A>
@@ -130,44 +131,53 @@ namespace uuz
 		using node = list_node<T, Allocator>;
 		using size_t = _Uint32t;
 	public:
-		list()
+		list() = default;
+		explicit list(size_t t)
 		{
-			null->next = null->last = &null;
-		}
-		explicit list(size_t t):list()
-		{
-			for (int i = 0; i < t; ++i)
+			first = new node();
+			assert(first);
+			auto k = first;
+			for (auto i = 1; i < t; ++i)
 			{
-				auto k = new node();
-				k->insert(null);
+				auto p = new node();
+				p->last = k;
+				k->next = p;
+				k = p;
 			}
+			last = k;
 		}
-		list(size_t t, const T& p):list()
+		list(size_t t, const T& p)
 		{
-			for (int i = 0; i < t; ++i)
+			first = new node(p);
+			assert(first);
+			auto k = first;
+			for (auto i = 1; i < t; ++i)
 			{
-				auto k = new node(p);
-				k->insert(null);
+				auto p = new node(p);
+				p->last = k;
+				k->next = p;
+				k = p;
 			}
+			last = k;
 		}
 		template< typename InputIt,typename = decltype(*(std::declval<InputIt>()))>
-		list(const InputIt& first,const InputIt& last):list()
+		list(const InputIt& _first, const InputIt& _last)
 		{
-			for (const auto& i = first; i != last; ++i)
+			first = new node(_first);
+			auto k = ++_first;
+			auto temp = first;
+			for (auto i = k; i != last;++i)
 			{
-				auto k = new node(*i);
-				k->insert(null->last);
+				auto p = new node(*k);
+				temp->next = p;
+				p->last = temp;
+				temp = p;
 			}
+			last = temp;
 		}
-		list(const std::initializer_list<T>& init)
-		{
-			list(init.begin(), init.end()));
-		}
-		list(const self& t)
-		{
-			list(t.begin(), t.end());
-		}
-		list(self&& t):list()
+		list(const std::initializer_list<T>& init) :list(init.begin(), init.end()) {}
+		list(const self& t):list(t.cbegin(),t.cend()){}
+		list(self&& t):self()
 		{
 			this->swap(t);
 		}
@@ -201,9 +211,9 @@ namespace uuz
 			this->swap(temp);
 		}
 		template< typename InputIt ,typename = decltype(*(std::declval<InputIt>()))>
-		void assign(const InputIt& first, const InputIt& last)
+		void assign(const InputIt& _first, const InputIt& _last)
 		{
-			auto temp(first, last);
+			auto temp(_first, _last);
 			this->swap(temp);
 		}
 		void assign(const std::initializer_list<T>& ilist)
@@ -212,60 +222,60 @@ namespace uuz
 			this->swap(temp);
 		}
 
-		T& front()noexcept
+		T& front()
 		{
-			return *(begin());
+			return first->dat;
 		}
-		const T& front()const noexcept
+		const T& front()const
 		{
-			return *(begin());
+			return first->dat;
 		}
 
-		T& back()noexcept
+		T& back()
 		{
-			return *(rbein());
+			return last->dat;
 		}
-		const T& back()const noexcept
+		const T& back()const
 		{
-			return *(rbegin());
+			return last->dat;
 		}
 
 		iterator begin()noexcept
 		{
-			return iterator{ null->next };
+			return iterator(first);
 		}
 		const iterator begin()const noexcept
 		{
-			return iterator{ null->next };
+			return iterator{ first };
 		}
 		const iterator cbegin()const noexcept
 		{
-			return iterator{ null->next };
+			return iterator{ first };
 		}
 
 		iterator end()noexcept
 		{
-			return iterator{ null };
+			return iterator{ nullptr };
 		}
 		const iterator end()const noexcept
 		{
-			return  iterator{ null };
+			return iterator{ nullptr };
 		}
 		const iterator end()const noexcept
 		{
-			return iterator{ null };
+			return iterator{ nullptr };
 		}
 
 		bool empty()const noexcept
 		{
-			return null->last == &null;
+			return first == nullptr;
 		}
 
-		size_t size()const noexcept
+		size_t size()const
 		{
 			size_t t = 0;
-			auto k = null->next;
-			while (k != null)
+			auto k = first;
+			while (k != nullptr)
 			{
 				k = k->next;
 				++t;
@@ -273,20 +283,16 @@ namespace uuz
 			return t;
 		}
 		
-		size_t max_size()const noexcept
+		size_t max_size()const
 		{
 			return size();
 		}
 
-		void clear()noexcept
+		void clear()
 		{
-			if (!empty())
-			{
-				auto k = null->next;
-				null->last->next = nullptr;
-				null->next = null->last = &null;
-				k->destroy();
-			}
+			first->destorr();
+			first = nullptr;
+			last = nullptr;
 		}
 
 		iterator insert(const iterator& pos, const T& value)
@@ -307,85 +313,35 @@ namespace uuz
 
 		template< class... Args >
 		iterator emplace(const iterator& pos, Args&&... args)
-		{
-			auto k = new node(T(std::forward<Args>(args)...));
-			k->insert(pos->t);
-			return iterator{ k };
-		}
+		
 
 		iterator erase(const iterator& pos)
-		{
-			return erase(pos, pos->next);
-		}
 		iterator erase(const iterator& first, const iterator& last)
-		{
-			if (first == begin() && last == end())
-			{
-				clear();
-				return end();
-			}
-			last.t->last->next = nullptr;
-			last.t->last = first.t->last;
-			first.t->last->next = last;
-			first.t->destroy();
-			return last;
-		}
 
 		void push_back(const T& value)
-		{
-			emplace_back(std::move(temp));
-		}
 		void push_back(T&& value)
-		{
-			emplace_back(std::move(value));
-		}
 
 		template< typename... Args >
 		T& emplace_back(Args&&... args)
-		{
-			return emplace(iterator{ null->last }, std::forward<Args>(args)...)->dat;
-		}
 
 		void pop_back()
-		{
-			null->last->last->next = null;
-			null->last->next = nullptr;
-			auto k = null->last;
-			null->last = null->last->last;
-			k->destroy();
-		}
 
 		void push_front(const T& value)
-		{
-			emplace_front(temp);
-		}
 		void push_front(T&& value)
-		{
-			emplace_front(std::move(temp));
-		}
 
 		template< class... Args >
 		T& emplace_front(Args&&... args)
-		{
-			return emplace(iterator{ &null }, std::forward<Args>(args)...)->dat;
-		}
 
 		void pop_front()
-		{
-			null->next->next->last = null;
-			null->next->next = nullptr;
-			auto k = null->next;
-			null->next = null->next->next;
-			k->destroy();
-		}
 
 		void resize(size_t count);
 		void resize(size_t count, const T& value);
 
-		void swap(list& other)noexcept
+		void swap(list& other)
 		{
 			using std::swap;
-			swap(null, other.null);
+			swap(first, other.first);
+			swap(last, other.last);
 		}
 
 		void merge(list& other);
@@ -443,7 +399,7 @@ namespace uuz
 			const list<T, Alloc>& rhs);
 
 		template< typename T, typename Alloc >
-		void swap(list<T, Alloc>& lhs, list<T, Alloc>& rhs)noexcept
+		void swap(list<T, Alloc>& lhs, list<T, Alloc>& rhs)
 		{
 			lhs.swap(rhs);
 		}
@@ -453,6 +409,7 @@ namespace uuz
 			clear();
 		}
 	private:
-		list_node null;
+		node* first = nullptr;
+		node* last = nullptr;
 	};
 }
