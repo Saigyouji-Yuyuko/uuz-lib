@@ -25,19 +25,45 @@
 #include<numeric>
 #include <iomanip>
 #pragma warning(disable:4996)
-template<int N>
-struct addd
-{
-	static const int value = N + addd<N-1>::value;
-};
-template<>
-struct addd<1>
-{
-	static const int value = 1;
-};
+
 int main()
 {
-	std::cout << addd<60>::value << std::endl;
+	for (int ii = 1; ii <= 100000000; ii *= 10)
+	{
+		{
+			uuz::time a{ "all-std::" };
+			std::vector<int> p;
+			{
+				uuz::time a1{ "std::vector::push_back  " + uuz::tostring(ii) };
+				for (int i = 0; i != ii; ++i)
+					p.push_back(i);
+			}
+
+			{
+				uuz::time a1{ "std::vector::erase  " + uuz::tostring(ii) };
+				while (!p.empty())
+					p.erase(p.begin());
+			}
+
+		}
+		{
+			uuz::time a{ "all-uuz::" };
+			std::vector<int> p;
+			{
+				uuz::time a1{ "uuz::vector::push_back  " + uuz::tostring(ii) };
+				for (int i = 0; i != ii; ++i)
+					p.push_back(i);
+			}
+
+			{
+				uuz::time a1{ "uuz::vector::erase  " + uuz::tostring(ii) };
+				while (!p.empty())
+					p.erase(p.begin());
+			}
+
+		}
+	}
+	system("pause");
 
 	return 0;
 }

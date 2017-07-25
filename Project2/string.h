@@ -1242,11 +1242,6 @@ namespace uuz
 		return string{ p };
 	}
 
-	inline string tostring(const int p)
-	{
-		return tostring((long long)p);
-	}
-
 	inline string tostring(const long long p)
 	{
 		char d[30];
@@ -1263,6 +1258,13 @@ namespace uuz
 			*--t = '-';
 		return string{ t };
 	}
+
+	inline string tostring(const int p)
+	{
+		return tostring((const long long)p);
+	}
+
+	
 
 	inline string tostring(const double p)
 	{

@@ -12,8 +12,11 @@ namespace uuz
 	class time
 	{
 	public:
+
 		time(const char* p):start{ std::chrono::system_clock::now()},l{p}{}
 		time() :start{ std::chrono::system_clock::now() }, l{ "" } {};
+		time(const string& p):start{ std::chrono::system_clock::now() }, l{ p } {}
+		time(string&& p) :start{ std::chrono::system_clock::now() }, l{ std::move(p) } {}
 		time(const time&) = delete;
 		time(time&&) = delete;
 		time& operator=(const time&) = delete;

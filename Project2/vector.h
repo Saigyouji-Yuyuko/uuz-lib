@@ -9,7 +9,7 @@
 #include<iostream>
 namespace uuz
 {
-	constexpr float vector_speed = 1.5;
+	constexpr float vector_speed = 1.618;
 	template<typename T,typename A>
 	class vector;
 
@@ -321,7 +321,6 @@ namespace uuz
 			if (new_cap <= max_size())
 				return;
 			auto temp = (T*)malloc(new_cap * sizeof(T));
-			assert(temp);
 			if (shuju)
 			{
 				memcpy(temp, shuju, size() * sizeof(T));
@@ -453,7 +452,9 @@ namespace uuz
 
 		void pop_back()
 		{
-			erase(end());
+			auto k = --end();
+			(*k).~T();
+			--ssize;
 		}
 
 		void resize(const size_t count)
