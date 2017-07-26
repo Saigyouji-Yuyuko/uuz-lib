@@ -4,6 +4,8 @@
 #include"ptr.h"
 #include"string.h"
 #include"debug.h"
+#include"pair.h"
+#include"list.h"
 #include"vector.h"
 
 #include<string>
@@ -23,47 +25,25 @@
 #include<array>
 #include<algorithm>
 #include<numeric>
-#include <iomanip>
+#include<iomanip>
 #pragma warning(disable:4996)
+std::ostream& operator<<(std::ostream& ostr, const uuz::list<int>& list)
+{
+	for (auto &i : list) {
+		ostr << " " << i;
+	}
+	return ostr;
+}
 
 int main()
 {
-	for (int ii = 1; ii <= 100000000; ii *= 10)
-	{
-		{
-			uuz::time a{ "all-std::" };
-			std::vector<int> p;
-			{
-				uuz::time a1{ "std::vector::push_back  " + uuz::tostring(ii) };
-				for (int i = 0; i != ii; ++i)
-					p.push_back(i);
-			}
+	uuz::list<int> list = { 8,7,5,9,0,1,3,2,6,4 };
 
-			{
-				uuz::time a1{ "std::vector::erase  " + uuz::tostring(ii) };
-				while (!p.empty())
-					p.erase(p.begin());
-			}
-
-		}
-		{
-			uuz::time a{ "all-uuz::" };
-			std::vector<int> p;
-			{
-				uuz::time a1{ "uuz::vector::push_back  " + uuz::tostring(ii) };
-				for (int i = 0; i != ii; ++i)
-					p.push_back(i);
-			}
-
-			{
-				uuz::time a1{ "uuz::vector::erase  " + uuz::tostring(ii) };
-				while (!p.empty())
-					p.erase(p.begin());
-			}
-
-		}
-	}
+	std::cout << "before:     " << list << "\n";
+	list.sort();
+	std::cout << "ascending:  " << list << "\n";
+	list.sort(std::greater<int>());
+	std::cout << "descending: " << list << "\n";
 	system("pause");
-
 	return 0;
 }

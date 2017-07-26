@@ -9,7 +9,7 @@
 #include<iostream>
 namespace uuz
 {
-	constexpr float vector_speed = 1.618;
+	constexpr float vector_speed = 1.618;//??
 	template<typename T,typename A>
 	class vector;
 
@@ -323,6 +323,7 @@ namespace uuz
 			auto temp = (T*)malloc(new_cap * sizeof(T));
 			if (shuju)
 			{
+				assert(temp);
 				memcpy(temp, shuju, size() * sizeof(T));
 				free(shuju);
 			}
@@ -343,7 +344,7 @@ namespace uuz
 		void clean()noexcept
 		{
 			for (auto i = shuju; i != shuju + size(); ++i)
-				i->~T();
+				i->~T();	
 			ssize = 0;
 		}
 
@@ -425,7 +426,7 @@ namespace uuz
 			
 			auto dis1 = first - begin();
 			auto dis2 = last - first;
-			std::copy((char*)(data() + dis1 + dis2), (char*)(data() + size()), (char*)(data() + dis1));
+			std::copy((T*)(data() + dis1 + dis2), (T*)(data() + size()), (T*)(data() + dis1));
 			ssize -= dis2;
 			return first;
 		}
@@ -443,16 +444,16 @@ namespace uuz
 		template< class... Args >
 		T& emplace_back(Args&&... args)
 		{
-			if (size() == max_size())
-				reserve(size() == 0 ? 1 : ceil(size()*vector_speed));
-			auto k = new(data() + size()) T(std::forward<Args>(args)...);
+			if (ssize == maxsize)
+				reserve(size() == 0 ? 1 : ceil(size()*vector_speed)); //ceil ? 
+			auto k = new(shuju + ssize) T(std::forward<Args>(args)...);
 			++ssize;
 			return *k;
 		}
 
 		void pop_back()
 		{
-			auto k = --end();
+			auto k = shuju + ssize - 1;
 			(*k).~T();
 			--ssize;
 		}

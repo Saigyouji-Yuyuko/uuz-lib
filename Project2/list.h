@@ -1,5 +1,6 @@
 #pragma once
 #include"prepare.h"
+#include"pair.h"
 #include<cassert>
 namespace uuz
 {
@@ -10,8 +11,10 @@ namespace uuz
 	struct list_node
 	{
 		list_node() = default;
-		list_node(const T& p):dat{p}{}
-		list_node(T&& p):dat{std::move(p)}{}
+		list_node(const T& p):dat{new T(p)}{}
+		list_node(T&& p):dat{new T(std::move(p))}{}
+		template<typename...Args>
+		list_node(Args&&... args) : dat{ new T(std::forward<Args>(args)...) }{}
 		void destory()noexcept
 		{
 			if (next != nullptr)
@@ -21,7 +24,8 @@ namespace uuz
 		}
 		list_node* next = nullptr;
 		list_node* last = nullptr;
-		T dat;
+		T* dat = nullptr;
+		
 	};
 
 	template<typename T, typename Allocator = uuz::allocator>
@@ -55,19 +59,19 @@ namespace uuz
 
 		T& operator*()noexcept
 		{
-			return t->dat;
+			return *(t->dat);
 		}
 		const T& operator*()const noexcept
 		{
-			return t->dat;
+			return *(t->dat);
 		}
 		T* operator->()noexcept
 		{
-			return &(t->dat);
+			return (t->dat);
 		}
 		const T* operator->()const noexcept
 		{
-			return &(t->dat);
+			return (t->dat);
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
@@ -96,14 +100,15 @@ namespace uuz
 		}
 
 	private:
-		self(list_node* tt):t(tt){}
-		self(const list_node* tt):t(const_cast<list_node*>(tt)){}
-		list_node* t = nullptr;
+		self(list_node<T>* tt):t(tt){}
+		self(const list_node<T>* tt):t(const_cast<list_node<T>*>(tt)){}
+		list_node<T>* t = nullptr;
 	};
 
 	template<typename T,typename Allocator = uuz::allocator>
 	class list
 	{
+	public:
 		using iterator = list_iterator<T, Allocator>;
 		using self = list;
 		using node = list_node<T>;
@@ -111,8 +116,8 @@ namespace uuz
 	public:
 		list()
 		{
-			nul->next = &nul;
-			nul->last = &nul;
+ 			nul.next = &nul;
+			nul.last = &nul;
 		}
 		list(size_t t, const T& p):list()
 		{
@@ -124,7 +129,7 @@ namespace uuz
 				{
 					auto temp = new node(p);
 					pp->next = temp;
-					temp->last = p;
+					temp->last = pp;
 					pp = temp;
 				}
 				charu(&nul, k, pp);
@@ -157,12 +162,12 @@ namespace uuz
 			this->swap(t);
 		}
 
-		list& operator=(const list& other)noexcept
+		list& operator=(const list& other)
 		{
 			if (this == &other)
 				return *this;
 			auto temp(other);
-			this->swap(other);
+			this->swap(temp);
 			return *this;
 		}
 		list& operator=(list&& other)noexcept
@@ -170,19 +175,19 @@ namespace uuz
 			if (this == &other)
 				return *this;
 			auto temp(std::move(other));
-			this->swap(other);
+			this->swap(temp);
 			return *this;
 		}
-		list& operator=(const std::initializer_list<T>& ilist)noexcept
+		list& operator=(const std::initializer_list<T>& ilist)
 		{
 			auto temp(ilist);
-			this->swap(other);
+			this->swap(temp);
 			return *this;
 		}
 
 		void assign(size_t count, const T& value)
 		{
-			auto temp(count, value);
+			self temp(count, value);
 			this->swap(temp);
 		}
 		template< typename InputIt ,typename = decltype(*(std::declval<InputIt>()))>
@@ -199,33 +204,33 @@ namespace uuz
 
 		T& front()
 		{
-			return nul->next->dat;
+			return *(nul.next->dat);
 		}
 		const T& front()const
 		{
-			return nul->next->dat;
+			return *(nul.next->dat);
 		}
 
 		T& back()
 		{
-			return nul->last->dat;
+			return *(nul.last->dat);
 		}
 		const T& back()const
 		{
-			return nul->last->dat;
+			return *(nul.last->dat);
 		}
 
 		iterator begin()noexcept
 		{
-			return iterator(nul->next);
+			return iterator(nul.next);
 		}
 		const iterator begin()const noexcept
 		{
-			return iterator{ nul->next };
+			return iterator{ nul.next };
 		}
 		const iterator cbegin()const noexcept
 		{
-			return iterator{ nul->next };
+			return iterator{ nul.next };
 		}
 
 		iterator end()noexcept
@@ -236,20 +241,20 @@ namespace uuz
 		{
 			return iterator{ &nul };
 		}
-		const iterator end()const noexcept
+		const iterator cend()const noexcept
 		{
 			return iterator{ &nul };
 		}
 
 		bool empty()const noexcept
 		{
-			return nul->next == &nul;
+			return nul.next == &nul;
 		}
 
 		size_t size()const
 		{
 			size_t t = 0;
-			auto k = nul->next;
+			auto k = nul.next;
 			while (k != &nul)
 			{
 				k = k->next;
@@ -265,10 +270,12 @@ namespace uuz
 
 		void clear()
 		{
-			nul->last->next = nullptr;
-			nul->next->destory();
-			nul->last = nullptr;
-			nul->next = nullptr;
+			if (empty())
+				return;
+			nul.last->next = nullptr;
+			nul.next->destory();
+			nul.last = nullptr;
+			nul.next = nullptr;
 		}
 
 		iterator insert(const iterator& pos, const T& value)
@@ -313,32 +320,33 @@ namespace uuz
 		}
 		iterator insert(const iterator& pos, std::initializer_list<T> ilist)
 		{
-			return insert(pos, ilist.begin(), ilist.end()));
+			return insert(pos, ilist.begin(), ilist.end());
 		}
 
 		template< class... Args >
 		iterator emplace(const iterator& pos, Args&&... args)
 		{
-			T temp(std::forward<Args>(args)...);
-			auto k = new node(std::move(temp));
-			charu(*pos, k, k);
+			auto k = new node(std::forward<Args>(args)...);
+			charu(pos.t, k, k);
+			return iterator{ k };
 		}
 
 		iterator erase(const iterator& pos)
 		{
-			auto temp = pos;
-			return erase(pos, ++pos);
+			return erase(pos, iterator{ pos.t->next });
 		}
 		iterator erase(const iterator& first, const iterator& last)
 		{
+			if (first == last)
+				return first;
 			if (first == begin() && last == end())
 			{
 				clear();
 				return end();
 			}
 			first.t->last->next = last.t;
-			last.t->last = first.t->last;
 			last.t->last->next = nullptr;
+			last.t->last = first.t->last;
 			first.t->destory();
 		}
 
@@ -388,7 +396,7 @@ namespace uuz
 		}
 		void resize(size_t count, const T& value)
 		{
-			auto p = nul->next;
+			auto p = nul.next;
 			while (p != &nul && count != 0)
 			{
 				p = p->next;
@@ -406,7 +414,7 @@ namespace uuz
 					temp->last = l;
 					l = temp;
 				}
-				charu(end(), k, l);
+				charu(end().t, k, l);
 			}
 			else if (p != &nul&&count == 0)
 				erase(iterator(p), end());
@@ -415,8 +423,28 @@ namespace uuz
 		void swap(list& other)noexcept
 		{
 			using std::swap;
-			swap(nul->next, other.nul->next);
-			swap(nul->last, other.nul->last);
+			auto k = nul.next;
+			auto p = nul.last;
+			auto k2 = other.nul.next;
+			auto p2 = other.nul.last;
+			if (k != &nul)
+			{
+				k->last = &other.nul;
+				other.nul.next = k;
+				p->next = &other.nul;
+				other.nul.last = p;
+			}
+			else
+				other.nul.last = other.nul.next = &other.nul;
+			if (k2 != &other.nul)
+			{
+				k2->last = &nul;
+				nul.next = k2;
+				p2->next = &nul;
+				nul.last = p2;
+			}
+			else
+				nul.last = nul.next = &nul;
 		}
 
 		void merge(list& other)
@@ -434,32 +462,25 @@ namespace uuz
 				return;
 			if (this->empty())
 				return this->swap(other);
-			auto ob = other.nul->next;
-			auto oe = other.nul->last;
+			auto ob = other.nul.next;
+			auto oe = other.nul.last;
 			auto q = nul.next;
-			while (q!=&nul && ob != &(other.nul))
+			while (q != &nul&&ob != &other.nul)
 			{
-				if (comp(ob->dat, q->dat))
+				if (comp(*(ob->dat), *(q->dat)))
 				{
-					ob->last = q->last;
-					q->last->next = ob;
-					q->last = ob;
-					auto ok = ob->next;
-					ob->next = q;
-					ob = ok;
+					auto k = ob;
+					while (k != &other.nul && comp(*(k->dat), *(q->dat)))
+						k = k->next;
+					charu(q, ob, k->last);
+					ob = k;
 				}
 				else
 					q = q->next;
 			}
-			if (q == &nul && ob != &(other.nul))
-			{
-				q = q->last;
-				q->next = ob;
-				ob->last = q;
-				oe->next = nul;
-				nul.last = oe;
-			}
-			other.nul->next = other.nul->last = &nul;
+			if (q == &nul && ob != &other.nul)
+				charu(end().t, ob, oe);
+			other.nul.next = other.nul.last = &other.nul;
 		}
 		template <typename Compare>
 		void merge(list&& other, Compare comp)
@@ -468,17 +489,39 @@ namespace uuz
 			return merge(t, comp);
 		}
 
-		void splice(const_iterator pos, list& other)
+		void splice(const iterator& pos, list& other)
 		{
-
+			splice(pos,other, other.begin(), other.end());
 		}
-		void splice(const iterator pos, list&& other);
-		void splice(const_iterator pos, list& other, const_iterator it);
-		void splice(const_iterator pos, list&& other, const_iterator it);
-		void splice(const_iterator pos, list& other,
-			const_iterator first, const_iterator last);
-		void splice(const_iterator pos, list&& other,
-			const_iterator first, const_iterator last);
+		void splice(const iterator& pos, list&& other)
+		{
+			auto temp{ std::move(other) };
+			splice(pos, other,other.begin(), other.end());
+		}
+		void splice(const iterator& pos, list& other, const iterator& it)
+		{
+			auto temp{ it };
+			splice(pos, other, it, ++temp);
+		}
+		void splice(const iterator& pos, list&& other, const iterator& it)
+		{
+			auto temp{ it };
+			splice(pos, other, it, ++temp);
+		}
+		void splice(const iterator& pos, list& other, const iterator& first, const iterator& last)
+		{
+			if (other == *this || first == last)
+				return;
+			auto k = first.t;	
+			auto p = last.t->last;
+			k->last->next = last.t;
+			p->next->last = first.t->last;
+			charu(pos.t, k, p);
+		}
+		void splice(const iterator& pos, list&& other, const iterator& first, const iterator& last)
+		{
+			splice(pos, other, first, last);
+		}
 
 		void remove(const T& value)
 		{
@@ -487,10 +530,10 @@ namespace uuz
 		template< typename UnaryPredicate >
 		void remove_if(const UnaryPredicate& p)
 		{
-			auto l = nul->next;
+			auto l = nul.next;
 			while (l != &nul)
 			{
-				if (p(l->dat))
+				if (p(*(l->dat)))
 				{
 					l->last->next = l->next;
 					l->next->last = l->last;
@@ -498,19 +541,21 @@ namespace uuz
 					delete l;
 					l = w;
 				}
+				else
+					l = l->next;
 			}
 		}
 
 		void reverse()noexcept
 		{
-			auto k = &nul->next;
+			auto k = nul.next;
 			while (k != &nul)
 			{
-				using std:swap;
+				using std::swap;
 				std::swap(k->next, k->last);
 				k = k->last;
 			}
-			std::swap(nul->last, nul->next);
+			std::swap(nul.last, nul.next);
 		}
 
 		void unique()
@@ -520,12 +565,12 @@ namespace uuz
 		template< typename BinaryPredicate >
 		void unique(const BinaryPredicate& p)
 		{
-			auto k = nul->next;
+			auto k = nul.next;
 			while (k->next != &nul)
 			{
-				if (p(k->dat, k->next->dat))
-					auto t = k->next;
+				if (p(*(k->dat), *(k->next->dat)))
 				{
+					auto t = k->next;
 					k->next = k->next->next;
 					k->next->last = k;
 					delete t;
@@ -542,37 +587,61 @@ namespace uuz
 		template<typename Compare >
 		void sort(const Compare& comp)
 		{
-			if (empty() || nul->next == nul->last)
+			if (empty() || nul.next == nul.last)
 				return;
-
+			auto be = nul.next;
+			auto en = nul.last;
+			nul.last = nul.next = &nul;
+			be->last = nullptr;
+			en->next = nullptr;
+			auto mid = midden(be,en);
+			auto k = mid->next;
+			list t1{ be,mid };
+			list t2{ k,en };
+			t1.sort(comp);
+			t2.sort(comp);
+			t1.merge(t2, comp);
+			this->swap(t1);
 		}
 
 		template< class T, class Alloc >
-		bool operator==(const list<T, Alloc>& lhs,
-			const list<T, Alloc>& rhs);
+		friend bool operator==(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+		{
+			return lhs.comp(rhs) == 0;
+		}
 	
 			template< class T, class Alloc >
-		bool operator!=(const list<T, Alloc>& lhs,
-			const list<T, Alloc>& rhs);
+		friend bool operator!=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+		{
+			return lhs.comp(rhs) != 0;
+		}
 		
-			template< class T, class Alloc >
-		bool operator<(const list<T, Alloc>& lhs,
-			const list<T, Alloc>& rhs);
+		template< class T, class Alloc >
+		friend bool operator<(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+		{
+			return lhs.comp(rhs) < 0;
+		}
 		
-			template< class T, class Alloc >
-		bool operator<=(const list<T, Alloc>& lhs,
-			const list<T, Alloc>& rhs);
+		template< class T, class Alloc >
+		friend bool operator<=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+		{
+			return lhs.comp(rhs) <= 0;
+		}
 		
-			template< class T, class Alloc >
-		bool operator>(const list<T, Alloc>& lhs,
-			const list<T, Alloc>& rhs);
+		template< class T, class Alloc >
+		friend bool operator>(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+		{
+			return lhs.comp(rhs) > 0;
+		}
 		
-			template< class T, class Alloc >
-		bool operator>=(const list<T, Alloc>& lhs,
-			const list<T, Alloc>& rhs);
+		template< class T, class Alloc >
+		friend bool operator>=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+		{
+			return lhs.comp(rhs) >= 0;
+		}
 
 		template< typename T, typename Alloc >
-		void swap(list<T, Alloc>& lhs, list<T, Alloc>& rhs)
+		friend void swap(list<T, Alloc>& lhs, list<T, Alloc>& rhs)
 		{
 			lhs.swap(rhs);
 		}
@@ -582,27 +651,43 @@ namespace uuz
 			clear();
 		}
 	private:
+		static node* midden(node* a,node*b)noexcept
+		{
+			auto q = a;
+			auto m = a;
+			while (q->next&&q->next->next)
+			{
+				q = q->next->next;
+				m = m->next;
+			//	std::cout << *(q->dat) << std::endl;
+			}
+			return m;
+		}
+		list(node*a, node*b):list()
+		{
+			charu(nullptr, a, b);
+		}
 		void charu(node* d,node* b, node* e)
 		{
 			if (empty())
 			{
-				nul->next = b;
+				nul.next = b;
 				b->last = &nul;
-				nul->last = e;
+				nul.last = e;
 				e->next = &nul;
 			}
-			else if (*end() == d)
+			else if (end().t == d)
 			{
-				nul->last->next = b;
-				b->last = nul->last;
-				nul->last = e;
+				nul.last->next = b;
+				b->last = nul.last;
+				nul.last = e;
 				e->next = &nul;
 			}
-			else if (d == *begin())
+			else if (d == begin().t)
 			{
-				nul->next->last = e;
-				e->next = nul->next;
-				nul->next = b;
+				nul.next->last = e;
+				e->next = nul.next;
+				nul.next = b;
 				b->last = &nul;
 			}
 			else
@@ -614,6 +699,26 @@ namespace uuz
 				d->last = e;
 			}
 		}
+		int comp(const list& t)const noexcept
+		{
+			auto k = nul.next;
+			auto p = t.nul.next;
+			while (k != &nul&&p != &(t.nul))
+			{
+				if (*(k->dat) < *(p->dat))
+					return -1;
+				else if (*(k->dat) > *(p->dat))
+					return 1;
+				k = k->next;
+				p = p->next;
+			}
+			if (k == &nul&&p == &(t.nul))
+				return 0;
+			else if (k != &nul&&p == &(t.nul))
+				return 1;
+			return -1;
+		}
+		
 		node nul;
 	};
 }

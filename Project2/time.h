@@ -25,7 +25,7 @@ namespace uuz
 		{
 			auto end = std::chrono::system_clock::now();
 			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-			std::cout << l << " " << double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den<<'s'<<std::endl;
+			std::cout << l << " " << double(duration.count()) * std::chrono::microseconds::period::num / 1000 << "ms"<<std::endl;
 		}
 	private:
 		std::chrono::time_point<std::chrono::system_clock> start;
