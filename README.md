@@ -4,14 +4,14 @@ string 基本完成（考虑加入大数据COW）<br>
 vector 基本完成<br>
 shared_ptr 基本完成<br>
 pair 基本完成<br>
-list 施工ing<br>
+list 基本完成<br>
+forward_list 施工中<br>
 file（整个输入输出系统） 重写<br>
 rbtree 打算重写<br>
 map 计划<br>
 set 计划<br>
 unordered_map 计划<br>
 unordered_set 计划<br>
-forward_list 计划<br>
 array 计划<br>
 wake_ptr 计划<br>
 unique_ptr 计划<br>
