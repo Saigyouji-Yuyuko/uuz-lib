@@ -49,7 +49,7 @@ namespace uuz
 		for (auto it = b; it != e; ++it)
 			auto p = new(d + (it - b)) T(std::move_if_noexcept(*it));
 	}
-	using std::swap;
-	using std::forward;	
+	template<typename T,typename InputIt>
+	using is_input = std::enable_if_t<std::is_same_v<T, std::decay_t<decltype(*std::declval<InputIt>())>>>;
 
 }

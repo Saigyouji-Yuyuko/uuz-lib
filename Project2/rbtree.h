@@ -3,7 +3,7 @@
 #include"prepare.h"
 namespace uuz
 {
-	/*template<typename T, typename compare >
+	template<typename T, typename compare >
 	class rb_tree;
 
 	template<typename T, typename compare>
@@ -103,7 +103,11 @@ namespace uuz
 		this_type_p find(const U& temp)const noexcept(noexcept(com()(temp, what)))
 		{
 			if (!com()(temp, what) && !com()(what, temp))
-				return this;
+			{
+				auto k = this;
+				return const_cast<this_type_p>(k);
+			}
+				
 			else if (com()(temp, what))
 			{
 				if (this->left == null)
@@ -246,7 +250,7 @@ namespace uuz
 		{
 			if (root != node::null)
 			{
-				node_p use = root->insert(new node(std:move(temp), node::red));
+				node_p use = root->insert(new node(std::move(temp), node::red));
 				if (use != node::null)
 				{
 					fixup_insert(use);
@@ -548,8 +552,8 @@ namespace uuz
 			}
 		}
 		x->color = node::black;
-	}*/
-	template<typename T, typename compare>
+	}
+	/*template<typename T, typename compare>
 	class rb_tree_iterator;
 	template<typename T,typename compare>
 	class rb_tree
@@ -657,5 +661,5 @@ namespace uuz
 		node* right = nullptr;
 		bool color = black;
 		T what;
-	};
+	};*/
 }

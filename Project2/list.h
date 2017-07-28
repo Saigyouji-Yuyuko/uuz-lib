@@ -14,7 +14,7 @@ namespace uuz
 		list_node(const T& p):dat{new T(p)}{}
 		list_node(T&& p):dat{new T(std::move(p))}{}
 		template<typename...Args>
-		list_node(Args&&... args) : dat{ new T(std::forward<Args>(args)...) }{}
+		list_node(Args&&... args) : dat{ new T(uuz::forward<Args>(args)...) }{}
 		void destory()noexcept
 		{
 			if (next != nullptr)
@@ -136,7 +136,7 @@ namespace uuz
 			}
 		}
 		explicit list(size_t t) :list(t, T{}) {}
-		template< typename InputIt,typename = decltype(*(std::declval<InputIt>()))>
+		template< typename InputIt,typename = is_input<T, InputIt>>
 		list(const InputIt& _first, const InputIt& _last):list()
 		{
 			if (_first != _last)
@@ -190,7 +190,7 @@ namespace uuz
 			self temp(count, value);
 			this->swap(temp);
 		}
-		template< typename InputIt ,typename = decltype(*(std::declval<InputIt>()))>
+		template< typename InputIt ,typename = is_input<T, InputIt>>
 		void assign(const InputIt& _first, const InputIt& _last)
 		{
 			auto temp(_first, _last);
@@ -304,7 +304,7 @@ namespace uuz
 			}
 			return pos;
 		}
-		template<typename InputIt ,typename = decltype(*(std::declval<InputIt>()))>
+		template<typename InputIt ,typename = is_input<T, InputIt>>
 		iterator insert(const iterator& pos, const InputIt& _first, const InputIt& _last)
 		{
 
@@ -330,7 +330,7 @@ namespace uuz
 		template< class... Args >
 		iterator emplace(const iterator& pos, Args&&... args)
 		{
-			auto k = new node(std::forward<Args>(args)...);
+			auto k = new node(uuz::forward<Args>(args)...);
 			charu(pos.t, k, k);
 			return iterator{ k };
 		}
@@ -366,7 +366,7 @@ namespace uuz
 		template< typename... Args >
 		T& emplace_back(Args&&... args)
 		{
-			return *(emplace(end(), std::forward<Args>(args)...));
+			return *(emplace(end(), uuz::forward<Args>(args)...));
 		}
 
 		void pop_back()
@@ -386,7 +386,7 @@ namespace uuz
 		template< class... Args >
 		T& emplace_front(Args&&... args)
 		{
-			return *(emplace(begin(), std::forward<Args>(args)...));
+			return *(emplace(begin(), uuz::forward<Args>(args)...));
 		}
 
 		void pop_front()

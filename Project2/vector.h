@@ -182,7 +182,7 @@ namespace uuz
 		{
 			initfrom(init.begin(), init.end());
 		}
-		template<typename InputIt, typename = decltype(*(std::declval<InputIt>()))>
+		template<typename InputIt, typename = is_input<T, InputIt>>
 		self(InputIt first, InputIt last)
 		{
 			initfrom(first, last);
@@ -216,7 +216,7 @@ namespace uuz
 			auto temp= self( count,value );
 			this->swap(temp);
 		}
-		template< class InputIt, typename = decltype(*(std::declval<InputIt>()))>
+		template< class InputIt, typename = is_input<T, InputIt>>
 		void assign(const InputIt& first,const InputIt& last)
 		{
 			auto temp( first,last );
@@ -382,7 +382,7 @@ namespace uuz
 			ssize += count;
 			return begin() + p ;
 		}
-		template< typename InputIt, typename = decltype(*(std::declval<InputIt>()))>
+		template< typename InputIt, typename = is_input<T, InputIt>>
 		iterator insert(const iterator pos,  InputIt first, InputIt last)
 		{
 			auto p = pos - begin();
@@ -406,7 +406,7 @@ namespace uuz
 		template< typename... Args >
 		iterator emplace(const iterator pos, Args&&... args)
 		{
-			auto k = T( std::forward<Args>(args)... );
+			auto k = T( uuz::forward<Args>(args)... );
 			insert(pos, std::move(k));
 		}
 
@@ -446,7 +446,7 @@ namespace uuz
 		{
 			if (ssize == maxsize)
 				reserve(size() == 0 ? 1 : ceil(size()*vector_speed)); //ceil ? 
-			auto k = new(shuju + ssize) T(std::forward<Args>(args)...);
+			auto k = new(shuju + ssize) T(uuz::forward<Args>(args)...);
 			++ssize;
 			return *k;
 		}

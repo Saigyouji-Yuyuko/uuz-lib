@@ -35,7 +35,11 @@ namespace uuz
 		}
 		void insert(node&& temp)
 		{
-
+			iterator p = that->find(temp);
+			if (p.isnull())
+				that->insert(std::move(temp));
+			else
+				p->second() = temp.second();
 		}
 		template<typename U>
 		iterator find(const U& temp)const noexcept(noexcept(that->find(temp)))

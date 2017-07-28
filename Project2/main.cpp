@@ -9,6 +9,7 @@
 #include"vector.h"
 #include"forward_list.h"
 
+
 #include<string>
 #include<future>
 #include<iostream>
@@ -29,30 +30,20 @@
 #include<iomanip>
 #pragma warning(disable:4996)
 
-
 int main()
 {
-	for (int i = 1; i <= 100000000; i *= 10)
-	{
-		std::cout << i << std::endl;
-		{
-			uuz::time t{ "std::" };
-			std::vector<std::string> p;
-			for (int j = 1; j <= i; ++j)
-				p.push_back("123");
-			while (!p.empty())
-				p.pop_back();
-		}
-		{
-			uuz::time t{ "uuz::" };
-			uuz::vector<std::string> p;
-			for (int j = 1; j <= i; ++j)
-				p.push_back("123");
-			while (!p.empty())
-				p.pop_back();
-		}
-		std::cout << ".........................." << std::endl;
-	}
+	uuz::forward_list<int> x = { 1, 2, 2, 3, 3, 2, 1, 1, 2 };
+
+	std::cout << "contents before:";
+	for (auto val : x)
+		std::cout << ' ' << val;
+	std::cout << '\n';
+
+	x.unique();
+	std::cout << "contents after unique():";
+	for (auto val : x)
+		std::cout << ' ' << val;
+	std::cout << '\n';
 	system("pause");
 	return 0;
 }
