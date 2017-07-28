@@ -288,17 +288,21 @@ namespace uuz
 		}
 		iterator insert(const iterator& pos, size_t count, const T& value)
 		{
-			auto k = new node(value);
-			auto t = k;
-			for (auto i = 1; i != count; ++i)
+			if (count)
 			{
-				auto temp = new node(value);
-				t->next = temp;
-				temp->last = t;
-				t = last;
+				auto k = new node(value);
+				auto t = k;
+				for (auto i = 1; i != count; ++i)
+				{
+					auto temp = new node(value);
+					t->next = temp;
+					temp->last = t;
+					t = last;
+				}
+				charu(*pos, k, t);
+				return iterator{ t };
 			}
-			charu(*pos, k, t);
-			return iterator{ k };
+			return pos;
 		}
 		template<typename InputIt ,typename = decltype(*(std::declval<InputIt>()))>
 		iterator insert(const iterator& pos, const InputIt& _first, const InputIt& _last)
@@ -316,7 +320,7 @@ namespace uuz
 				t = last;
 			}
 			charu(*pos, k, t);
-			return iterator{ k };
+			return iterator{ t };
 		}
 		iterator insert(const iterator& pos, std::initializer_list<T> ilist)
 		{
@@ -396,6 +400,8 @@ namespace uuz
 		}
 		void resize(size_t count, const T& value)
 		{
+			if (t == 0)
+				return clear();
 			auto p = nul.next;
 			while (p != &nul && count != 0)
 			{
@@ -473,6 +479,7 @@ namespace uuz
 					while (k != &other.nul && comp(*(k->dat), *(q->dat)))
 						k = k->next;
 					charu(q, ob, k->last);
+					q = k->last;
 					ob = k;
 				}
 				else
@@ -594,7 +601,7 @@ namespace uuz
 			nul.last = nul.next = &nul;
 			be->last = nullptr;
 			en->next = nullptr;
-			auto mid = midden(be,en);
+			auto mid = midden(be);
 			auto k = mid->next;
 			list t1{ be,mid };
 			list t2{ k,en };
@@ -604,54 +611,12 @@ namespace uuz
 			this->swap(t1);
 		}
 
-		template< class T, class Alloc >
-		friend bool operator==(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
-		{
-			return lhs.comp(rhs) == 0;
-		}
-	
-			template< class T, class Alloc >
-		friend bool operator!=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
-		{
-			return lhs.comp(rhs) != 0;
-		}
-		
-		template< class T, class Alloc >
-		friend bool operator<(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
-		{
-			return lhs.comp(rhs) < 0;
-		}
-		
-		template< class T, class Alloc >
-		friend bool operator<=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
-		{
-			return lhs.comp(rhs) <= 0;
-		}
-		
-		template< class T, class Alloc >
-		friend bool operator>(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
-		{
-			return lhs.comp(rhs) > 0;
-		}
-		
-		template< class T, class Alloc >
-		friend bool operator>=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
-		{
-			return lhs.comp(rhs) >= 0;
-		}
-
-		template< typename T, typename Alloc >
-		friend void swap(list<T, Alloc>& lhs, list<T, Alloc>& rhs)
-		{
-			lhs.swap(rhs);
-		}
-
 		~list()
 		{
 			clear();
 		}
 	private:
-		static node* midden(node* a,node*b)noexcept
+		static node* midden(node* a)noexcept
 		{
 			auto q = a;
 			auto m = a;
@@ -721,4 +686,45 @@ namespace uuz
 		
 		node nul;
 	};
+	template< class T, class Alloc >
+	 bool operator==(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+	{
+		return lhs.comp(rhs) == 0;
+	}
+
+	template< class T, class Alloc >
+	 bool operator!=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+	{
+		return lhs.comp(rhs) != 0;
+	}
+
+	template< class T, class Alloc >
+	 bool operator<(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+	{
+		return lhs.comp(rhs) < 0;
+	}
+
+	template< class T, class Alloc >
+	 bool operator<=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+	{
+		return lhs.comp(rhs) <= 0;
+	}
+
+	template< class T, class Alloc >
+	 bool operator>(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+	{
+		return lhs.comp(rhs) > 0;
+	}
+
+	template< class T, class Alloc >
+	 bool operator>=(const list<T, Alloc>& lhs, const list<T, Alloc>& rhs)
+	{
+		return lhs.comp(rhs) >= 0;
+	}
+
+	template< typename T, typename Alloc >
+	 void swap(list<T, Alloc>& lhs, list<T, Alloc>& rhs)
+	{
+		lhs.swap(rhs);
+	}
 }

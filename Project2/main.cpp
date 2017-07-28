@@ -7,6 +7,7 @@
 #include"pair.h"
 #include"list.h"
 #include"vector.h"
+#include"forward_list.h"
 
 #include<string>
 #include<future>
@@ -27,23 +28,31 @@
 #include<numeric>
 #include<iomanip>
 #pragma warning(disable:4996)
-std::ostream& operator<<(std::ostream& ostr, const uuz::list<int>& list)
-{
-	for (auto &i : list) {
-		ostr << " " << i;
-	}
-	return ostr;
-}
+
 
 int main()
 {
-	uuz::list<int> list = { 8,7,5,9,0,1,3,2,6,4 };
-
-	std::cout << "before:     " << list << "\n";
-	list.sort();
-	std::cout << "ascending:  " << list << "\n";
-	list.sort(std::greater<int>());
-	std::cout << "descending: " << list << "\n";
+	for (int i = 1; i <= 100000000; i *= 10)
+	{
+		std::cout << i << std::endl;
+		{
+			uuz::time t{ "std::" };
+			std::vector<std::string> p;
+			for (int j = 1; j <= i; ++j)
+				p.push_back("123");
+			while (!p.empty())
+				p.pop_back();
+		}
+		{
+			uuz::time t{ "uuz::" };
+			uuz::vector<std::string> p;
+			for (int j = 1; j <= i; ++j)
+				p.push_back("123");
+			while (!p.empty())
+				p.pop_back();
+		}
+		std::cout << ".........................." << std::endl;
+	}
 	system("pause");
 	return 0;
 }

@@ -9,7 +9,7 @@
 #include<iostream>
 namespace uuz
 {
-	constexpr float vector_speed = 1.618;//??
+	constexpr float vector_speed = 1.7;//??
 	template<typename T,typename A>
 	class vector;
 
@@ -485,65 +485,12 @@ namespace uuz
 			swap(maxsize, other.maxsize);
 		}
 		
-		friend void swap(self& a, self&b)noexcept
-		{
-			a.swap(b);
-		}
-
-		template<typename T1, typename T2>
-		friend bool operator==(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
-		{
-			if (lhs.size() != rhs.size())
-				return false;
-			return lhs.comp(rhs) == 0;
-		}
-
-		template<typename T1, typename T2>
-		friend bool operator!=(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
-		{
-			return !(lhs == rhs);
-		}
-
-		template<typename T1, typename T2>
-		friend bool operator<(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
-		{
-			return lhs.comp(rhs) == -1;
-		}
-
-		template<typename T1, typename T2>
-		friend bool operator<=(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
-		{
-			return lhs.comp(rhs) <= 0;
-		}
-
-		template<typename T1, typename T2>
-		friend bool operator>(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
-		{
-			return lhs.comp(rhs) == 1;
-		}
-
-		template<typename T1, typename T2>
-		friend bool operator>=(const vector<T1>& lhs, const vector<T2>& rhs)noexcept
-		{
-			return lhs.comp(rhs) >= 0;
-		}
+	
 
 		~vector()noexcept
 		{
 			clear();
 		}
-	private:
-		template<typename U>
-		void initfrom(const U& a, const U& b)
-		{
-			auto dis = b-a;
-			assert(dis >= 0);
-			reserve(dis);
-			for (auto i = 0; i != dis; ++i)
-				auto k = new(shuju + i) T(*(a + i));
-			ssize = dis;
-		}
-
 		int comp(const self& t)const noexcept
 		{
 			auto k = std::min(size(), t.size());
@@ -560,10 +507,65 @@ namespace uuz
 				return -1;
 			return 0;
 		}
+	private:
+		template<typename U>
+		void initfrom(const U& a, const U& b)
+		{
+			auto dis = b-a;
+			assert(dis >= 0);
+			reserve(dis);
+			for (auto i = 0; i != dis; ++i)
+				auto k = new(shuju + i) T(*(a + i));
+			ssize = dis;
+		}
+
+		
 
 		T* shuju = nullptr;
 		size_t ssize = 0;
 		size_t maxsize = 0;
 	};
+	template<typename T1, typename T2>
+	 void swap(vector<T1, T2>& a, vector<T1, T2>&b)noexcept
+	{
+		a.swap(b);
+	}
 
+	template<typename T1, typename T2>
+	 bool operator==(const vector<T1, T2>& lhs, const vector<T1, T2>& rhs)noexcept
+	{
+		if (lhs.size() != rhs.size())
+			return false;
+		return lhs.comp(rhs) == 0;
+	}
+
+	template<typename T1, typename T2>
+	 bool operator!=(const vector<T1, T2>& lhs, const vector<T1, T2>& rhs)noexcept
+	{
+		return !(lhs == rhs);
+	}
+
+	template<typename T1, typename T2>
+	 bool operator<(const vector<T1, T2>& lhs, const vector<T1, T2>& rhs)noexcept
+	{
+		return lhs.comp(rhs) == -1;
+	}
+
+	template<typename T1, typename T2>
+	 bool operator<=(const vector<T1, T2>& lhs, const vector<T1, T2>& rhs)noexcept
+	{
+		return lhs.comp(rhs) <= 0;
+	}
+
+	template<typename T1, typename T2>
+	 bool operator>(const vector<T1, T2>& lhs, const vector<T1, T2>& rhs)noexcept
+	{
+		return lhs.comp(rhs) == 1;
+	}
+
+	template<typename T1, typename T2>
+	 bool operator>=(const vector<T1, T2>& lhs, const vector<T1, T2>& rhs)noexcept
+	{
+		return lhs.comp(rhs) >= 0;
+	}
 }

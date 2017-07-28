@@ -330,8 +330,6 @@ namespace uuz
 		bool flag = false;
 	};
 
-
-
 	template<typename T>
 	class string_base_core
 	{
