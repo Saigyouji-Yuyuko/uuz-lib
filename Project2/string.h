@@ -1209,8 +1209,8 @@ namespace uuz
 	private:
 		int comp(const Chartype* p)const noexcept
 		{
-			auto p1 = static_cast<std::make_unsigned<Chartype>*>(c_str());
-			auto p2 = static_cast<std::make_unsigned<Chartype>*>(p);
+			auto p1 = (std::make_unsigned_t< Chartype>*)(c_str());
+			auto p2 = (std::make_unsigned_t< Chartype>*)(p);
 			for (; *p1 == *p2; ++p1, ++p2)
 				if (*p1 == 0)
 					return 0;

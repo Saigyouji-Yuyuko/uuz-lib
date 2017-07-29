@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="array.h" />
     <ClInclude Include="debug.h" />
     <ClInclude Include="file.h" />
     <ClInclude Include="forward_list.h" />

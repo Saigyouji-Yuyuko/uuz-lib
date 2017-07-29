@@ -8,6 +8,8 @@
 #include"list.h"
 #include"vector.h"
 #include"forward_list.h"
+#include"file.h"
+#include"array.h"
 
 
 #include<string>
@@ -28,22 +30,11 @@
 #include<algorithm>
 #include<numeric>
 #include<iomanip>
+#include<fstream>
 #pragma warning(disable:4996)
 
 int main()
 {
-	uuz::forward_list<int> x = { 1, 2, 2, 3, 3, 2, 1, 1, 2 };
-
-	std::cout << "contents before:";
-	for (auto val : x)
-		std::cout << ' ' << val;
-	std::cout << '\n';
-
-	x.unique();
-	std::cout << "contents after unique():";
-	for (auto val : x)
-		std::cout << ' ' << val;
-	std::cout << '\n';
-	system("pause");
+	
 	return 0;
 }

@@ -446,7 +446,7 @@ namespace uuz
 		{
 			if (ssize == maxsize)
 				reserve(size() == 0 ? 1 : ceil(size()*vector_speed)); //ceil ? 
-			auto k = new(shuju + ssize) T(uuz::forward<Args>(args)...);
+			auto k = new(shuju + ssize) T(std::forward<Args>(args)...);
 			++ssize;
 			return *k;
 		}
