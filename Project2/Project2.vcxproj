@@ -29,6 +29,7 @@
     <ClInclude Include="math.h" />
     <ClInclude Include="pair.h" />
     <ClInclude Include="prepare.h" />
+    <ClInclude Include="priority_queue.h" />
     <ClInclude Include="ptr.h" />
     <ClInclude Include="rbtree.h" />
     <ClInclude Include="string.h" />
