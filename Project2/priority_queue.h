@@ -83,6 +83,7 @@ namespace uuz
 		template< typename... Args >
 		void emplace(Args&&... args)
 		{
+			using std::swap;
 			data.emplace_back(std::forward<Args>(args)...);
 			auto k = data.size() - 1;
 			auto d = ((k + 1) / 2) - 1;
@@ -98,11 +99,11 @@ namespace uuz
 		{
 			using std::swap;
 			swap(data[0], data[data.size() - 1]);
-			data.pop();
+			data.pop_back();
 			auto k = 0;
 			auto p1 = ((k + 1) << 1) -1;
 			auto p2 = ((k + 1) << 1);
-			while (p1 < size() || p2 < size())
+			while (p1 < size())
 			{
 				if (p2 < size())
 				{
@@ -113,11 +114,12 @@ namespace uuz
 						swap(data[p1], data[k]);
 						k = p1;
 					}
+					else break;
 				}
 				else
 				{
-					swap(data[k], data[p1]);
-					k = p1;
+					if (!comp(data[p1], data[k]))
+						swap(data[k], data[p1]);
 					break;
 				}
 				p1 = ((k + 1) << 1) - 1;
@@ -125,9 +127,18 @@ namespace uuz
 			}
 		}
 
+		void swap(priority_queue& other) //noexcept(/* see below */);
+		{
+			using std::swap;
+			swap(data, other.data);
+			swap(comp,other.comp)
+		}
+
 	private:
 		void gouzao()noexcept
 		{
+			if (size() < 2)
+				return;
 			auto k = data.size() - 1;
 			for(;k!=0;--k)
 			{
@@ -142,4 +153,15 @@ namespace uuz
 		Container data;
 		Compare comp;
 	};
+	template< class T, class Container, class Compare >
+	void swap(priority_queue<T, Container, Compare>& lhs,priority_queue<T, Container, Compare>& rhs) //noexcept(/* see below */)
+	{
+		return lhs.swap(rhs);
+	}
+	/*template <class Compare, class Container>
+	priority_queue(Compare, Container)->priority_queue<typename Container::value_type, Container, Compare>;
+	template<class InputIt,class Comp = std::less<typename std::iterator_traits<InputIt>::value_type>,class Container = std::vector<typename iterator_traits<InputIt>::value_type>>
+	priority_queue(InputIt, InputIt, Comp = Comp(), Container = Container())->priority_queue<typename std::iterator_traits<InputIt>::value_type, Container, Comp>;
+	template<class Comp, class Container, class Alloc>
+	priority_queue(Comp, Container, Alloc)->priority_queue<typename Container::value_type, Container, Comp>;*/
 }

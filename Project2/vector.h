@@ -20,21 +20,7 @@ namespace uuz
 		friend class vector<T, A>;
 	public:
 		vector_iterator() = delete;
-		self(const self& t):dat{t.dat}{}
-		self(self&& t) :dat{ t.dat } { t.dat = nullptr; }
-	
-		self& operator=(const self& t)noexcept
-		{
-			dat = t.dat;
-			return *this;
-		}
-		self& operator=(self&& t)noexcept
-		{
-			if (this == &t)
-				return *this;
-			dat = t.dat;
-			t.dat = nullptr;
-		}
+		
 		self& operator+=(const int t)noexcept
 		{
 			dat += t;

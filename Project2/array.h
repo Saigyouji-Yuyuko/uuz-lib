@@ -13,18 +13,6 @@ namespace uuz
 		using self = array_iterator;
 		friend class array<T,N>;
 	public:
-		self& operator=(const self& t)noexcept
-		{
-			dat = t.dat;
-			return *this;
-		}
-		self& operator=(self&& t)noexcept
-		{
-			if (this == &t)
-				return *this;
-			dat = t.dat;
-			t.dat = nullptr;
-		}
 		self& operator+=(const int t)noexcept
 		{
 			dat += t;
@@ -117,8 +105,6 @@ namespace uuz
 			c -= b;
 			return c;
 		}
-
-		//~vector_iterator(){}
 	private:
 		explicit constexpr  self(T* t) :dat{ t } {}
 		explicit constexpr self(const T* t) :dat{ const_cast<T*>(t) } {}
@@ -152,7 +138,7 @@ namespace uuz
 		array(const InputIt& a, const InputIt& b)
 		{
 			auto k = a;
-			for (auto i = 0; i != N && k != last; ++i, ++k)
+			for (auto i = 0; i != N && k != b; ++i, ++k)
 				what[i] = *k;
 		}
 		array(const std::initializer_list<T>& init):array(init.begin(),init.end()){}
@@ -275,4 +261,64 @@ namespace uuz
 	private:
 		T what[N];
 	};
+	namespace
+	{
+		template< class T, std::size_t N >
+		int comp(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+		{
+			for (auto i = 0; i != N; ++i)
+			{
+				if (lhs[i] < rhs[i])
+					return -1;
+				else if (lhs[i] > rhs[i])
+					return 1;
+			}
+			return 0;
+		}
+	}
+	template< class T, std::size_t N >
+	bool operator==(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return comp(lhs, rhs) == 0;
+	}
+	
+	template< class T, std::size_t N >
+	bool operator!=(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return comp(lhs, rhs) != 0;
+	}
+	
+	template< class T, std::size_t N >
+	bool operator<(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return comp(lhs, rhs) < 0;
+	}
+	
+	template< class T, std::size_t N >
+	bool operator<=(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return comp(lhs, rhs) <= 0;
+	}
+	
+	template< class T, std::size_t N >
+	bool operator>(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return comp(lhs, rhs) > 0;
+	}
+
+	template< class T, std::size_t N >
+	bool operator>=(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return comp(lhs, rhs) >= 0;
+	}
+
+	template< class T, std::size_t N >
+	void swap(const array<T, N>& lhs, const array<T, N>& rhs)noexcept
+	{
+		return lhs.swap(rhs);
+	}
+
+
+	//template <class T, class... U>
+//	array(T, U...)->array<T, 1 + sizeof...(U)>;
 }
