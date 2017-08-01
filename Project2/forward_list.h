@@ -2,9 +2,10 @@
 #include"prepare.h"
 namespace uuz
 {
-	template<typename T, typename Allocator = uuz::allocator>
+	template<typename T, typename Allocator>
 	struct forward_list_node
 	{
+
 		forward_list_node() = default;
 		forward_list_node(const T& p) :dat(new T(p)) {}
 		forward_list_node(T&& p) :dat(new T(std::move(p))) {}

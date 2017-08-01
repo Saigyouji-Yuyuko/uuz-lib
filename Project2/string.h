@@ -4,7 +4,7 @@
 #include<initializer_list>
 #include<cstring>
 #include<cassert>
-#include<vector>
+#include"vector.h"
 #ifdef _DEBUG
 #include"debug.h"
 #endif
@@ -828,7 +828,7 @@ namespace uuz
 			return strip(p.c_str());
 		}
 
-		std::vector<self> split(const Chartype* p = " \t\n\r")const
+		uuz::vector<self> split(const Chartype* p = " \t\n\r")const
 		{
 			vector<self> pp;
 			if (p == nullptr)
@@ -859,7 +859,7 @@ namespace uuz
 			}
 			return pp;
 		}
-		std::vector<self> split(const self& p)const
+		uuz::vector<self> split(const self& p)const
 		{
 			return split(p.c_str());
 		}

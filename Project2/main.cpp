@@ -33,21 +33,28 @@
 #include<iomanip>
 #include<fstream>
 #pragma warning(disable:4996)
-struct E
-{
-	E() { std::cout << "1"; }
-	E(const E&) { std::cout << "2"; }
-	~E() { std::cout << "3"; }
-};
-
-E f()
-{
-	return E();
-}
-
 int main()
 {
-	f();
-
+	for (int i = 1; i <= 100000000; i *= 10)
+	{
+		uuz::print(i);
+		{
+			uuz::time ii{ "std" };
+			std::vector<int> k;
+			for (int j = 0; j != i; ++j)
+				k.push_back(j);
+			while (!k.empty())
+				k.pop_back();
+		}
+		{
+			uuz::time ii{ "uuz" };
+			uuz::vector<int> k;
+			for (int j = 0; j != i; ++j)
+				k.push_back(j);
+			while (!k.empty())
+				k.pop_back();
+		}
+		uuz::print("-----------------");
+	}
 	system("pause");
 }

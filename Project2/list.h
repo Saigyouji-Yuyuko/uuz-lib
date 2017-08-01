@@ -2,6 +2,7 @@
 #include"prepare.h"
 #include"pair.h"
 #include<cassert>
+#include<functional>
 namespace uuz
 {
 	template<typename T,typename A>
@@ -11,24 +12,25 @@ namespace uuz
 	struct list_node
 	{
 		list_node() = default;
-		list_node(const T& p):dat{new T(p)}{}
-		list_node(T&& p):dat{new T(std::move(p))}{}
+		list_node(T* t,const T& p):dat{new(t) T(p)}{}
+		list_node(T* t,T&& p):dat{new(t) T(std::move(p))}{}
 		template<typename...Args>
-		list_node(Args&&... args) : dat{ new T(uuz::forward<Args>(args)...) }{}
-		void destory()noexcept
+		list_node(T* t,Args&&... args) : dat{ new(t) T(uuz::forward<Args>(args)...) }{}
+		void destory(std::function<void(T*)>& p)noexcept
 		{
 			if (next != nullptr)
 				next->destory();
+			(*dat).~T();
+			p(dat);
 			delete this;
 			return;
 		}
 		list_node* next = nullptr;
 		list_node* last = nullptr;
 		T* dat = nullptr;
-		
 	};
 
-	template<typename T, typename Allocator = uuz::allocator>
+	template<typename T, typename Allocator>
 	class list_iterator
 	{
 		using self = list_iterator;
@@ -105,7 +107,7 @@ namespace uuz
 		list_node<T>* t = nullptr;
 	};
 
-	template<typename T,typename Allocator = uuz::allocator>
+	template<typename T,typename Allocator = uuz::allocator<T>>
 	class list
 	{
 	public:
@@ -114,52 +116,110 @@ namespace uuz
 		using node = list_node<T>;
 		using size_t = _Uint32t;
 	public:
-		list()
+		list()noexcept(std::is_nothrow_constructible_v<Allocator>) : list(Allocator())
 		{
- 			nul.next = &nul;
+			nul.next = &nul;
 			nul.last = &nul;
 		}
-		list(size_t t, const T& p):list()
+		explicit list(const Allocator& alloc)noexcept(noexcept(list())&&std::is_nothrow_copy_constructible_v<Allocator>) :list(),alloc(alloc){}
+		list(size_t t, const T& p, const Allocator& alloc = Allocator()):list(alloc)
 		{
 			if (t != 0)
 			{
-				auto k = new node(p);
-				auto pp = k;
-				for (auto i = 1; i < t; ++i)
+				int i = 0;
+				try
 				{
-					auto temp = new node(p);
-					pp->next = temp;
-					temp->last = pp;
-					pp = temp;
+					auto k = new node(alloc.allocator(), p);
+					++i;
+					auto pp = k;
+					for (; i < t; ++i)
+					{
+						auto temp = new node(alloc.allocator(), p);
+						pp->next = temp;
+						temp->last = pp;
+						pp = temp;
+					}
 				}
+				catch (...)
+				{
+					if (i > 0)
+						k->destroy([this](T* a) {this->alloc.deallocate(a, 1); });
+					throw;
+				}
+				ssize = t;
 				charu(&nul, k, pp);
 			}
 		}
-		explicit list(size_t t) :list(t, T{}) {}
+		explicit list(size_t t, const Allocator& alloc = Allocator()) :list(t, T{},alloc) {}
 		template< typename InputIt,typename = is_input<T, InputIt>>
-		list(const InputIt& _first, const InputIt& _last):list()
+		list(const InputIt& _first, const InputIt& _last, const Allocator& alloc = Allocator()):list(alloc)
 		{
 			if (_first != _last)
 			{
-				auto k = new node(*_first);
-				auto p = k;
-				auto ios = _first;
-				++ios;
-				for (auto i = ios; i != _last; ++i)
+				auto i = _first;
+				auto ss = 0;
+				try
 				{
-					auto temp = new node(*i);
-					p->next = temp;
-					temp->last = p;
-					p = temp;
+					auto k = new node(alloc.allocator(), *_first);
+					++i;
+					++ss;
+					auto p = k;
+					for (; i != _last; ++i)
+					{
+						auto temp = new node(alloc.allocator(), *i);
+						p->next = temp;
+						temp->last = p;
+						p = temp;
+						++ss;
+					}
 				}
+				catch (...)
+				{
+					if(i!=_first)
+						k->destroy([this](T* a) {this->alloc.deallocate(a, 1); });
+					throw;
+				}		
+				ssize = ss;
 				charu(&nul, k, p);
 			}
 		}
-		list(const std::initializer_list<T>& init) :list(init.begin(), init.end()) {}
-		list(const self& t):list(t.begin(),t.end()){}
-		list(self&& t):self()
+		list(const std::initializer_list<T>& init, const Allocator& alloc = Allocator()) :list(init.begin(), init.end(),alloc) {}
+		list(const self& t):list(t.begin(),t.end(),t.alloc){}
+		list(const list& other, const Allocator& alloc = Allocator()):list(other.begin(),other.end(),alloc){}
+		list(self&& t)noexcept(is_nothrow_swap_alloc<Allocator>::value) :self()
 		{
 			this->swap(t);
+		}
+		list(list&& other, const Allocator& alloc):list()
+		{
+			if (alloc == this->alloc)
+				this->swap(other);
+			else if(!other.empty())
+			{
+				auto i = other.begin();
+				try
+				{
+					auto k = new node(alloc.allocator(), std::move(*(other.begin())));
+					++i;
+					auto p = k;
+					for (; i != other.end(); ++i)
+					{
+						auto temp = new node(alloc.allocator(), std::move(*i));
+						p->next = temp;
+						temp->last = p;
+						p = temp;
+					}
+				}
+				catch (...)
+				{
+					if (i != other.begin())
+						k->destroy([this](T* a) {this->alloc.deallocate(a, 1); });
+					throw;
+				}
+				ssize = other.ssize;
+				charu(&nul, k, p);
+				other.clear();
+			}
 		}
 
 		list& operator=(const list& other)
@@ -170,53 +230,67 @@ namespace uuz
 			this->swap(temp);
 			return *this;
 		}
-		list& operator=(list&& other)noexcept
+		list& operator=(list&& other)noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			if (this == &other)
 				return *this;
 			auto temp(std::move(other));
 			this->swap(temp);
 			return *this;
-		}
+		}	
 		list& operator=(const std::initializer_list<T>& ilist)
 		{
-			auto temp(ilist);
+			auto temp(ilist,alloc);
 			this->swap(temp);
 			return *this;
 		}
 
 		void assign(size_t count, const T& value)
 		{
-			self temp(count, value);
+			self temp(count, value,alloc);
 			this->swap(temp);
 		}
 		template< typename InputIt ,typename = is_input<T, InputIt>>
 		void assign(const InputIt& _first, const InputIt& _last)
 		{
-			auto temp(_first, _last);
+			auto temp(_first, _last,alloc);
 			this->swap(temp);
 		}
 		void assign(const std::initializer_list<T>& ilist)
 		{
-			auto temp{ ilist };
+			auto temp{ ilist ,alloc};
 			this->swap(temp);
 		}
 
+		Allocator get_allocator() const noexcept(std::is_nothrow_move_constructible_v<Allocator> && std::is_nothrow_copy_constructible_v<Allocator>)
+		{
+			return alloc;
+		}
+
+
 		T& front()
 		{
+			if (empty())
+				throw(out_of_range("it's empty"));
 			return *(nul.next->dat);
 		}
 		const T& front()const
 		{
+			if (empty())
+				throw(out_of_range("it's empty"));
 			return *(nul.next->dat);
 		}
 
 		T& back()
 		{
+			if (empty())
+				throw(out_of_range("it's empty"));
 			return *(nul.last->dat);
 		}
 		const T& back()const
 		{
+			if (empty())
+				throw(out_of_range("it's empty"));
 			return *(nul.last->dat);
 		}
 
@@ -248,34 +322,28 @@ namespace uuz
 
 		bool empty()const noexcept
 		{
-			return nul.next == &nul;
+			return ssize == 0;
 		}
 
-		size_t size()const
+		size_t size()const noexcept
 		{
-			size_t t = 0;
-			auto k = nul.next;
-			while (k != &nul)
-			{
-				k = k->next;
-				++t;
-			}
-			return t;
+			return ssize;
 		}
 		
-		size_t max_size()const
+		size_t max_size()const noexcept
 		{
 			return size();
 		}
 
-		void clear()
+		void clear()noexcept
 		{
 			if (empty())
 				return;
 			nul.last->next = nullptr;
-			nul.next->destory();
+			nul.next->destory([this](T*a) {this->alloc.deallocate(a, 1); });
 			nul.last = nullptr;
 			nul.next = nullptr;
+			ssize = 0;
 		}
 
 		iterator insert(const iterator& pos, const T& value)
@@ -290,16 +358,29 @@ namespace uuz
 		{
 			if (count)
 			{
-				auto k = new node(value);
-				auto t = k;
-				for (auto i = 1; i != count; ++i)
+				int i = 0;
+				try
 				{
-					auto temp = new node(value);
-					t->next = temp;
-					temp->last = t;
-					t = last;
+					auto k = new node(alloc.allocator(), value);
+					++i;
+					auto t = k;
+					for (; i != count; ++i)
+					{
+						auto temp = new node(alloc.allocator(), value);
+						t->next = temp;
+						temp->last = t;
+						t = last;
+					}
 				}
+				catch (...)
+				{
+					if (i > 0)
+						k->destory([this](T*a) {this->alloc.deallocate(a, 1); });
+					throw;
+				}
+				
 				charu(*pos, k, t);
+				ssize += count;
 				return iterator{ t };
 			}
 			return pos;
@@ -307,20 +388,35 @@ namespace uuz
 		template<typename InputIt ,typename = is_input<T, InputIt>>
 		iterator insert(const iterator& pos, const InputIt& _first, const InputIt& _last)
 		{
-
-			auto k = new node(*_first);
-			auto p = _first;
-			++p;
-			auto t = k;
-			for (auto i = p; i != _last; ++i)
+			if (_first != _last)
 			{
-				auto temp = new node(*p);
-				t->next = temp;
-				temp->last = t;
-				t = last;
+				auto i = _first;
+				try
+				{
+					auto k = new node(alloc.allocator(), *_first);
+					auto ss = 1;
+					++i;
+					auto t = k;
+					for (; i != _last; ++i)
+					{
+						auto temp = new node(alloc.allocator(), *p);
+						t->next = temp;
+						temp->last = t;
+						t = last;
+						++ss;
+					}
+				}
+				catch (...)
+				{
+					if (i != _first)
+						k->destory([this](T*a) {this->alloc.deallocate(a, 1); });
+					throw;
+				}
+				charu(*pos, k, t);
+				ssize += ss;
+				return iterator{ t };
 			}
-			charu(*pos, k, t);
-			return iterator{ t };
+			return pos;
 		}
 		iterator insert(const iterator& pos, std::initializer_list<T> ilist)
 		{
@@ -330,8 +426,9 @@ namespace uuz
 		template< class... Args >
 		iterator emplace(const iterator& pos, Args&&... args)
 		{
-			auto k = new node(uuz::forward<Args>(args)...);
+			auto k = new node(alloc.allocator(),uuz::forward<Args>(args)...);
 			charu(pos.t, k, k);
+			++ssize;
 			return iterator{ k };
 		}
 
@@ -348,10 +445,14 @@ namespace uuz
 				clear();
 				return end();
 			}
+			auto ss = 0;
+			for (auto i = first; i != last; ++i)
+				++ss;
 			first.t->last->next = last.t;
 			last.t->last->next = nullptr;
 			last.t->last = first.t->last;
-			first.t->destory();
+			first.t->destory([this](T*a) {this->alloc.deallocate(a, 1); });
+			ssize -= ss;
 		}
 
 		void push_back(const T& value)
@@ -398,7 +499,7 @@ namespace uuz
 		{
 			return resize(count, T{});
 		}
-		void resize(size_t count, const T& value)
+		void resize(size_t count, const T& value)//反正有erase无法保证安全
 		{
 			if (t == 0)
 				return clear();
@@ -410,12 +511,12 @@ namespace uuz
 			}
 			if (p == &nul && count != 0)
 			{
-				auto k = new node(value);
+				auto k = new node(alloc.allocator(),value);
 				--count;
 				auto l = k;
 				while (count--)
 				{
-					auto temp = new node(value);
+					auto temp = new node(alloc.allocator(),value);
 					l->next = temp;
 					temp->last = l;
 					l = temp;
@@ -424,9 +525,10 @@ namespace uuz
 			}
 			else if (p != &nul&&count == 0)
 				erase(iterator(p), end());
+			ssize = count;
 		}
 
-		void swap(list& other)noexcept
+		void swap(list& other)	noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			using std::swap;
 			auto k = nul.next;
@@ -451,6 +553,8 @@ namespace uuz
 			}
 			else
 				nul.last = nul.next = &nul;
+			swap(alloc, other.alloc);
+			swap(other.ssize, ssize);
 		}
 
 		void merge(list& other)
@@ -545,7 +649,8 @@ namespace uuz
 					l->last->next = l->next;
 					l->next->last = l->last;
 					auto w = l->next;
-					delete l;
+					l->next = nullptr;
+					l->destroy([this](T*a) {this->alloc.deallocate(a, 1); });
 					l = w;
 				}
 				else
@@ -580,7 +685,8 @@ namespace uuz
 					auto t = k->next;
 					k->next = k->next->next;
 					k->next->last = k;
-					delete t;
+					t->next = nullptr;
+					t->destroy([this](T*a) {this->alloc.deallocate(a, 1); });
 				}
 				else
 					k = k->next;
@@ -632,7 +738,7 @@ namespace uuz
 		{
 			charu(nullptr, a, b);
 		}
-		void charu(node* d,node* b, node* e)
+		void charu(node* d,node* b, node* e)noexcept
 		{
 			if (empty())
 			{
@@ -683,7 +789,8 @@ namespace uuz
 				return 1;
 			return -1;
 		}
-		
+		Allocator alloc;
+		size_t ssize = 0;
 		node nul;
 	};
 	template< class T, class Alloc >

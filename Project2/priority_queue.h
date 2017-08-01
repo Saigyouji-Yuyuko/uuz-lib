@@ -160,7 +160,7 @@ namespace uuz
 	}
 	/*template <class Compare, class Container>
 	priority_queue(Compare, Container)->priority_queue<typename Container::value_type, Container, Compare>;
-	template<class InputIt,class Comp = std::less<typename std::iterator_traits<InputIt>::value_type>,class Container = std::vector<typename iterator_traits<InputIt>::value_type>>
+	template<class InputIt,class Comp = std::less<typename std::iterator_traits<InputIt>::value_type>,class Container = uuz::vector<typename iterator_traits<InputIt>::value_type>>
 	priority_queue(InputIt, InputIt, Comp = Comp(), Container = Container())->priority_queue<typename std::iterator_traits<InputIt>::value_type, Container, Comp>;
 	template<class Comp, class Container, class Alloc>
 	priority_queue(Comp, Container, Alloc)->priority_queue<typename Container::value_type, Container, Comp>;*/

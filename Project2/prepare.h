@@ -24,14 +24,14 @@ namespace uuz
 			;
 		}
 
-		T* allocate(std::size_t n)
+		T* allocate(std::size_t n = 1)
 		{
-			auto k = ::operator new(n * sizeof(T));
+			auto k = ::operator new[](n * sizeof(T));
 			return (T*)k;
 		}
 		void deallocate(T* p, std::size_t n)
 		{
-			::operator delete(p);
+			::operator delete[](p);
 		}
 	};
 	template< class T1, class T2 >
@@ -177,13 +177,15 @@ namespace uuz
 		catch (...)
 		{
 			for (int j = 0; j != i; ++j)
-				*(to + i).~T();
+				(to + i)->~T();
 			throw;
 		}
 		return;
 	}
 	template<typename T>
-	void move_or_copy_ass(T* src, size_t t, T* to, typename std::enable_if_t<std::is_copy_assignable_v<T>>* = nullptr)
+	void move_or_copy_ass(T* src, size_t t, T* to,
+		typename std::enable_if_t<(!std::is_nothrow_move_assignable_v<T> && std::is_nothrow_copy_assignable_v<T>)
+								|| (!std::is_move_assignable_v<T> && std::is_copy_assignable_v<T>)>* = nullptr)
 		noexcept(std::is_nothrow_copy_assignable_v<T>)
 	{
 		if (src == to)
@@ -203,7 +205,8 @@ namespace uuz
 		return;
 	}
 	template<typename T>
-	void move_or_copy_ass(T* src, size_t t, T* to)
+	void move_or_copy_ass(T* src, size_t t, T* to,
+		typename std::enable_if_t<!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>>* = nullptr)
 	{
 		static_assert(false, "T can't move or copy\n");
 	}
@@ -216,9 +219,9 @@ namespace uuz
 			return;
 		if (to < src)
 			return move_or_copy_con(src, t, to);
-		if(src +t <= to)
+		if(src +t < to)
 			return move_or_copy_con(src, t, to);
-		move_or_copy_con(src + t - (to - src), to - src, to + t);
+		move_or_copy_con(src + t - (to - src), to - src, src + t);
 		move_or_copy_ass(src, t - (to - src), to);
 	}
 	template<typename T>
