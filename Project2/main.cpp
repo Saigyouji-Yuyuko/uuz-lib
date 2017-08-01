@@ -33,12 +33,21 @@
 #include<iomanip>
 #include<fstream>
 #pragma warning(disable:4996)
+struct E
+{
+	E() { std::cout << "1"; }
+	E(const E&) { std::cout << "2"; }
+	~E() { std::cout << "3"; }
+};
+
+E f()
+{
+	return E();
+}
+
 int main()
 {
-	std::array<char, 6> letters{ 'o', 'm', 'g', 'w', 't', 'f' };
-	if (!letters.empty()) {
-		std::cout << "The last character is: " << letters.back() << '\n';
-	}
+	f();
+
 	system("pause");
-	return 0;
 }

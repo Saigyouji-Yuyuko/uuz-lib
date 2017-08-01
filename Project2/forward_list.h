@@ -86,13 +86,13 @@ namespace uuz
 		}
 
 	private:
-		self(forward_list_node<T>* tt) :t(tt) {}
-		self(const forward_list_node<T>* tt) :t(const_cast<forward_list_node<T>*>(tt)) {}
+		self(forward_list_node<T, Allocator>* tt) :t(tt) {}
+		self(const forward_list_node<T, Allocator>* tt) :t(const_cast<forward_list_node<T>*>(tt)) {}
 		self() = default;
-		forward_list_node<T>* t = nullptr;
+		forward_list_node<T, Allocator>* t = nullptr;
 	};
 
-	template<typename T, typename Allocator = uuz::allocator>
+	template<typename T, typename Allocator = uuz::allocator<T>>
 	class forward_list
 	{
 		using iterator = forward_list_iterator<T, Allocator>;

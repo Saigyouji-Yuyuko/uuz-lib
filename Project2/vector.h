@@ -121,13 +121,13 @@ namespace uuz
 		T* dat = nullptr;
 	};
 
-	template<typename T,typename Allocator = uuz::allocator>
+	template<typename T,typename Allocator = uuz::allocator<T>>
 	class vector
 	{
 		using self = vector<T, Allocator>;
-		using size_t = uint32_t;
+		//using size_t = std::s;
 		
-
+	public:
 		using value_type = T;
 		using allocator_type = Allocator;
 		using size_type = uint32_t;
@@ -144,32 +144,47 @@ namespace uuz
 		friend vector_iterator<T, Allocator>;
 
 	public:
-		self() = default;
-		self(size_t t, const T& value)
+		vector() noexcept(noexcept(Allocator())) : vector(Allocator()) {}
+		explicit vector(const Allocator& alloc) noexcept : alloc{alloc}{}
+		self(size_t t, const T& value, const Allocator& alloc = Allocator()):vector(alloc)
 		{
 			reserve(t);
 			for (auto i = 0; i < t; ++i)
 				auto k = new(shuju + i) T{ value };
 			ssize = t;
 		}
-		self(const size_t t)
+		self(const size_t t, const Allocator& alloc = Allocator()):vector(alloc)
 		{
 			reserve(t);
 		}	
-		self(const self& t)
+		self(const self& t):vector(t.alloc)
 		{
 			initfrom(t.begin(), t.end());
 		}
-		self(self&& t):self()
+		vector(const vector& other, const Allocator& alloc) :vector(alloc)
+		{
+			initfrom(t.begin(), t.end());
+		}
+		self(self&& t)noexcept
 		{
 			this->swap(t);
 		}
-		self(const std::initializer_list<T>& init)
+		vector(vector&& other, const Allocator& alloc):vector(alloc)
+		{
+			if (this->alloc == other.alloc)
+				this->swap(other);
+			else
+			{
+				reserve(other.size());
+				move_or_copy_con(other.shuju, other.size(), shuju);
+			}
+		}
+		self(const std::initializer_list<T>& init, const Allocator& alloc = Allocator()) :vector(alloc)
 		{
 			initfrom(init.begin(), init.end());
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
-		self(InputIt first, InputIt last)
+		self(InputIt first, InputIt last,const Allocator& alloc = Allocator()) :vector(alloc)
 		{
 			initfrom(first, last);
 		}
@@ -182,7 +197,7 @@ namespace uuz
 			this->swap(temp);
 			return *this;
 		}
-		self& operator=(self&& other)
+		self& operator=(self&& other)noexcept(is_nothrow_swap_alloc<Allocator>)
 		{
 			if (this == &other)
 				return *this;
@@ -214,14 +229,22 @@ namespace uuz
 			this->swap(temp);
 		}
 
+		allocator_type get_allocator() const noexcept
+		{
+			return alloc;
+		}
+
+
 		T& at(const size_t pos)
 		{
-			assert(pos < size());
+			if (pos >= ssize)
+				throw(out_of_range{""});
 			return  *(data() + pos);
 		}
 		const T& at(const size_t pos) const
 		{
-			assert(pos < size());
+			if (pos >= ssize)
+				throw(out_of_range{ "" });
 			return  *(data() + pos);
 		}
 
@@ -306,15 +329,22 @@ namespace uuz
 		{
 			if (new_cap <= max_size())
 				return;
-			auto temp = (T*)malloc(new_cap * sizeof(T));
+			T* temp = alloc.allocate(new_cap);
 			if (shuju)
 			{
-				assert(temp);
-				memcpy(temp, shuju, size() * sizeof(T));
-				free(shuju);
+				try
+				{
+					move_or_copy_con(shuju, ssize, temp);
+				}
+				catch (...)
+				{
+					alloc.deallocate(temp, new_cap);
+					throw;
+				}
 			}
 			shuju = temp;
 			maxsize = new_cap;
+			alloc.deallocate(shuju, maxsize);
 		}
 
 		size_t capacity() const noexcept
@@ -322,7 +352,7 @@ namespace uuz
 			return max_size();
 		}
 
-		void shrink_to_fit()noexcept
+		void shrink_to_fit()
 		{
 			reserve(size());
 		}
@@ -336,9 +366,10 @@ namespace uuz
 
 		void clear()noexcept
 		{
+			auto k = ssize;
 			if (shuju)
 				clean();
-			free(shuju);
+			alloc.deallocate(shuju,k);
 			shuju = nullptr;
 			maxsize = 0;
 		}
@@ -350,21 +381,37 @@ namespace uuz
 		}
 		iterator insert(const iterator pos, T&& value)
 		{
-			auto p = pos-begin();
+			if (pos == end())
+			{
+				push_back(std::move(value));
+				return end();
+			}
+			auto p = pos - begin();
 			reserve(size() + 1);
-			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + 1));
-			auto k = new(data()+p) T(std::move(value));
+			move_or_copy_con(data() + size() - 1, 1, data() + size());
+			move_or_copy_ass(data() + p, size() - p - 1, data() + p + 1);
+			*(data() + p) = std::move(value);
 			++ssize;
 			return begin() + p ;
 		}
 		iterator insert(const iterator pos, size_t count, const T& value)
 		{
 			auto temp{ value };
+			if (pos == end())
+			{
+				for (int i = 0; i < count-1; ++i)
+					push_back(temp);
+				push_back(std::move(temp));
+				return end();
+			}
 			auto p = pos - begin();
 			reserve(size() + count);
-			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + count));
-			for (int i = 0; i < count; ++i)
-				auto k = new(data() + p + i) T(temp);
+			//std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + count));
+			//auto k = size() - p - count;
+			move_or_copy(data() + p, size() - p, data + p + count);
+			for (int i = 0; i < count-1; ++i)
+				 new(data() + p + i) T(temp);
+			new(data() + p + count - 1) T(std::move(temp));
 			ssize += count;
 			return begin() + p ;
 		}
@@ -372,15 +419,13 @@ namespace uuz
 		iterator insert(const iterator pos,  InputIt first, InputIt last)
 		{
 			auto p = pos - begin();
-			auto dis = last - first;
-			auto temp = (T*)malloc(dis * sizeof(T));
-			assert(temp);
-			for (auto i = 0; i != dis; ++i)
-				auto k = new(temp + i) T(*(first + i));
-			reserve(size() + dis);
-			std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + dis));
-			for (int i = 0; i < dis; ++i)
-				auto k = new(data() + p + i) T(std::move(*(temp + i)));
+			auto count = distance(last - first);
+			reserve(size() + count);
+			//std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + dis));
+			move_or_copy(data() + p, size() - p, data + p + count);
+			auto k = first;
+			for (int i = 0; i < count; ++i, ++k)
+				auto k = new(data() + p + i) T(*k);
 			ssize += dis;
 			return begin() + p;
 		}
@@ -412,7 +457,8 @@ namespace uuz
 			
 			auto dis1 = first - begin();
 			auto dis2 = last - first;
-			std::copy((T*)(data() + dis1 + dis2), (T*)(data() + size()), (T*)(data() + dis1));
+			//std::copy((T*)(data() + dis1 + dis2), (T*)(data() + size()), (T*)(data() + dis1));
+			move_or_copy_ass(data() + dis1 + dis2, size() - dis1 - dis2, data() + dis1);
 			ssize -= dis2;
 			return first;
 		}
@@ -463,12 +509,13 @@ namespace uuz
 
 		}
 
-		void swap(self& other)noexcept
+		void swap(self& other)noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			using std::swap;
 			swap(other.shuju, shuju);
 			swap(ssize, other.ssize);
 			swap(maxsize, other.maxsize);
+			swap(alloc, other.alloc);
 		}
 		
 	
@@ -506,13 +553,13 @@ namespace uuz
 		}
 
 		
-
+		Allocator alloc{};
 		T* shuju = nullptr;
 		size_t ssize = 0;
 		size_t maxsize = 0;
 	};
 	template<typename T1, typename T2>
-	 void swap(vector<T1, T2>& a, vector<T1, T2>&b)noexcept
+	 void swap(vector<T1, T2>& a, vector<T1, T2>&b)noexcept(is_nothrow_swap_alloc<T2>)
 	{
 		a.swap(b);
 	}
