@@ -23,6 +23,5 @@ filesystem 计划<br>
 functor 计划<br>
 regex 计划<br>
 暂时这样<br>
-allocator先欠着，逃<br>
 其实还有个socket库想开坑<br>
 隔壁lisp解释器也必须重写
