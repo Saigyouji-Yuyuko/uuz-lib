@@ -12,7 +12,7 @@
 #include"array.h"
 #include"priority_queue.h"
 
-
+#include<deque>
 #include<string>
 #include<future>
 #include<iostream>

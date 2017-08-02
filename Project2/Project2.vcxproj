@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="array.h" />
     <ClInclude Include="debug.h" />
+    <ClInclude Include="deque.h" />
     <ClInclude Include="file.h" />
     <ClInclude Include="forward_list.h" />
     <ClInclude Include="functor.h" />

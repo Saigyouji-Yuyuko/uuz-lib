@@ -448,7 +448,7 @@ namespace uuz
 			move_or_copy(data() + p, size() - p, data() + p + count);
 			for (int i = 0; i < count-1; ++i)
 				 new(data() + p + i) T(temp);
-			new(data() + p + count - 1) T(std::move(temp));
+			*(data() + p + count - 1) = std::move(temp);
 			ssize += count;
 			return begin() + p ;
 		}
@@ -463,7 +463,7 @@ namespace uuz
 			move_or_copy(data() + p, size() - p, data() + p + count);
 			auto k = first;
 			for (int i = 0; i < count; ++i, ++k)
-				 new(data() + p + i) T(*k);
+				 *(data() + p + i)=(*k);
 			ssize += count;
 			return begin() + p;
 		}
@@ -489,14 +489,13 @@ namespace uuz
 			{
 				clear();
 				return begin();
-			}
-			for (auto i = first; i != last; ++i)
-				(*i).~T();
-			
+			}		
 			auto dis1 = first - begin();
 			auto dis2 = last - first;
 			//std::copy((T*)(data() + dis1 + dis2), (T*)(data() + size()), (T*)(data() + dis1));
 			move_or_copy_ass(data() + dis1 + dis2, size() - dis1 - dis2, data() + dis1);
+			for (auto i = 0; i != dis2; ++i)
+				(*(data() + ssize - i)).~T();
 			ssize -= dis2;
 			return first;
 		}
