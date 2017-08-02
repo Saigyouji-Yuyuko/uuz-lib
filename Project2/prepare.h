@@ -241,6 +241,16 @@ namespace uuz
 		}
 		return aa;
 	}
+
+	template<typename AB,typename C>
+	struct exchange;
+	template<template<typename...>class A,typename B, typename C>
+	struct exchange<A<B>, C>
+	{
+		using type = A<C>;
+	};
+
+
 	using std::bad_alloc;
 	using std::out_of_range;
 

@@ -26,7 +26,7 @@ namespace uuz
 			dat += t;
 			return *this;
 		}
-		self& operator-=(const int t)
+		self& operator-=(const int t)noexcept
 		{
 			dat -= t;
 			return *this;
@@ -97,7 +97,7 @@ namespace uuz
 			return a > b || a == b;
 		}
 
-		friend self operator+(const self& a, const size_t b)
+		friend self operator+(const self& a, const size_t b)noexcept
 		{
 			self c{ a };
 			c += b;
@@ -107,7 +107,7 @@ namespace uuz
 		{
 			return a.dat - b.dat;
 		}
-		friend self operator-(const self& a, const int b)
+		friend self operator-(const self& a, const int b)noexcept
 		{
 			self c{ a };
 			c -= b;
@@ -179,7 +179,7 @@ namespace uuz
 		}
 		self(self&& t)noexcept
 		{
-			alloc = std::swap(t.alloc);
+			alloc = std::move(t.alloc);
 			this->swap(t);
 		}
 		vector(vector&& other, const Allocator& alloc):vector(alloc)

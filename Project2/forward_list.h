@@ -2,20 +2,20 @@
 #include"prepare.h"
 namespace uuz
 {
-	template<typename T, typename Allocator>
+	template<typename T>
 	struct forward_list_node
 	{
 
 		forward_list_node() = default;
-		forward_list_node(const T& p) :dat(new T(p)) {}
-		forward_list_node(T&& p) :dat(new T(std::move(p))) {}
+		forward_list_node(T* t,const T& p) :dat(new(t) T(p)) {}
+		forward_list_node(T* t, T&& p) :dat(new(t) T(std::move(p))) {}
 		template<typename...Args>
-		forward_list_node(Args...args):dat(new T(uuz::forward<Args>(args)...)) {}
-		void destroy()noexcept
+		forward_list_node(T* t, Args...args):dat(new(t) T(uuz::forward<Args>(args)...)) {}
+		void destroy(const std::function<void(T*)>& p)noexcept
 		{
-			if (next&&next->dat)
-				next->destroy();
-			delete this;
+			(*dat).~T();
+			p(dat);
+			this->~forward_list_node();
 			return;
 		}
 		T* dat = nullptr;
@@ -39,9 +39,9 @@ namespace uuz
 		}
 		self operator++(int)noexcept
 		{
-			auto p{ *this };
-			t = t->next;
-			return p;
+		auto p{ *this };
+		t = t->next;
+		return p;
 		}
 
 		T& operator*()noexcept
@@ -87,60 +87,114 @@ namespace uuz
 		}
 
 	private:
-		self(forward_list_node<T, Allocator>* tt) :t(tt) {}
-		self(const forward_list_node<T, Allocator>* tt) :t(const_cast<forward_list_node<T>*>(tt)) {}
+		self(forward_list_node<T>* tt) :t(tt) {}
+		self(const forward_list_node<T>* tt) :t(const_cast<forward_list_node<T>*>(tt)) {}
 		self() = default;
-		forward_list_node<T, Allocator>* t = nullptr;
+		forward_list_node<T>* t = nullptr;
 	};
 
-	template<typename T, typename Allocator = uuz::allocator<T>>
+	template<typename T, typename A = uuz::allocator<T>>
 	class forward_list
 	{
-		using iterator = forward_list_iterator<T, Allocator>;
+		using iterator = forward_list_iterator<T, A>;
+		
 		using self = forward_list;
-		using node = forward_list_node<T, Allocator>;
+		using node = forward_list_node<T>;
+		using Allocator = typename uuz::exchange<A, node>::type;
 		using size_t = unsigned int;
 	public:
-		forward_list() /*: forward_list(Allocator()) {}*/ = default;
-		//explicit forward_list(const Allocator& alloc);
-		forward_list(size_t count, const T& value/*,const Allocator& alloc = Allocator()*/):forward_list()
+		forward_list() : forward_list(Allocator()) {}
+		explicit forward_list(const A& alloc) :alloc(alloc){}
+		forward_list(size_t count, const T& value, const A& alloc = A())
+			noexcept(noexcept(forward_list(alloc))&& noexcept(this->alloc.allocate())&&std::is_nothrow_copy_constructible_v<T>)
+			:forward_list(alloc)
 		{
 			if (count)
 			{
-				auto k = new node(value);
-				nul.next = k;
-				for (auto i = 1; i < count; ++i)
+				auto i = 0;
+				try
 				{
-					k->next = new node(value);
-					k = k->next;
+					auto k = make_list(value);
+					++i;
+					nul.next = k;
+					for (; i < count; ++i)
+					{
+						k->next = make_list(value);
+						k = k->next;
+					}
+				}
+				catch (...)
+				{
+					if (i > 0)
+						list_destroy(nul.next);
+					nul.next = nullptr;
+					throw;
 				}
 			}
 		}
-		explicit forward_list(size_t count/*,const Allocator& alloc = Allocator()*/):forward_list(count, T{}) {}
-		template<typename InputIt , typename = is_input<T,InputIt>>
-		forward_list(const InputIt& first, const InputIt& last/*,const Allocator& alloc = Allocator()*/):forward_list()
+		explicit forward_list(size_t count, const A& alloc = A())noexcept(noexcept(forward_list(count, T{}, alloc))) :forward_list(count, T{}, alloc) {}
+		template<typename InputIt, typename = is_input<T, InputIt>>
+		forward_list(const InputIt& first, const InputIt& last, const A& alloc = A()) : forward_list(alloc)
 		{
 			if (first != last)
 			{
-				auto k = new node(*first);
-				nul.next = k;
 				auto i = first;
-				++i;
-				for (; i !=last; ++i)
+				try
 				{
-					k->next = new node(*i);
-					k = k->next;
+
+					auto k = make_list(*first);
+					nul.next = k;
+					++i;
+					for (; i != last; ++i)
+					{
+						k->next = make_list(*i);
+						k = k->next;
+					}
+				}
+				catch (...)
+				{
+					if (i != first)
+						list_destroy(nul.next);
+					nul.next = nullptr;
+					throw;
 				}
 			}
 		}
-		forward_list(const forward_list& other):forward_list(other.begin(),other.end()){}
-		//forward_list(const forward_list& other/*,const Allocator& alloc = Allocator()*/));
+		forward_list(const forward_list& other) :forward_list(other.begin(), other.end(),other.alloc) {}
+		forward_list(const forward_list& other, const A& alloc = A()):forward_list(other.begin(), other.end(), alloc) {}
 		forward_list(forward_list&& other):forward_list{}
 		{
 			this->swap(other);
 		}
-		//forward_list(forward_list&& other, const Allocator& alloc);
-		forward_list(std::initializer_list<T> init/*,const Allocator& alloc = Allocator()*/) :forward_list{init.begin(),init.end()}{}
+		forward_list(forward_list&& other, const A& alloc)
+		{
+			if(other.alloc==alloc)
+				this->swap(other);
+			else if(!other.empty())
+			{
+				auto i = other.begin();
+				try
+				{
+					auto k = make_list(std::move(*i));
+					nul.next = k;
+					++i;
+					for (; i != other.end(); ++i)
+					{
+						k->next = make_list(std::move(*i));
+						k = k->next;
+					}
+				}
+				catch (...)
+				{
+					if (i != other.begin())
+						list_destroy(nul.next);
+					nul.next = nullptr;
+					throw;
+				}
+				other.clear();
+			}
+		}
+		forward_list(std::initializer_list<T> init,const A& alloc = A()) :forward_list{init.begin(),init.end(),alloc}{}
 
 		forward_list& operator=(const forward_list& other)
 		{
@@ -161,34 +215,38 @@ namespace uuz
 		}
 		forward_list& operator=(std::initializer_list<T> ilist)
 		{
-			auto temp{ ilist };
+			auto temp{ ilist ,alloc};
 			this->swap(temp);
 			return *this;
 		}
 
 		void assign(size_t count, const T& value)
 		{
-			forward_list temp(count, value);
+			forward_list temp(count, value,alloc);
 			this->swap(temp);
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
 		void assign(const InputIt& first,const InputIt& last)
 		{
-			forward_list temp(first, last);
+			forward_list temp(first, last,alloc);
 			this->swap(temp);
 		}
 		void assign(std::initializer_list<T> ilist)
 		{
-			forward_list temp(ilist);
+			forward_list temp(ilist,alloc);
 			this->swap(temp);
 		}
 		
-		T& front()noexcept
+		T& front()
 		{
+			if (empty())
+				throw(out_of_range(""));
 			return *(nul.next->dat);
 		}
-		const T& front() const noexcept
+		const T& front() const 
 		{
+			if (empty())
+				throw(out_of_range(""));
 			return *(nul.next->dat);
 		}
 		
@@ -242,7 +300,7 @@ namespace uuz
 		void clear() noexcept
 		{
 			if(nul.next)
-				nul.next->destroy();
+				list_destroy(nul.next);
 			nul.next = nullptr;
 		}
 
@@ -254,17 +312,29 @@ namespace uuz
 		{
 			return emplace_after(pos, std::move(value));
 		}
-		iterator insert_after(const iterator& pos, size_t count, const T& value)
+		iterator insert_after(const iterator& pos, size_t count, const T& value)	
 		{
 			if (count)
 			{
-				auto k = new node(value);
-				auto p = k;
-				for (int i = 1; i != count; ++i)
+				int i = 0;
+				try
 				{
-					p->next = new node(value);
-					p = p->next;
+					auto k = make_list(value);
+					auto p = k;
+					++i;
+					for (; i != count; ++i)
+					{
+						p->next = make_list(value);
+						p = p->next;
+					}
 				}
+				catch (...)
+				{
+					if(i>0)
+						list_destroy(k);
+					throw;
+				}
+
 				p->next = pos.t->next;
 				pos.t->next = k;
 				return { p };
@@ -276,15 +346,25 @@ namespace uuz
 		{
 			if (first != last)
 			{
-				auto k = new node(*first);
-				auto p = k;
 				auto i = first;
-				++i;
-				for (; i != last; ++i)
+				try
 				{
-					p->next = new node(*i);
-					p = p->next;
+					auto k = make_list(*first);
+					auto p = k;
+					++i;
+					for (; i != last; ++i)
+					{
+						p->next = make_list(*i);
+						p = p->next;
+					}
 				}
+				catch (...)
+				{
+					if (i!=first)
+						list_destroy(k);
+					throw;
+				}
+				
 				p->next = pos.t->next;
 				pos.t->next = k;
 				return { p };
@@ -299,7 +379,7 @@ namespace uuz
 		template< typename... Args >
 		iterator emplace_after(const iterator& pos, Args&&... args)
 		{
-			auto k = new node(uuz::forward<Args>(args)...);
+			auto k = make_list(uuz::forward<Args>(args)...);
 			k->next = pos.t->next;
 			pos.t->next = k;
 			return iterator{ k };
@@ -310,7 +390,8 @@ namespace uuz
 		{
 			auto k = pos.t->next;
 			pos.t->next = k->next;
-			delete k;
+			k->next = nullptr;
+			list_destroy(k);
 			return pos;
 		}
 		iterator erase_after(const iterator& first, const iterator& last)
@@ -319,14 +400,15 @@ namespace uuz
 				return last;
 			if (last == end())
 			{
-				first.t->next->destroy();
+				list_destroy(first.t->next);
+				first.t->next = nullptr;
 				return end();
 			}
 			auto k = first.t->next;
 			while (k->next != last)
 				k = k->next;
 			k->next = nullptr;
-			first.t->next->destroy();
+			list_destroy(first.t->next);
 			first.t->next = last.t;
 		}
 
@@ -342,7 +424,7 @@ namespace uuz
 		template< typename... Args >
 		T& emplace_front(Args&&... args)
 		{
-			auto k = new node(uuz::forward<Args>(args)...);
+			auto k = make_list(uuz::forward<Args>(args)...);
 			k->next = nul.next;
 			nul.next = k;
 			return *(k->dat);
@@ -373,13 +455,13 @@ namespace uuz
 			{
 				while (count--)
 				{
-					k->next = new node(value);
+					k->next = make_list(value);
 					k = k->next;
 				}
 			}
 			else if (k->next != nullptr)
 			{
-				k->next->destroy();
+				list_destroy(k->next);
 				k->next = nullptr;
 			}
 		}
@@ -387,7 +469,8 @@ namespace uuz
 		void swap(forward_list& other) noexcept//(/* see below */)
 		{
 			using std::swap;
-			swap(nul.next, other.nul.next);
+			if(alloc == other.alloc)
+				swap(nul.next, other.nul.next);
 		}
 
 		void merge(forward_list& other)
@@ -586,6 +669,25 @@ namespace uuz
 		{
 			nul.next = a;
 		}
+		
+		template<typename...Args>
+		node* make_list(Args...args)
+		{
+			A all{ alloc };
+			auto k = new(alloc.allocate()) node(all.allocate(), std::forward<Args>(args)...);
+			return k;
+		}
+
+		void list_destroy(node* p)noexcept
+		{
+			A all{ alloc };
+			if (p->next)
+				list_destroy(p->next);
+			p->destroy([](T* a) {all.deallocate(a, 1); });
+			alloc.deallocate(p, 1);
+		}
+
+		Allocator alloc;
 		node nul;
 	};
 	template< typename T, typename Alloc >

@@ -35,26 +35,19 @@
 #pragma warning(disable:4996)
 int main()
 {
-	for (int i = 1; i <= 100000000; i *= 10)
-	{
-		uuz::print(i);
-		{
-			uuz::time ii{ "std" };
-			std::vector<int> k;
-			for (int j = 0; j != i; ++j)
-				k.push_back(j);
-			while (!k.empty())
-				k.pop_back();
-		}
-		{
-			uuz::time ii{ "uuz" };
-			uuz::vector<int> k;
-			for (int j = 0; j != i; ++j)
-				k.push_back(j);
-			while (!k.empty())
-				k.pop_back();
-		}
-		uuz::print("-----------------");
-	}
+	uuz::list<int> x = { 1, 2, 2, 3, 3, 2, 1, 1, 2 };
+
+	std::cout << "contents before:";
+	for (auto val : x)
+		std::cout << ' ' << val;
+	std::cout << '\n';
+
+	x.unique();
+	std::cout << "contents after unique():";
+	for (auto val : x)
+		std::cout << ' ' << val;
+	std::cout << '\n';
+
 	system("pause");
+	return 0;
 }
