@@ -251,6 +251,34 @@ namespace uuz
 	};
 
 
+	template<typename T>
+	struct storage
+	{
+		storage() = default;
+		template<typename... Args>
+		storage(const Args&& args)
+		{
+			new((void*)data) T(std::forward<Args>(args)...);
+		}
+
+		char data[sizeof(T)];
+
+		T* get_point()const noexcept
+		{
+			return (T*)data;
+		}
+		T& get()const noexcept 
+		{
+			return (*get_point());
+		}
+
+		void destroy()noexcept
+		{
+			get().~T();
+		}
+	};
+
+
 	using std::bad_alloc;
 	using std::out_of_range;
 

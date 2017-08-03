@@ -13,6 +13,7 @@
 #include"priority_queue.h"
 
 #include<deque>
+#include<map>
 #include<string>
 #include<future>
 #include<iostream>
