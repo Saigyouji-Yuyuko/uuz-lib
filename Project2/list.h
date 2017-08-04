@@ -12,20 +12,19 @@ namespace uuz
 	struct list_node
 	{
 		list_node() = default;
-		list_node(T* t,const T& p):dat{new(t) T(p)}{}
-		list_node(T* t,T&& p):dat{new(t) T(std::move(p))}{}
+		list_node(const T& p):data{T(p)}{}
+		list_node(T&& p):dat{T(std::move(p))}{}
 		template<typename...Args>
-		list_node(T* t,Args&&... args) : dat{ new(t) T(std::forward<Args>(args)...) }{}
-		void destroy(const std::function<void(T*)>& p)noexcept
+		list_node(Args&&... args) : dat{T(std::forward<Args>(args)...) }{}
+		void destroy()noexcept
 		{
-			(*dat).~T();
-			p(dat);
+			data.destroy();
 			this->~list_node();
 			return;
 		}
 		list_node* next = nullptr;
 		list_node* last = nullptr;
-		T* dat = nullptr;
+		storage<T> data;
 	};
 
 	template<typename T, typename Allocator>
@@ -59,19 +58,19 @@ namespace uuz
 
 		T& operator*()noexcept
 		{
-			return *(t->dat);
+			return t->data.get();
 		}
 		const T& operator*()const noexcept
 		{
-			return *(t->dat);
+			return t->data.get();
 		}
 		T* operator->()noexcept
 		{
-			return (t->dat);
+			return t->data.get_point();
 		}
 		const T* operator->()const noexcept
 		{
-			return (t->dat);
+			return t->data.get_point();
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
@@ -278,26 +277,26 @@ namespace uuz
 		{
 			if (empty())
 				throw(out_of_range("it's empty"));
-			return *(nul.next->dat);
+			return nul.next->data.get();
 		}
 		const T& front()const
 		{
 			if (empty())
 				throw(out_of_range("it's empty"));
-			return *(nul.next->dat);
+			return nul.next->dat.get();
 		}
 
 		T& back()
 		{
 			if (empty())
 				throw(out_of_range("it's empty"));
-			return *(nul.last->dat);
+			return nul.last->data.get();
 		}
 		const T& back()const
 		{
 			if (empty())
 				throw(out_of_range("it's empty"));
-			return *(nul.last->dat);
+			return nul.last->data.get();
 		}
 
 		iterator begin()noexcept
@@ -588,10 +587,10 @@ namespace uuz
 			auto q = nul.next;
 			while (q != &nul&&ob != &other.nul)
 			{
-				if (comp(*(ob->dat), *(q->dat)))
+				if (comp(ob->data.get(), q->data.get()))
 				{
 					auto k = ob;
-					while (k != &other.nul && comp(*(k->dat), *(q->dat)))
+					while (k != &other.nul && comp(k->data.get(), q->data.get()))
 						k = k->next;
 					charu(q, ob, k->last);
 					q = k->last;
@@ -663,7 +662,7 @@ namespace uuz
 			auto l = nul.next;
 			while (l != &nul)
 			{
-				if (p(*(l->dat)))
+				if (p(l->data.get()))
 				{
 					l->last->next = l->next;
 					l->next->last = l->last;
@@ -701,7 +700,7 @@ namespace uuz
 			auto k = nul.next;
 			while (k->next != &nul)
 			{
-				if (p(*(k->dat), *(k->next->dat)))
+				if (p(k->data.get(), k->next->data.get()))
 				{
 					auto t = k->next;
 					k->next = k->next->next;
@@ -747,9 +746,9 @@ namespace uuz
 			auto p = t.nul.next;
 			while (k != &nul&&p != &(t.nul))
 			{
-				if (*(k->dat) < *(p->dat))
+				if (k->data.get() < p->data.get())
 					return -1;
-				else if (*(k->dat) > *(p->dat))
+				else if (k->data.get() > p->data.get())
 					return 1;
 				k = k->next;
 				p = p->next;
@@ -774,7 +773,6 @@ namespace uuz
 			{
 				q = q->next->next;
 				m = m->next;
-			//	std::cout << *(q->dat) << std::endl;
 			}
 			return m;
 		}
@@ -782,16 +780,13 @@ namespace uuz
 		{
 			if (p->next)
 				list_destroy(p->next);
-			A all(alloc);
-			p->destroy([&all](T* a) {all.deallocate(a, 1);});
+			p->destroy();
 			alloc.deallocate(p,1);
 		}
 		template<typename...Args>
 		node* list_make(Args...args)
 		{
-			A all{ alloc };
-			auto k = new(alloc.allocate()) node(all.allocate(), std::forward<Args>(args)...);
-			return k;
+			return new(alloc.allocate()) node(std::forward<Args>(args)...);
 		}
 
 		list(node*a, node*b,const Allocator& alloc):list(alloc)

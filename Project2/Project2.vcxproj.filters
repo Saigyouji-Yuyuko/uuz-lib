@@ -13,27 +13,21 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="头文件\threads">
+      <UniqueIdentifier>{6c340861-9440-4213-8248-f641fed775dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="头文件\Container">
+      <UniqueIdentifier>{6507153a-712a-46f3-8801-b7402399e12c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ptr.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="rbtree.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="prepare.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="pair.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="map.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="vector.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="string.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="math.h">
@@ -51,17 +45,32 @@
     <ClInclude Include="debug.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="list.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="array.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="deque.h">
+      <Filter>头文件\Container</Filter>
     </ClInclude>
     <ClInclude Include="forward_list.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="array.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="list.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="map.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="rbtree.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="vector.h">
+      <Filter>头文件\Container</Filter>
     </ClInclude>
     <ClInclude Include="priority_queue.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="string.h">
+      <Filter>头文件\Container</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

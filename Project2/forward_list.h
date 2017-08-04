@@ -7,18 +7,17 @@ namespace uuz
 	{
 
 		forward_list_node() = default;
-		forward_list_node(T* t,const T& p) :dat(new(t) T(p)) {}
-		forward_list_node(T* t, T&& p) :dat(new(t) T(std::move(p))) {}
+		forward_list_node(const T& p) :dat(T(p)) {}
+		forward_list_node(T&& p) :dat(T(std::move(p))) {}
 		template<typename...Args>
-		forward_list_node(T* t, Args...args):dat(new(t) T(uuz::forward<Args>(args)...)) {}
-		void destroy(const std::function<void(T*)>& p)noexcept
+		forward_list_node(Args...args):dat(T(uuz::forward<Args>(args)...)) {}
+		void destroy()noexcept
 		{
-			(*dat).~T();
-			p(dat);
+			data.destroy();
 			this->~forward_list_node();
 			return;
 		}
-		T* dat = nullptr;
+		storage<T> data;
 		forward_list_node* next = nullptr;
 	};
 
@@ -46,19 +45,19 @@ namespace uuz
 
 		T& operator*()noexcept
 		{
-			return *(t->dat);
+			return t->data.get();
 		}
 		const T& operator*()const noexcept
 		{
-			return *(t->dat);
+			return t->data.get();
 		}
 		T* operator->()noexcept
 		{
-			return (t->dat);
+			return t->data.get_point();
 		}
 		const T* operator->()const noexcept
 		{
-			return (t->dat);
+			return t->data.get_point();
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
@@ -241,13 +240,13 @@ namespace uuz
 		{
 			if (empty())
 				throw(out_of_range(""));
-			return *(nul.next->dat);
+			return nul.next->data.get();
 		}
 		const T& front() const 
 		{
 			if (empty())
 				throw(out_of_range(""));
-			return *(nul.next->dat);
+			return nul.next->data.get();
 		}
 		
 		
@@ -427,7 +426,7 @@ namespace uuz
 			auto k = make_list(uuz::forward<Args>(args)...);
 			k->next = nul.next;
 			nul.next = k;
-			return *(k->dat);
+			return k->data.get();
 		}
 
 		void pop_front()
@@ -492,10 +491,10 @@ namespace uuz
 			auto t = &nul;
 			while (k&&t->next)
 			{
-				if (comp(*(k->dat), *(t->next->dat)))
+				if (comp(k->data.get(), t->next->data.get()))
 				{
 					auto p = k;
-					while (p->next&&comp(*(p->next->dat), *(t->next->dat)))
+					while (p->next&&comp(p->next->data.get(), t->next->data.get()))
 						p = p->next;
 					auto tt = p->next;
 					p->next = t->next;
@@ -566,7 +565,7 @@ namespace uuz
 			auto k = &nul;
 			while (k->next)
 			{
-				if (p(*(k->next->dat)))
+				if (p(k->next->data.get()))
 				{
 					auto temp = k->next;
 					k->next = temp->next;
@@ -600,7 +599,7 @@ namespace uuz
 			auto k = nul.next;
 			while(k->next)
 			{
-				if (p(*(k->dat), *(k->next->dat)))
+				if (p(k->data.get(), k->next->data.get()))
 				{
 					auto t = k->next;
 					k->next = k->next->next;
@@ -646,9 +645,9 @@ namespace uuz
 			auto p = a.nul.next;
 			while (k&&p)
 			{
-				if (*(k->dat) < *(p->dat))
+				if (k->data.get() < p->data.get())
 					return -1;
-				else if (*(p->dat) < *(k->dat))
+				else if (p->data.get() < k->data.get())
 					return 1;
 				k = k->next;
 				p = p->next;
@@ -673,17 +672,15 @@ namespace uuz
 		template<typename...Args>
 		node* make_list(Args...args)
 		{
-			A all{ alloc };
-			auto k = new(alloc.allocate()) node(all.allocate(), std::forward<Args>(args)...);
-			return k;
+			return new(alloc.allocate()) node(std::forward<Args>(args)...);
+			
 		}
 
 		void list_destroy(node* p)noexcept
 		{
-			A all{ alloc };
 			if (p->next)
 				list_destroy(p->next);
-			p->destroy([](T* a) {all.deallocate(a, 1); });
+			p->destroy();
 			alloc.deallocate(p, 1);
 		}
 

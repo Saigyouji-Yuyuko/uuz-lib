@@ -257,15 +257,15 @@ namespace uuz
 				k->father = y->father;
 				if (y == y->father->left)
 					y->father->left = k;
-				else
 					y->father->right = k;
+				else
 				using std::swap;
 				swap(y->data.get(), p->data.get());
 			}
 			if(y->color == false)
 				fixdel()
 		}
-
+			
 		size_t size()const noexcept
 		{
 			return ssize;
