@@ -14,7 +14,7 @@ namespace uuz
 		
 		void destroy()noexcept
 		{
-			data.destroy();
+			data.data.destroy();
 			this->~rb_tree_node();
 			return;
 		}
@@ -36,13 +36,31 @@ namespace uuz
 			return father->brother();
 		}
 
+		T& get()noexcept
+		{
+			return data.data.get();
+		}
 
-		storage<T> data;
+		union dat
+		{
+			dat() = default;
+			dat(const T& p):data(p){}
+			dat(T&& p):data(std::move(p)){}
+			template<typename...Args>
+			dat(Args&&...args) : data(std::forward<Args>(args)...) {}
+			storage<T> data;
+			rb_tree_node* end = nullptr;
+		} data;
+		
 		bool color = false;
 		rb_tree_node* father = nullptr;
 		rb_tree_node* left = nullptr;
 		rb_tree_node* right = nullptr;
 	};
+
+	template<typename T, typename compare, typename A>
+	class rb_tree;
+
 	template<typename T, typename compare, typename A>
 	class rb_tree_iterator
 	{
@@ -51,42 +69,42 @@ namespace uuz
 	public:
 		self& operator++() noexcept
 		{
-			t = t->next;
+			increase();
 			return *this;
 		}
 		self operator++(int)noexcept
 		{
-			auto p{ *this };
-			t = t->next;
+			auto p{ t };
+			increase();
 			return p;
 		}
 		self& operator--()noexcept
 		{
-			t = t->last;
+			decrease();
 			return *this;
 		}
 		self operator--(int) noexcept
 		{
-			auto p{ *this };
-			t = t->last;
+			auto p{ t };
+			decrease();
 			return p;
 		}
 
 		T& operator*()noexcept
 		{
-			return t->data.get();
+			return t->get();
 		}
 		const T& operator*()const noexcept
 		{
-			return t->data.get();
+			return t->get();
 		}
 		T* operator->()noexcept
 		{
-			return t->data.get_point();
+			return &(t->get());
 		}
 		const T* operator->()const noexcept
 		{
-			return t->data.get_point();
+			return &(t->get());
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
@@ -115,10 +133,50 @@ namespace uuz
 		}
 
 	private:
+		void increase()noexcept
+		{
+			if (!isnul(t->right))
+			{
+				t = t->right;
+				while (!isnul(t->left))
+					t = t->left;
+				return;
+			}
+			auto y = t->father;
+			while (!isnul(y) && t == y->right)
+			{
+				t = y;
+				y = y->father;
+			}
+			t = y;
+		}
+		void decrease()noexcept
+		{
+			if (!isnul(t->left))
+			{
+				t = t->left;
+				while (!isnul(t->right))
+					t = t->right;
+				return;
+			}
+			auto y = t->father;
+			while (!isnul(y) && t == y->left)
+			{
+				t = y;
+				y = y->father;
+			}
+			t = y;
+		}
+
+		bool isnul(rb_tree_node<T>* t)const noexcept
+		{
+			return t == nullptr || (t->left == t->right && t->left != nullptr);
+		}
 		self(rb_tree_node<T>* tt)noexcept : t(tt) {}
 		self(const rb_tree_node<T>* tt)noexcept : t(const_cast<rb_tree_node<T>*>(tt)) {}
 		rb_tree_node<T>* t = nullptr;
 	};
+
 	template<typename T, typename compare=uuz::pre_less<T,nil>, typename A=uuz::allocator<T>>
 	class rb_tree
 	{
@@ -151,8 +209,7 @@ namespace uuz
 			catch (...)
 			{
 				destroy(root);
-				root = nullptr;
-				nul.father = nul.left = nul.right = nullptr;
+				root = nul.data.end = nul.father = nul.left = nul.right = nullptr;
 				throw;
 			}
 			nul.left = nul.right = root;
@@ -169,8 +226,7 @@ namespace uuz
 			catch (...)
 			{
 				destroy(root);
-				root = nullptr;
-				nul.father = nul.left = nul.right = nullptr;
+				root = nul.data.end = nul.father = nul.left = nul.right = nullptr;
 				throw;
 			}
 			nul.left = nul.right = root;
@@ -190,32 +246,40 @@ namespace uuz
 		{
 			auto k = make(std::forward<Args>(args)...);
 			k->color = true;
-			auto b = find(k->data.get());
+			auto b = find(k->get());
 			if (!b)
 			{
 				root = k;
 				k->color = false;
-				k->father=k->left = &nul;
-				nul.father = nul.left = nul.right = k;
+				k->father=k->left=k->right = &nul;
+				nul.data.end=nul.father = nul.left = nul.right = k;
 			}
 			else
 			{
-				if (!compare()(k->data.get(), b->data.get()) && !compare()(b->data.get(), k->data.get()))
+				if (!compare()(k->get(), b->get()) && !compare()(b->get(), k->get()))
 					return b;
 				else 
 				{
 					k->father = b;
-					if (compare()(k->data.get(), b->data.get()))
+					if (compare()(k->get(), b->get()))
 					{
-						b->left = k;
 						if (b->left == &nul)
 						{
 							k->left = &nul;
 							nul.father = k;
 						}
+						b->left = k;
 					}
 					else
+					{
+						if (b->right == &nul)
+						{
+							k->right = &nul;
+							nul.data.end = k;
+						}
 						b->right = k;
+					}
+						
 					fixinsert(k);
 				}
 			}
@@ -225,39 +289,58 @@ namespace uuz
 
 		node* copy(node* a,node* n)
 		{
-			auto b = make(a->data.get());
+			auto b = make(a->get());
 			b->color = a->color;
 			if (a->left == n )
 			{
 				b->left = &nul;
 				nul->father = b;
 			}
-			else
+			else if (a->right)
 			{
-				try
-				{
-					if (a->left)
-						b->left = copy(a->left);
-					if (a->right)
-						b->right = copy(a->right);
-				}
-				catch (...)
-				{
-					if (b->left)
-						destroy(b->left);
-					if (b->right)
-						destroy(b->right);
-					throw;
-				}
+				b->right = &nul;
+				nul.data.end = b;
 			}
+			try
+			{
+				if (a->left && a->left !=n)
+					b->left = copy(a->left);
+				if (a->right && a->right !=n)
+					b->right = copy(a->right);
+			}
+			catch (...)
+			{
+				if (b->left)
+					destroy(b->left);
+				if (b->right)
+					destroy(b->right);
+				throw;
+			}		
 			return b;
+		}
 
+		iterator begin()noexcept
+		{
+			return iterator(nul.father);
+		}
+		const iterator begin()const noexcept
+		{
+			return iterator(nul.father);
+		}
+
+		const iterator end()const noexcept
+		{
+			return iterator(&nul);
+		}
+		iterator end()noexcept
+		{
+			return iterator(&nul);
 		}
 
 		void dele(node* x)
 		{
-			node* child;
-			node* p;
+			node* child = nullptr;
+			node* p = nullptr;
 			if (!isnul(x->left) && !isnul(x->right))
 			{
 				auto replace = successor(x);
@@ -297,7 +380,7 @@ namespace uuz
 			}
 			if (!isnul(x->left))
 				child = x->left;
-			else
+			else if(!isnul(x->right))
 				child = x->right;
 			p = x->father;
 			if (!isnul(child))
@@ -316,6 +399,20 @@ namespace uuz
 			}
 			if (!x->color)
 				fixdele(child, p);
+			if (x->left == &nul && x->right == &nul)
+				nul.father = nul.left = nul.right = nul.data.end = root = nullptr;
+			else if (x->left == &nul)
+			{
+				auto k = minimum(p);
+				k->left = &nul;
+				nul.father = k;
+			}
+			else if (x->right == &nul)
+			{
+				auto k = maximum(p);
+				k->right = &nul;
+				nul.data.end = k;
+			}
 			destroy(x);
 		}
 			
@@ -343,25 +440,37 @@ namespace uuz
 			swap(nul.father, t.nul.father);
 			swap(nul.left, t.nul.left);
 			swap(nul.right, t.nul.right);
+			swap(nul.data.end, t.nul.data.end);
 			swap(ssize, t.ssize);
 			if (empty() && !t.empty())
 			{
 				nul.father->left = &nul;
-				nul.father->right = &nul;
 				nul.left->father = &nul;
+				nul.data.end->right = &nul;
 			}
 			else if (!empty() && t.empty())
 			{
 				t.nul.father->left = &t.nul;
-				t.nul.father->right = &t.nul;
 				t.nul.left->father = &t.nul;
+				t.nul.data.end->right = &t.nul;
 			}
 			else if (!empty() && !t.empty())
 			{
 				swap(t.nul.father->left, nul.father->left);
-				swap(t.nul.father->right, nul.father->right);
 				swap(t.nul.left->father, nul.left->father);
+				swap(t.nul.data.end->right, nul.data.end->right);
 			}
+		}
+
+		void print()const noexcept
+		{
+			auto k = nul.father;
+			while (!isnul(k))
+			{
+				uuz::print(k->get());
+				k = successor(k);
+			}
+			
 		}
 
 		~rb_tree()noexcept
@@ -383,9 +492,9 @@ namespace uuz
 		
 		node* ifind(const T& a, node* b)const noexcept
 		{
-			if (!compare()(a, b->data.get()) && !compare()(b->data.get(), a))
+			if (!compare()(a, b->get()) && !compare()(b->get(), a))
 				return b;
-			else if (compare()(a, b->data.get()))
+			else if (compare()(a, b->get()))
 			{
 				if (isnul(b->left))
 					return b;
@@ -433,19 +542,37 @@ namespace uuz
 			return;
 		}
 
-		node* minimum(node* x)noexcept
+		node* minimum(node* x)const noexcept
 		{
 			while (!isnul(x->left))
 				x = x->left;
 			return x;
 		}
+		node* maximum(node* x)const noexcept
+		{
+			while (!isnul(x->right))
+				x = x->right;
+			return x;
+		}
 
-		node* successor(node* x)noexcept
+		node* successor(node* x)const noexcept
 		{
 			if (!isnul(x->right))
 				return minimum(x->right);
 			auto y = x->father;
 			while (!isnul(y) && x == y->right)
+			{
+				x = y;
+				y = y->father;
+			}
+			return isnul(y) ? nullptr : y;
+		}
+		node* predecessor(node* x)const noexcept
+		{
+			if (!isnul(x->left))
+				return maximum(x->left);
+			auto y = x->father;
+			while (!isnul(y) && x == y->left)
 			{
 				x = y;
 				y = y->father;

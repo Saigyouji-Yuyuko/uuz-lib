@@ -37,7 +37,23 @@
 #pragma warning(disable:4996)
 int main()
 {
-	
+	uuz::rb_tree<int> k;
+	for (int i = 1; i <= 100; ++i)
+		k.emplace(i);
+	//k.print();
+	int p=0;
+	for (auto i : k)
+	{
+		uuz::print(i);
+		++p;
+	}
+	uuz::print(p);
+	//uuz::print(k.size());
+	for (int i = 1; i <= 100; ++i)
+	{
+		k.dele(k.find(i));
+		//uuz::print(k.nul.father->get());
+	}
 	system("pause");
 	return 0;
 }
