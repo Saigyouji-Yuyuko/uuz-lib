@@ -15,6 +15,7 @@
 
 #include<deque>
 #include<map>
+#include<set>
 #include<string>
 #include<future>
 #include<iostream>
@@ -37,22 +38,30 @@
 #pragma warning(disable:4996)
 int main()
 {
-	uuz::rb_tree<int> k;
-	for (int i = 1; i <= 100; ++i)
-		k.emplace(i);
-	//k.print();
-	int p=0;
-	for (auto i : k)
+	for (int i = 1; i <= 10000000; i *= 10)
 	{
 		uuz::print(i);
-		++p;
-	}
-	uuz::print(p);
-	//uuz::print(k.size());
-	for (int i = 1; i <= 100; ++i)
-	{
-		k.dele(k.find(i));
-		//uuz::print(k.nul.father->get());
+		{
+			uuz::time a{ "std" };
+			std::set<int> p;
+			for (int j = 1; j <= i; ++j)
+				p.insert(j);
+			/*for (int j = 1; j <= i; ++j)
+				p.erase(j);*/
+			
+			//uuz::print(p.size());
+		}
+		{
+			uuz::time a{ "uuz" };
+			uuz::rb_tree<int> p;
+			for (int j = i; j >= 1; --j)
+				p.emplace(j);
+			/*for (int j = 1; j <= i; ++j)
+				p.dele(p.find(j));*/
+			//uuz::print(*p.begin());
+			//uuz::print(p.size());
+		}
+		uuz::print("--------------");
 	}
 	system("pause");
 	return 0;

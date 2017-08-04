@@ -234,6 +234,19 @@ namespace uuz
 			ssize = t.ssize;
 		}
 
+		rb_tree& operator=(const rb_tree& t)
+		{
+			auto temp{ t };
+			this->swap(t);
+			return *this;
+		}
+		rb_tree& operator=(rb_tree&& t)
+		{
+			auto temp{ std::move(t) };
+			this->swap(t);
+			return *this;
+		}
+
 		node* find(const T& a)const noexcept
 		{
 			if (empty())
