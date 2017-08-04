@@ -7,10 +7,10 @@ namespace uuz
 	{
 
 		forward_list_node() = default;
-		forward_list_node(const T& p) :dat(T(p)) {}
-		forward_list_node(T&& p) :dat(T(std::move(p))) {}
+		forward_list_node(const T& p) :data(T(p)) {}
+		forward_list_node(T&& p) :data(T(std::move(p))) {}
 		template<typename...Args>
-		forward_list_node(Args...args):dat(T(uuz::forward<Args>(args)...)) {}
+		forward_list_node(Args...args):data(T(uuz::forward<Args>(args)...)) {}
 		void destroy()noexcept
 		{
 			data.destroy();

@@ -13,9 +13,9 @@ namespace uuz
 	{
 		list_node() = default;
 		list_node(const T& p):data{T(p)}{}
-		list_node(T&& p):dat{T(std::move(p))}{}
+		list_node(T&& p):data{T(std::move(p))}{}
 		template<typename...Args>
-		list_node(Args&&... args) : dat{T(std::forward<Args>(args)...) }{}
+		list_node(Args&&... args) : data{T(std::forward<Args>(args)...) }{}
 		void destroy()noexcept
 		{
 			data.destroy();

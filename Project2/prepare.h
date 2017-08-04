@@ -255,8 +255,16 @@ namespace uuz
 	struct storage
 	{
 		storage() = default;
+		storage(const T& p)
+		{
+			new((void*)data) T(p);
+		}
+		storage(T&& p)
+		{
+			new((void*)data) T(std::move(p));
+		}
 		template<typename... Args>
-		storage(const Args&& args)
+		storage(const Args&&... args)
 		{
 			new((void*)data) T(std::forward<Args>(args)...);
 		}
@@ -270,6 +278,10 @@ namespace uuz
 		T& get()const noexcept 
 		{
 			return (*get_point());
+		}
+		T&& getmove()noexcept 
+		{
+			return std::move(get());
 		}
 
 		void destroy()noexcept

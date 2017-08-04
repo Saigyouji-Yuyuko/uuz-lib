@@ -7,15 +7,15 @@ namespace uuz
 	struct rb_tree_node
 	{
 		rb_tree_node() = default;
-		rb_tree_node(T* p,const T& value):data(value){}
-		rb_tree_node(T* p,T&& value) :data(std::move(value)) {}
+		rb_tree_node(const T& value):data(value){}
+		rb_tree_node(T&& value) :data(std::move(value)) {}
 		template<typename...Args>
-		rb_tree_node(T* p, Args&& args) : data(std::forward<Args>(args)...) {}
+		rb_tree_node( Args&&... args) : data(std::forward<Args>(args)...) {}
 		
-		void destroy(const std::function<void(T*)>& p)noexcept
+		void destroy()noexcept
 		{
 			data.destroy();
-			delete this;
+			this->~rb_tree_node();
 			return;
 		}
 
@@ -36,6 +36,7 @@ namespace uuz
 			return father->brother();
 		}
 
+
 		storage<T> data;
 		bool color = false;
 		rb_tree_node* father = nullptr;
@@ -45,14 +46,85 @@ namespace uuz
 	template<typename T, typename compare, typename A>
 	class rb_tree_iterator
 	{
+		using self = rb_tree_iterator;
+		friend rb_tree<T, compare, A>;
+	public:
+		self& operator++() noexcept
+		{
+			t = t->next;
+			return *this;
+		}
+		self operator++(int)noexcept
+		{
+			auto p{ *this };
+			t = t->next;
+			return p;
+		}
+		self& operator--()noexcept
+		{
+			t = t->last;
+			return *this;
+		}
+		self operator--(int) noexcept
+		{
+			auto p{ *this };
+			t = t->last;
+			return p;
+		}
 
+		T& operator*()noexcept
+		{
+			return t->data.get();
+		}
+		const T& operator*()const noexcept
+		{
+			return t->data.get();
+		}
+		T* operator->()noexcept
+		{
+			return t->data.get_point();
+		}
+		const T* operator->()const noexcept
+		{
+			return t->data.get_point();
+		}
+
+		friend bool operator==(const self& a, const self& b)noexcept
+		{
+			return a.t == b.t;
+		}
+		friend bool operator!=(const self& a, const self& b)noexcept
+		{
+			return !(a == b);
+		}
+		friend bool operator<(const self& a, const self& b)noexcept
+		{
+			return a.t < b.t;
+		}
+		friend bool operator>(const self& a, const self& b)noexcept
+		{
+			return b < a;
+		}
+		friend bool operator<=(const self& a, const self& b)noexcept
+		{
+			return a < b || a == b;
+		}
+		friend bool operator>=(const self& a, const self& b)noexcept
+		{
+			return a > b || a == b;
+		}
+
+	private:
+		self(rb_tree_node<T>* tt)noexcept : t(tt) {}
+		self(const rb_tree_node<T>* tt)noexcept : t(const_cast<rb_tree_node<T>*>(tt)) {}
+		rb_tree_node<T>* t = nullptr;
 	};
 	template<typename T, typename compare=uuz::pre_less<T,nil>, typename A=uuz::allocator<T>>
 	class rb_tree
 	{
 		using node = rb_tree_node<T>;
 		using iterator = rb_tree_iterator<T, compare, A>;
-		using Allocator = uuz::exchange<A, node>::type;
+		using Allocator = typename uuz::exchange<A, node>::type;
 	public:
 		rb_tree()noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
 		rb_tree(const A& a):alloc(a){}
@@ -117,12 +189,12 @@ namespace uuz
 		node* emplace(Args&&... args)
 		{
 			auto k = make(std::forward<Args>(args)...);
-			k.color = true;
+			k->color = true;
 			auto b = find(k->data.get());
 			if (!b)
 			{
 				root = k;
-				k.color = false;
+				k->color = false;
 				k->father=k->left = &nul;
 				nul.father = nul.left = nul.right = k;
 			}
@@ -147,6 +219,7 @@ namespace uuz
 					fixinsert(k);
 				}
 			}
+			++ssize;
 			return k;
 		}
 
@@ -157,7 +230,7 @@ namespace uuz
 			if (a->left == n )
 			{
 				b->left = &nul;
-				nul->father = &b;
+				nul->father = b;
 			}
 			else
 			{
@@ -181,91 +254,78 @@ namespace uuz
 
 		}
 
-		void dele(node* p)
+		void dele(node* x)
 		{
-			node* y = p;
-			if (isnul(p->left) && isnul(p->right))
+			node* child;
+			node* p;
+			if (!isnul(x->left) && !isnul(x->right))
 			{
-				if (p->left == &nul)
+				auto replace = successor(x);
+				if (x != root)
 				{
-					if (p == root)
-					{
-						root = nullptr;
-						nul.left = nul.father = nul.right = nullptr;
-					}
+					if (x->father->left == x)
+						x->father->left = replace;
 					else
-					{
-						nul->father = p->father;
-						nul->father->left = &nul;
-					}
+						x->father->right = replace;
 				}
 				else
 				{
-					if (p->father->left == p)
-						p->father->left = nullptr;
-					else 
-						p->father->right == nullptr;
+					root = replace;
+					nul.left = nul.right = replace;
 				}
+				child = replace->right;
+				p = replace->father;
+				auto c = replace->color;
+				if (p == x)
+					p = replace;
+				else
+				{
+					if (!isnul(child))
+						child->father = p;
+					p->left = child;
+					replace->right = x->right;
+					x->right->father = replace;
+				}
+				replace->father = x->father;
+				replace->color = x->color;
+				replace->left = x->left;
+				x->left->father = replace;
+				if (!c)
+					fixdele(child, p);
+				destroy(x);
+				return;
 			}
-			else if (isnul(p->left) || isnul(p->right) && !(isnul(p->left) && isnul(p->right)))
+			if (!isnul(x->left))
+				child = x->left;
+			else
+				child = x->right;
+			p = x->father;
+			if (!isnul(child))
+				child->father = p;
+			if (!isnul(p))
 			{
-				if (isnul(p->left))
-				{
-					if (p->left == &nul)
-					{
-						if (p == root)
-						{
-							root = nullptr;
-							nul.left = nul.father = nul.right = nullptr;
-						}
-						else
-						{
-							nul.father = p->father;
-							nul.father->left = &nul;
-						}
-					}
-					else
-					{
-						p->left->father = p->father;
-						if (p->father->left == p)
-							p->father->left = p->left;
-						else 
-							p->father->right = p->left;
-					}
-				}
+				if (p->left == x)
+					p->left = child;
 				else
-				{
-					if (p == root)
-					{
-						root = nullptr;
-						nul.left = nul.father = nul.right = nullptr;
-					}
-					else
-					{
-						p->right->father = p->father;
-						if (p->father->left == p)
-							p->father->left = p->right;
-						else 
-							p->father->right = p->right;
-					}
-				}
+					p->right = child;
 			}
 			else
 			{
-				y = successor(p);
-				auto k = y->right;
-				k->father = y->father;
-				if (y == y->father->left)
-					y->father->left = k;
-					y->father->right = k;
-				else
-				using std::swap;
-				swap(y->data.get(), p->data.get());
+				root = child;
+				nul.left = nul.right = child;
 			}
-			if(y->color == false)
-				fixdel()
+			if (!x->color)
+				fixdele(child, p);
+			destroy(x);
 		}
 			
+		void clear()noexcept
+		{	
+			tree_destroy(root);
+			root = nul.father = nul.left = nul.right = nullptr;
+			ssize = 0;
+		}
+
 		size_t size()const noexcept
 		{
 			return ssize;
@@ -312,14 +372,12 @@ namespace uuz
 		template<typename... Args>
 		node* make(Args&&...args)
 		{
-			A all{ alloc };
-			return new(alloc.allocate()) node(all.allocate(), std::forward<Args>(args)...);
+			return new(alloc.allocate()) node(std::forward<Args>(args)...);
 		}
 		
 		void destroy(node* t)noexcept
 		{
-			A all{ alloc };
-			t->destroy([&all](T* a) {all.deallocate(a, 1); });
+			t->destroy();
 			alloc.deallocate(t, 1);
 		}
 		
@@ -327,7 +385,7 @@ namespace uuz
 		{
 			if (!compare()(a, b->data.get()) && !compare()(b->data.get(), a))
 				return b;
-			else if (compare(a, b->data.get()))
+			else if (compare()(a, b->data.get()))
 			{
 				if (isnul(b->left))
 					return b;
@@ -393,6 +451,102 @@ namespace uuz
 				y = y->father;
 			}
 			return isnul(y) ? nullptr : y;
+		}
+
+		void fixdele(node* x, node* p)noexcept
+		{
+			while ((isnul(x)|| !x->color) && x != root)
+			{
+				if (x == p->left)
+				{
+					auto s = p->right;
+					if (s->color == true)
+					{
+						s->color = false;
+						p->color = true;
+						lrotate(p);
+						s = p->right;
+					}
+					if ((isnul(s->left) || !s->left->color) && (isnul(s->right) || !s->right->color))
+					{
+						s->color = true;
+						x = p;
+						p = p->father;
+					}
+					else
+					{
+						if (isnul(s->right) || !s->right->color)
+						{
+							s->left->color = false;
+							s->color = true;
+							rrotate(s);
+							s = p->right;
+						}
+						s->color = p->color;
+						p->color = false;
+						s->right->color = false;
+						lrotate(p);
+						x = root;
+						break;
+					}
+				}
+				else
+				{
+					auto s = p->left;
+					if (s->color == true)
+					{
+						s->color = false;
+						p->color = true;
+						rrotate(p);
+						s = p->left;
+					}
+					if ((isnul(s->left) || !s->left->color) && (isnul(s->right) || !s->right->color))
+					{
+						s->color = true;
+						x = p;
+						p = p->father;
+					}
+					else
+					{
+						if (isnul(s->left) || !s->left->color)
+						{
+							s->right->color = false;
+							s->color = true;
+							lrotate(s);
+							s = p->left;
+						}
+						s->color = p->color;
+						p->color = false;
+						s->left->color = false;
+						rrotate(p);
+						x = root;
+						break;
+					}
+				}
+			}
+			if (x)
+				x->color = false;
+		}
+
+		void tree_destroy(node* k)noexcept
+		{
+			if (!isnul(k))
+			{
+				tree_destroy(k->left);
+				tree_destroy(k->right);
+				destroy(k);
+			}
+		}
+
+		int blackhigh(node* k)
+		{
+			if (isnul(k))
+				return 1;
+			auto l = blackhigh(k->left);
+			auto r = blackhigh(k->right);
+			if (l != r)
+				std::cout<<l<<"  "<<r<<std::endl;
+			return k->color ? l : l + 1;
 		}
 
 		void rrotate(node* p)noexcept
