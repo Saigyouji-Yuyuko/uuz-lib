@@ -132,7 +132,7 @@ namespace uuz
 			return a > b || a == b;
 		}
 
-	private:
+	//private:
 		void increase()noexcept
 		{
 			if (!isnul(t->right))
@@ -535,6 +535,27 @@ namespace uuz
 			}
 		}
 		
+		node* check(const iterator& t, node* k)const noexcept
+		{
+			if (cmp(t.t->get(), k->get()))
+			{
+				if (isnul(t.t->right))
+				{
+					if ((cmp(t.t->get(), t.t->father->get()) && cmp(k->get(), t.t->father->get())) || (cmp(t.t->father->get(), t.t->get()) && cmp(t.t->father->get(), k->get())))
+						return t.t;
+				}
+			}
+			else if (cmp(k->get(), t.t->get()))
+			{
+				if (isnul(t.t->left))
+				{
+					if ((cmp(t.t->get(), t.t->father->get()) && cmp(k->get(), t.t->father->get())) || (cmp(t.t->father->get(), t.t->get()) && cmp(t.t->father->get(), k->get())))
+						return t.t;
+				}
+			}
+			return nullptr;
+		}
+
 		void destroy(node* t)noexcept
 		{
 			if (!t)
