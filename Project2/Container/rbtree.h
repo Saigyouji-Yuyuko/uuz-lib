@@ -1,5 +1,5 @@
 #pragma once
-#include"prepare.h"
+#include"container.h"
 #include<functional>
 namespace uuz
 {
@@ -183,10 +183,12 @@ namespace uuz
 		using node = rb_tree_node<T>;
 		using iterator = rb_tree_iterator<T, compare, A>;
 		using Allocator = typename uuz::exchange<A, node>::type;
+		
 	public:
 		rb_tree()noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
 		rb_tree(const A& a):alloc(a){}
-		rb_tree(rb_tree&& t)noexcept:rb_tree()
+		rb_tree(const compare& cmp,const A& a):cmp(cmp),alloc(a){}
+		rb_tree(rb_tree&& t)noexcept:rb_tree(std::move(t.alloc))
 		{
 			this->swap(t);
 		}
@@ -199,7 +201,7 @@ namespace uuz
 
 			}
 		}
-		rb_tree(const rb_tree& t):rb_tree()
+		rb_tree(const rb_tree& t):rb_tree(t.cmp,t.alloc)
 		{
 			try
 			{
@@ -254,27 +256,27 @@ namespace uuz
 			return ifind(a,root);
 		}
 
-		template<typename...Args>
-		node* emplace(Args&&... args)
+		
+		node* Insert(node* k,node*b)noexcept
 		{
-			auto k = make(std::forward<Args>(args)...);
-			k->color = true;
-			auto b = find(k->get());
 			if (!b)
 			{
 				root = k;
-				k->color = false;
 				k->father=k->left=k->right = &nul;
 				nul.data.end=nul.father = nul.left = nul.right = k;
 			}
 			else
 			{
-				if (!compare()(k->get(), b->get()) && !compare()(b->get(), k->get()))
+				if (!cmp(k->get(), b->get()) && !cmp(b->get(), k->get()))
+				{
+					destroy(k);
 					return b;
+				}
 				else 
 				{
+					k->color = true;
 					k->father = b;
-					if (compare()(k->get(), b->get()))
+					if (cmp(k->get(), b->get()))
 					{
 						if (b->left == &nul)
 						{
@@ -298,6 +300,28 @@ namespace uuz
 			}
 			++ssize;
 			return k;
+		}
+
+		node* insert(const T& p, node* d = nullptr)
+		{
+			auto k = make(p);
+			d = d ? d : find(p);
+			return Insert(k, d);
+		}
+
+		node* insert(T&& p, node* d = nullptr)
+		{
+			auto k = make(std::move(p));
+			d = d ? d : find(k->get());
+			return Insert(k, d);
+		}
+
+		template<typename...Args>
+		node* emplace(Args&&...args)
+		{
+			auto k = make(std::forward<Args>(args)...);
+			auto d = find(k->get());
+			return Insert(k, d);
 		}
 
 		node* copy(node* a,node* n)
@@ -354,6 +378,7 @@ namespace uuz
 		{
 			node* child = nullptr;
 			node* p = nullptr;
+			--ssize;
 			if (!isnul(x->left) && !isnul(x->right))
 			{
 				auto replace = successor(x);
@@ -490,35 +515,54 @@ namespace uuz
 		{
 			clear();
 		}
-	private:
+	//private:
 		template<typename... Args>
 		node* make(Args&&...args)
 		{
-			return new(alloc.allocate()) node(std::forward<Args>(args)...);
+			node *t;
+			try
+			{
+				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
+			}
+			catch (const bad_alloc& e)
+			{
+				throw;
+			}
+			catch (...)
+			{
+				alloc.deallocate(t, 1);
+				throw;
+			}
 		}
 		
 		void destroy(node* t)noexcept
 		{
+			if (!t)
+				return;
 			t->destroy();
 			alloc.deallocate(t, 1);
 		}
 		
 		node* ifind(const T& a, node* b)const noexcept
 		{
-			if (!compare()(a, b->get()) && !compare()(b->get(), a))
-				return b;
-			else if (compare()(a, b->get()))
+			for(;;)
 			{
-				if (isnul(b->left))
+				if (cmp(a, b->get()))
+				{
+					if (isnul(b->left))
+						return b;
+					b = b->left;
+				}
+				else if(cmp(b->get(), a))
+				{
+					if (isnul(b->right))
+						return b;
+					b = b->right;
+				}
+				else 
 					return b;
-				else return ifind(a, b->left);
 			}
-			else
-			{
-				if (isnul(b->right))
-					return b;
-				else return ifind(a, b->right);
-			}
+			
 		}
 
 		bool isnul(node* p)const noexcept
@@ -552,7 +596,6 @@ namespace uuz
 				rrotate(b->grandfather());
 			else
 				lrotate(b->grandfather());
-			return;
 		}
 
 		node* minimum(node* x)const noexcept
@@ -725,6 +768,7 @@ namespace uuz
 
 		}	
 		
+		compare cmp;
 		size_t ssize = 0;
 		Allocator alloc;
 		node* root=nullptr;

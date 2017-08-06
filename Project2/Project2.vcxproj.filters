@@ -27,9 +27,6 @@
     <ClInclude Include="prepare.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="pair.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="math.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -45,32 +42,41 @@
     <ClInclude Include="debug.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="array.h">
+    <ClInclude Include="Container\array.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="deque.h">
+    <ClInclude Include="Container\deque.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="forward_list.h">
+    <ClInclude Include="Container\forward_list.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="list.h">
+    <ClInclude Include="Container\list.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="map.h">
+    <ClInclude Include="Container\map.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="rbtree.h">
+    <ClInclude Include="Container\pair.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\priority_queue.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="vector.h">
+    <ClInclude Include="Container\rbtree.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="priority_queue.h">
+    <ClInclude Include="Container\string.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="string.h">
+    <ClInclude Include="Container\vector.h">
       <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\set.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\container.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

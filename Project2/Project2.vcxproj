@@ -19,23 +19,25 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="array.h" />
+    <ClInclude Include="Container\array.h" />
+    <ClInclude Include="Container\container.h" />
     <ClInclude Include="debug.h" />
-    <ClInclude Include="deque.h" />
+    <ClInclude Include="Container\deque.h" />
     <ClInclude Include="file.h" />
-    <ClInclude Include="forward_list.h" />
+    <ClInclude Include="Container\forward_list.h" />
     <ClInclude Include="functor.h" />
-    <ClInclude Include="list.h" />
-    <ClInclude Include="map.h" />
+    <ClInclude Include="Container\list.h" />
+    <ClInclude Include="Container\map.h" />
     <ClInclude Include="math.h" />
-    <ClInclude Include="pair.h" />
+    <ClInclude Include="Container\pair.h" />
     <ClInclude Include="prepare.h" />
-    <ClInclude Include="priority_queue.h" />
+    <ClInclude Include="Container\priority_queue.h" />
     <ClInclude Include="ptr.h" />
-    <ClInclude Include="rbtree.h" />
-    <ClInclude Include="string.h" />
+    <ClInclude Include="Container\rbtree.h" />
+    <ClInclude Include="Container\set.h" />
+    <ClInclude Include="Container\string.h" />
     <ClInclude Include="time.h" />
-    <ClInclude Include="vector.h" />
+    <ClInclude Include="Container\vector.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

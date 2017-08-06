@@ -1,5 +1,5 @@
 #pragma once
-#include"prepare.h"
+#include"container.h"
 #include"pair.h"
 #include<cassert>
 #include<functional>
@@ -517,15 +517,24 @@ namespace uuz
 			}
 			if (p == &nul && count != 0)
 			{
-				auto k = list_make(value);
-				--count;
-				auto l = k;
-				while (count--)
+				node* k = nullptr;
+				try
 				{
-					auto temp = list_make(value);
-					l->next = temp;
-					temp->last = l;
-					l = temp;
+					k = list_make(value);
+					--count;
+					auto l = k;
+					while (count--)
+					{
+						auto temp = list_make(value);
+						l->next = temp;
+						temp->last = l;
+						l = temp;
+					}
+				}
+				catch (...)
+				{
+					list_destroy(k);
+					throw;
 				}
 				charu(end().t, k, l);
 			}
@@ -778,6 +787,8 @@ namespace uuz
 		}
 		void list_destroy(node* p)noexcept
 		{
+			if (!p)
+				return;
 			if (p->next)
 				list_destroy(p->next);
 			p->destroy();
@@ -786,7 +797,20 @@ namespace uuz
 		template<typename...Args>
 		node* list_make(Args...args)
 		{
-			return new(alloc.allocate()) node(std::forward<Args>(args)...);
+			node *t;
+			try
+			{
+				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
+			}
+			catch (const bad_alloc& e)
+			{
+				throw;
+			}
+			catch (...)
+			{
+				alloc.deallocate(t, 1);
+				throw;
+			}
 		}
 
 		list(node*a, node*b,const Allocator& alloc):list(alloc)

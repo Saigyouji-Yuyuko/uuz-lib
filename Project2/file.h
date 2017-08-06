@@ -4,8 +4,8 @@
 #include<fstream>
 #include<iostream>
 #ifdef USING_UUZ
-#include"string.h"
-#include"vector.h"
+#include"Container/string.h"
+#include"Container/vector.h"
 #else
 #include<string>
 #include<vector>
@@ -67,8 +67,8 @@ namespace uuz
 			auto&& t{ getline() };
 			while (!t.empty())
 			{
-				p.push_back(move(t));
-				t = move(getline());
+				p.push_back(std::move(t));
+				t = std::move(getline());
 			}
 			return p;
 		}

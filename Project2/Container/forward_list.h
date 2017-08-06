@@ -1,5 +1,5 @@
 #pragma once
-#include"prepare.h"
+#include"container.h"
 namespace uuz
 {
 	template<typename T>
@@ -452,11 +452,23 @@ namespace uuz
 			}
 			if (k->next == nullptr&&count)
 			{
-				while (count--)
+				try
 				{
-					k->next = make_list(value);
-					k = k->next;
+					k->next = make(value);
+					--count;
+					auto t = k->next;
+					while (count--)
+					{
+						t->next = make_list(value);
+						k = k->next;
+					}
 				}
+				catch (...)
+				{
+					list_destroy(k->next);
+					throw;
+				}
+				
 			}
 			else if (k->next != nullptr)
 			{
@@ -672,12 +684,27 @@ namespace uuz
 		template<typename...Args>
 		node* make_list(Args...args)
 		{
-			return new(alloc.allocate()) node(std::forward<Args>(args)...);
+			node *t;
+			try
+			{
+				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
+			}
+			catch (const bad_alloc& e)
+			{
+				throw;
+			}
+			catch (...)
+			{
+				alloc.deallocate(t, 1);
+				throw;
+			}
 			
 		}
 
 		void list_destroy(node* p)noexcept
 		{
+			if (!p)
+				return;
 			if (p->next)
 				list_destroy(p->next);
 			p->destroy();

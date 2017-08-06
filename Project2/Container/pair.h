@@ -1,4 +1,5 @@
 #pragma once
+#include"container.h"
 namespace uuz
 {
 	template<typename T1, typename T2>
@@ -48,16 +49,9 @@ namespace uuz
 			return !(aa < bb);
 		}
 
-		constexpr const T1& first()const & noexcept { return a; }
-		constexpr T1& first()& noexcept { return a; }
-		T1&& first() && noexcept {return a; }
-		constexpr const T2& second() const & noexcept { return b; }
-		constexpr T2& second()& noexcept { return b; }
-		T2&& second() && noexcept {return b; }
-
-	private:
-		T1 a;
-		T2 b;
+	
+		T1 first;
+		T2 second;
 	};
 
 	template<typename T1, typename T2>
