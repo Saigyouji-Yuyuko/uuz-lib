@@ -4,213 +4,140 @@
 #include"pair.h"
 namespace uuz
 {
-	template<typename Key,typename Compare = std::less<Key>,typename Allocator = std::allocator<Key>> 
-	class set
+	template<typename Key,typename Compare = pre_less<Key,nil>,typename Allocator = uuz::allocator<Key>> 
+	class set:public rb_tree<Key,Compare,Allocator>
 	{
-		using iterator = rb_tree_iterator<Key, Compare, Allocator>;
-	private:
-		rb_tree<Key> tree;
+		using base = rb_tree<Key, Compare, Allocator>;
+		using iterator = typename base::iterator;
 	public:
 		set() : set(Compare()) {}
-		explicit set(const Compare& comp,const Allocator& alloc = Allocator()):tree{comp,alloc}{}
-		explicit set(const Allocator& alloc):tree{alloc}{}
-		template< typename InputIt , typename = is_input<Key,InputIt>>
-		set(InputIt first, InputIt last, const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : tree{ comp,alloc }
+		explicit set(const Compare& comp,const Allocator& alloc = Allocator()):base(comp,alloc){}
+		explicit set(const Allocator& alloc) :base(alloc){}
+		template< typename InputIt ,typename = is_input<Key,InputIt>>
+		set(const InputIt& first, const InputIt& last, const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : base(comp, alloc)
 		{
-			try
-			{
-				auto i = first;
-				for (; i != last; ++i)
-					tree.insert(*i);
-			}
-			catch (...)
-			{
-				tree.clear();
-				throw;
-			}
+			inid(first, last);
 		}
-		template< class InputIt >
+		template< class InputIt, typename = is_input<Key, InputIt>>
 		set(InputIt first, InputIt last, const Allocator& alloc): set(first, last, Compare(), alloc) {}
-		set(const set& other):tree{other.tree}{}
-		set(const set& other, const Allocator& alloc):tree{other.tree,alloc}{}
-		set(set&& other):tree{std::move(other.tree)}{}
-		set(set&& other, const Allocator& alloc):tree(other.tree,alloc){}
-		set(std::initializer_list<Key> init,const Compare& comp = Compare(),const Allocator& alloc = Allocator()):tree(init,comp,alloc){}
+		set(const set& other):base(other){}
+		set(const set& other, const Allocator& alloc):base(other,alloc){}
+		set(set&& other):base(std::move(other)){}
+		set(set&& other, const Allocator& alloc):base(std::move(other),alloc){}
+		set(std::initializer_list<Key> init,const Compare& comp = Compare(),const Allocator& alloc = Allocator()):set(init.begin(),init.end(),comp,alloc){}
 		set(std::initializer_list<Key> init, const Allocator& alloc): set(init, Compare(), alloc) {}
 
 		set& operator=(const set& other)
 		{
 			if (this != &other)
 			{
-				auto k(other.tree);
-				tree.swap(k);
+				auto temp(other);
+				this->swap(other);
 			}
 			return *this;
 		}
-		set& operator=(set&& other) noexcept(/* see below */)
+		set& operator=(set&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			if (this != &other)
 			{
-				auto k(std::move(other.tree));
-				tree.swap(k);
+				auto temp(std::move(other));
+				this->swap(other);
 			}
 			return *this;
-			}
+		}
 		set& operator=(std::initializer_list<Key> ilist)
 		{
 			if (this != &other)
 			{
-				auto k(ilist);
-				tree.swap(k);
+				auto temp(ilist);
+				this->swap(other);
 			}
 			return *this;
 		}
 
-		decltype(auto) get_allocator() const
-		{
-			return tree.alloc;
-		}
-
-		iterator begin() noexcept
-		{
-			return tree.begin();
-		}
-		const iterator begin() const noexcept
-		{
-			return tree.begin();
-			}
-		const iterator cbegin() const noexcept
-		{
-			return tree.begin();
-			}
-
-		iterator end() noexcept
-		{
-			return tree.end();
-		}
-		const iterator end() const noexcept
-		{
-			return tree.end();
-			}
-		const iterator cend() const noexcept
-		{
-			return tree.end();
-			}
-
-		bool empty() const noexcept
-		{
-			return tree.empty();
-		}
-
-		size_t size() const noexcept
-		{
-			return tree.size();
-		}
-
-		//size_type max_size() const noexcept;
-
-		void clear() noexcept
-		{
-			return tree.clear();
-		}
-
-		std::pair<iterator, bool> insert(const Key& value)
+		using base::insert;
+		insert_return_type insert(node_type&& nh)
 		{
 
 		}
-		std::pair<iterator, bool> insert(value_type&& value);
-		iterator insert(const_iterator hint, const value_type& value);
-		iterator insert(const_iterator hint, value_type&& value);
-		template< class InputIt >
-		void insert(InputIt first, InputIt last);
-		void insert(std::initializer_list<value_type> ilist);
-		insert_return_type insert(node_type&& nh);	
-		iterator insert(const_iterator hint, node_type&& nh);
-
-		template<typename... Args>
-		std::pair<iterator, bool> emplace(Args&&... args)
+		iterator insert(const iterator& hint, node_type&& nh)
 		{
-			auto k = tree.make(std::forward<Args>(args)...);
-			auto l = tree.find(k->get());
-			auto s = tree.Insert(k, l);
-			if (l == s)
-				return make_pair<iterator, bool>(iterator(l), false);
-			return make_pair<iterator, bool>(iterator(k), true);
+				
 		}
-
-		template <typename... Args>
-		iterator emplace_hint(const iterator& hint, Args&&... args)
-		{
-			auto k = tree.make(std::forward<Args>(args)...);
-			auto tk = tree.check(hint, k);
-			if (tk)
-				return iterator(tree.Insert(k, tk));
-			tree.destroy(k);
-			return tree.end();
-		}
-
 		
-		iterator erase(const iterator& pos)
+		using base::erase;
+		size_type erase(const key_type& key)
 		{
-			auto k{ pos };
-			++k;
-			tree.dele(pos.t);
-			return k;
-		}
-		iterator erase(iterator pos)
-		{
-			auto k{ pos };
-			++k;
-			tree.dele(pos.t);
-			return k;
-		}
-		iterator erase(const iterator& first, const iterator& last)
-		{
-			auto k = first;
-			while (k != last)
-				k = erase(k);
-			return k;
-		}
-		size_t erase(const Key& key)
-		{
-
+			auto k = truefind(key);
+			if (k)
+			{
+				dele(k);
+				return 1;
+			}
+			return 0;	
 		}
 
-		void swap(set& other) noexcept(/* see below */);
+		iterator find(const Key& key)noexcept
+		{
+			return iterator(truefind(key));
+		}
+		const iterator find(const Key& key) const noexcept
+		{
+			return iterator(truefind(key));
+		}
+		template< typename K,typename = std::enable_if_t<std::is_constructible_v<Key,K&>> > 
+		iterator find(const K& x)noexcept
+		{
+			return iterator(truefind(Key(x)));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
+		const iterator find(const K& x) const noexcept
+		{
+			return iterator(truefind(Key(x)));
+		}
 
-		node_type extract(const_iterator position);
-		node_type extract(const key_type& x);
+		iterator lower_bound(const Key& key)noexcept
+		{
+			return iterator(low_bound(key));
+		}
+		const iterator lower_bound(const Key& key) const noexcept
+		{
+			return iterator(low_bound(key));
+		}
+		template<typename K ,typename = std::enable_if_t<std::is_constructible_v<Key,K&>>>
+		iterator lower_bound(const K& x)noexcept
+		{
+			return iterator(low_bound(Key(x)));
+		}
+		template<typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		const iterator lower_bound(const K& x) const noexcept
+		{
+			return iterator(low_bound(Key(x)));
+		}
 
-		template<class C2>
-		void merge(std::set<Key, C2, Allocator>& source);
-			template<class C2>
-		void merge(std::set<Key, C2, Allocator>&& source);
-			template<class C2>
-		void merge(std::multiset<Key, C2, Allocator>& source);
-			template<class C2>
-		void merge(std::multiset<Key, C2, Allocator>&& source);
+		iterator upper_bound(const Key& key)noexcept
+		{
+			return iterator(up_bound(key));
+		}
+		const iterator upper_bound(const Key& key) const
+		{
+			return iterator(up_bound(key));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		iterator upper_bound(const K& x)
+		{
+			return iterator(up_bound(Key(x)));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		const_iterator upper_bound(const K& x) const
+		{
+			return iterator(up_bound(Key(x)));
+		}
 
-		size_type count(const Key& key) const;
-		template< class K >
-		size_type count(const K& x) const;
 
-		iterator find(const Key& key);
-		const_iterator find(const Key& key) const;	
-		template< class K >
-		iterator find(const K& x);
-		template< class K > 
-		const_iterator find(const K& x) const;
 
-		std::pair<iterator, iterator> equal_range(const Key& key);
-		std::pair<const_iterator, const_iterator> equal_range(const Key& key) const;
-		template< class K >
-		std::pair<iterator, iterator> equal_range(const K& x);
-		template< class K >
-		std::pair<const_iterator, const_iterator> equal_range(const K& x) const;
 
-		key_compare key_comp() const;
 
-		set::value_compare value_comp() const;
 
 
 	};

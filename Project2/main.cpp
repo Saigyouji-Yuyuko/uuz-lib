@@ -36,9 +36,12 @@
 #include<iomanip>
 #include<fstream>
 #pragma warning(disable:4996)
+
 int main()
 {
-	uuz::print(sizeof(std::map<int, int>));
+	std::vector<int>a;
+	auto  o = std::move(a.begin(), a.end(), a.begin());
+
 	system("pause");
 	return 0;
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include"container.h"
+#include"pair.h"
 #include<functional>
 namespace uuz
 {
@@ -180,11 +181,220 @@ namespace uuz
 	template<typename T, typename compare=uuz::pre_less<T,nil>, typename A=uuz::allocator<T>>
 	class rb_tree
 	{
+		
+	public:
 		using node = rb_tree_node<T>;
 		using iterator = rb_tree_iterator<T, compare, A>;
 		using Allocator = typename uuz::exchange<A, node>::type;
 		
-	public:
+
+		Allocator get_allocator() const
+		{
+			return alloc;
+		}
+
+		bool empty()const noexcept
+		{
+			return root == nullptr;
+		}	 
+
+		size_t size()const noexcept
+		{
+			return ssize;
+		}
+
+		void clear()noexcept
+		{
+			tree_destroy(root);
+			root = nul.left = nul.right = nullptr;
+			nul.father = &nul;
+			ssize = 0;
+		}
+
+		pair<iterator, bool> insert(const T& value)
+		{
+			auto k = ifind(value);
+			if (k && !cmp(value, k->get()) && !cmp(k->get(), value))
+			{
+				auto l = make(value);
+				return make_pair(iterator(Insert(l, k)), true);
+			}
+			return make_pair(iterator(k), false);
+
+		}
+		pair<iterator, bool> insert(T&& value)
+		{
+			auto k = ifind(value);
+			if (k && !cmp(value, k->get()) && !cmp(k->get(), value))
+			{
+				auto l = make(std::move(value));
+				return make_pair(iterator(Insert(l, k)), true);
+			}
+			return make_pair(iterator(k), false);
+		}
+		iterator insert(const iterator hint, const T& value)
+		{
+			auto k = check(hint, value);
+			if (k)
+			{
+				auto l = make(value);
+				return iterator(l, k);
+			}
+			return end();
+		}
+		iterator insert(const iterator hint, T&& value)
+		{
+			auto k = check(hint, value);
+			if (k)
+			{
+				auto l = make(std::move(value));
+				return iterator(l, k);
+			}
+			return end();
+		}
+		template< typename InputIt,typename = is_input<T,InputIt>>
+		void insert(const InputIt& first,const InputIt& last)
+		{
+			try
+			{
+				auto i = first;
+				for (; i != last; ++i)
+				{
+					auto k = make(*i);
+					Insert(k, ifind(k));
+				}
+			}
+			catch (...)
+			{
+				for (j = first; j != i; ++j)
+					dele(ifind(*j));
+				throw;
+			}
+		}
+		void insert(std::initializer_list<T> ilist)
+		{
+			insert(ilist.begin(), ilist.end());
+		}
+
+		iterator erase(const iterator pos)
+		{
+			auto k = pos;
+			++k;
+			dele(pos.t);
+			return k;
+		}
+		iterator erase(iterator pos)
+		{
+			auto k = pos;
+			++k;
+			dele(pos.t);
+			return k;
+		}
+		iterator erase(const iterator& first, const iterator& last)
+		{
+			if (first == begin() && last == end())
+			{
+				clear();
+				return end();
+			}
+			auto k = first;
+			while (k != last)
+			{
+				auto d = k;
+				++d;
+				dele(k.t);
+				k = d;
+			}
+			return last;
+		}
+	
+		
+		compare key_comp() const noexcept
+		{
+			return cmp;
+		}
+
+		template<typename...Args>
+		pair<iterator, bool> emplace(Args&&...args)
+		{
+			auto k = make(std::forward<Args>(args)...);
+			auto d = find(k->get());
+			auto l = Insert(k, d);
+			return make_pair(iterator(l), k == l);
+		}
+
+		template<typename...Args>
+		iterator emplace_hint(const iterator& t, Args&&...args)
+		{
+			auto k = make(std::forward<Args>(args)...);
+			auto d = check(t, k->get());
+			if (!d)
+				return end();
+			return iterator(Insert(k, d));
+		}
+
+		iterator begin()noexcept
+		{
+			return iterator(nul.father);
+		}
+		const iterator begin()const noexcept
+		{
+			return iterator(nul.father);
+		}
+		const iterator cbegin()const noexcept
+		{
+			return iterator(nul.father);
+		}
+
+		const iterator end()const noexcept
+		{
+			return iterator(&nul);
+		}
+		iterator end()noexcept
+		{
+			return iterator(&nul);
+		}
+		const iterator cend()const noexcept
+		{
+			return iterator(&nul);
+		}
+
+		void swap(rb_tree& t)noexcept
+		{
+			using std::swap;
+			swap(root, t.root);
+			swap(nul.left, t.nul.left);
+			swap(nul.right, t.nul.right);
+			swap(nul.data.end, t.nul.data.end);
+			swap(ssize, t.ssize);
+			if (empty() && !t.empty())
+			{
+				t.nul.father = &t.nul;
+				nul.father->left = &nul;
+				nul.left->father = &nul;
+				nul.data.end->right = &nul;
+			}
+			else if (!empty() && t.empty())
+			{
+				nul.father = &nul;
+				t.nul.father->left = &t.nul;
+				t.nul.left->father = &t.nul;
+				t.nul.data.end->right = &t.nul;
+			}
+			else if (!empty() && !t.empty())
+			{
+				swap(nul.father, t.nul.father);
+				swap(t.nul.father->left, nul.father->left);
+				swap(t.nul.left->father, nul.left->father);
+				swap(t.nul.data.end->right, nul.data.end->right);
+			}
+		}
+
+		~rb_tree()noexcept
+		{
+			clear();
+		}
+	protected:	
 		rb_tree()noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
 		rb_tree(const A& a):alloc(a){}
 		rb_tree(const compare& cmp,const A& a):cmp(cmp),alloc(a){}
@@ -210,8 +420,7 @@ namespace uuz
 			}
 			catch (...)
 			{
-				destroy(root);
-				root = nul.data.end = nul.father = nul.left = nul.right = nullptr;
+				clear();
 				throw;
 			}
 			nul.left = nul.right = root;
@@ -227,13 +436,28 @@ namespace uuz
 			}
 			catch (...)
 			{
-				destroy(root);
-				root = nul.data.end = nul.father = nul.left = nul.right = nullptr;
+				clear();
 				throw;
 			}
 			nul.left = nul.right = root;
 			root->father = &nul;
 			ssize = t.ssize;
+		}
+
+		template< typename InputIt, typename = is_input<T, InputIt>>
+		void inid(const InputIt& a, const InputIt& b)
+		{
+			try
+			{
+				for (auto i = a; i != b; ++i)
+					insert(*i);
+			}
+			catch (...)
+			{
+				clear();
+				throw;
+			}
+
 		}
 
 		rb_tree& operator=(const rb_tree& t)
@@ -249,14 +473,71 @@ namespace uuz
 			return *this;
 		}
 
-		node* find(const T& a)const noexcept
+		node* truefind(const T& a)const noexcept 
 		{
-			if (empty())
-				return nullptr;
-			return ifind(a,root);
+			auto b = root;
+			while(!isnul(b))
+			{
+				if (cmp(b->get(), a))
+					b = b->right;
+				else if (cmp(a, b->get()))
+					b = b->left;
+				else
+					return b;
+			}
+			return &nul;
+		}	
+		node* low_bound(const T& a)const noexcept
+		{
+			auto k = &nul;
+			auto b = root;
+			while (!isnul(b))
+			{
+				if (cmp(b->get(), a))
+					b = b->right;
+				else
+				{
+					k = b;
+					b = b->left;
+				}
+			}
+			return k;
+		}
+		node* up_bound(const T& a)const noexcept
+		{
+			auto k = &nul;
+			auto b = root;
+			while (!isnul(b))
+			{
+				if (cmp(a, b->get()))
+				{
+					k = b;
+					b = b->right;
+				}
+				else
+					b = b->left;
+			}
+			return k;
+		}
+		pair<node*, node*> range(const T& a)const noexcept
+		{
+			auto c = &nul;
+			auto b = root;
+			while (!isnul(b))
+			{
+				if (cmp(b->get(), a))
+					b = b->right;
+				else if (cmp(a, b->get()))
+				{
+					c = b;
+					b = b->left;
+				}
+				else
+					return make_pair(b,c);
+			}
+			return make_pair(c, c);
 		}
 
-		
 		node* Insert(node* k,node*b)noexcept
 		{
 			if (!b)
@@ -302,28 +583,6 @@ namespace uuz
 			return k;
 		}
 
-		node* insert(const T& p, node* d = nullptr)
-		{
-			auto k = make(p);
-			d = d ? d : find(p);
-			return Insert(k, d);
-		}
-
-		node* insert(T&& p, node* d = nullptr)
-		{
-			auto k = make(std::move(p));
-			d = d ? d : find(k->get());
-			return Insert(k, d);
-		}
-
-		template<typename...Args>
-		node* emplace(Args&&...args)
-		{
-			auto k = make(std::forward<Args>(args)...);
-			auto d = find(k->get());
-			return Insert(k, d);
-		}
-
 		node* copy(node* a,node* n)
 		{
 			auto b = make(a->get());
@@ -354,24 +613,6 @@ namespace uuz
 				throw;
 			}		
 			return b;
-		}
-
-		iterator begin()noexcept
-		{
-			return iterator(nul.father);
-		}
-		const iterator begin()const noexcept
-		{
-			return iterator(nul.father);
-		}
-
-		const iterator end()const noexcept
-		{
-			return iterator(&nul);
-		}
-		iterator end()noexcept
-		{
-			return iterator(&nul);
 		}
 
 		void dele(node* x)
@@ -438,7 +679,10 @@ namespace uuz
 			if (!x->color)
 				fixdele(child, p);
 			if (x->left == &nul && x->right == &nul)
-				nul.father = nul.left = nul.right = nul.data.end = root = nullptr;
+			{
+				nul.left = nul.right = nul.data.end = root = nullptr;
+				nul.father = &nul;
+			}	
 			else if (x->left == &nul)
 			{
 				auto k = minimum(p);
@@ -454,52 +698,6 @@ namespace uuz
 			destroy(x);
 		}
 			
-		void clear()noexcept
-		{	
-			tree_destroy(root);
-			root = nul.father = nul.left = nul.right = nullptr;
-			ssize = 0;
-		}
-
-		size_t size()const noexcept
-		{
-			return ssize;
-		}
-
-		bool empty()const noexcept
-		{
-			return root == nullptr;
-		}
-
-		void swap(rb_tree& t)noexcept
-		{
-			using std::swap;
-			swap(root, t.root);
-			swap(nul.father, t.nul.father);
-			swap(nul.left, t.nul.left);
-			swap(nul.right, t.nul.right);
-			swap(nul.data.end, t.nul.data.end);
-			swap(ssize, t.ssize);
-			if (empty() && !t.empty())
-			{
-				nul.father->left = &nul;
-				nul.left->father = &nul;
-				nul.data.end->right = &nul;
-			}
-			else if (!empty() && t.empty())
-			{
-				t.nul.father->left = &t.nul;
-				t.nul.left->father = &t.nul;
-				t.nul.data.end->right = &t.nul;
-			}
-			else if (!empty() && !t.empty())
-			{
-				swap(t.nul.father->left, nul.father->left);
-				swap(t.nul.left->father, nul.left->father);
-				swap(t.nul.data.end->right, nul.data.end->right);
-			}
-		}
-
 		void print()const noexcept
 		{
 			auto k = nul.father;
@@ -511,11 +709,6 @@ namespace uuz
 			
 		}
 
-		~rb_tree()noexcept
-		{
-			clear();
-		}
-	//private:
 		template<typename... Args>
 		node* make(Args&&...args)
 		{
@@ -564,9 +757,11 @@ namespace uuz
 			alloc.deallocate(t, 1);
 		}
 		
-		node* ifind(const T& a, node* b)const noexcept
+		node* ifind(const T& a)const noexcept
 		{
-			for(;;)
+			if (empty())
+				return nullptr;
+			for(auto b = root;;)
 			{
 				if (cmp(a, b->get()))
 				{
