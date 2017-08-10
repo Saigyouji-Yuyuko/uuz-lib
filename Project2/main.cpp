@@ -12,6 +12,7 @@
 #include"Container/array.h"
 #include"Container/priority_queue.h"
 #include"Container/rbtree.h"
+#include"Container\set.h"
 
 #include<deque>
 #include<map>
@@ -39,9 +40,8 @@
 
 int main()
 {
-	std::vector<int>a;
-	auto  o = std::move(a.begin(), a.end(), a.begin());
-
+	uuz::set<int>p;
+	p.insert(1);
 	system("pause");
 	return 0;
 }

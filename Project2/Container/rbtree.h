@@ -59,14 +59,14 @@ namespace uuz
 		rb_tree_node* right = nullptr;
 	};
 
-	template<typename T, typename compare, typename A>
+	template<typename T, typename Compare, typename A>
 	class rb_tree;
 
-	template<typename T, typename compare, typename A>
+	template<typename T, typename Compare, typename A>
 	class rb_tree_iterator
 	{
 		using self = rb_tree_iterator;
-		friend rb_tree<T, compare, A>;
+		friend rb_tree<T, Compare, A>;
 	public:
 		self& operator++() noexcept
 		{
@@ -178,13 +178,13 @@ namespace uuz
 		rb_tree_node<T>* t = nullptr;
 	};
 
-	template<typename T, typename compare=uuz::pre_less<T,nil>, typename A=uuz::allocator<T>>
+	template<typename T, typename Compare=uuz::pre_less<T,nil>, typename A=uuz::allocator<T>>
 	class rb_tree
 	{
 		
 	public:
 		using node = rb_tree_node<T>;
-		using iterator = rb_tree_iterator<T, compare, A>;
+		using iterator = rb_tree_iterator<T, Compare, A>;
 		using Allocator = typename uuz::exchange<A, node>::type;
 		
 
@@ -301,13 +301,6 @@ namespace uuz
 			dele(pos.t);
 			return k;
 		}
-		iterator erase(iterator pos)
-		{
-			auto k = pos;
-			++k;
-			dele(pos.t);
-			return k;
-		}
 		iterator erase(const iterator& first, const iterator& last)
 		{
 			if (first == begin() && last == end())
@@ -327,7 +320,7 @@ namespace uuz
 		}
 	
 		
-		compare key_comp() const noexcept
+		Compare key_comp() const noexcept
 		{
 			return cmp;
 		}
@@ -415,7 +408,7 @@ namespace uuz
 	protected:	
 		rb_tree()noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
 		rb_tree(const A& a):alloc(a){}
-		rb_tree(const compare& cmp,const A& a):cmp(cmp),alloc(a){}
+		rb_tree(const Compare& cmp,const A& a):cmp(cmp),alloc(a){}
 		rb_tree(rb_tree&& t)noexcept:rb_tree(std::move(t.alloc))
 		{
 			this->swap(t);
@@ -1056,7 +1049,7 @@ namespace uuz
 
 		}	
 		
-		compare cmp;
+		Compare cmp;
 		size_t ssize = 0;
 		Allocator alloc;
 		node* root=nullptr;

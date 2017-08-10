@@ -13,12 +13,12 @@ namespace uuz
 	public:
 
 		using iterator = typename base::iterator;
-		using node_type = set_node<Key, Allocator>;
+		//using node_type = set_node<Key, Allocator>;
 
 
-		set() : set(Compare()) {}
-		explicit set(const Compare& comp,const Allocator& alloc = Allocator()):base(comp,alloc){}
-		explicit set(const Allocator& alloc) :base(alloc){}
+		set() : rb_tree(Compare(), Allocator()) {}
+		explicit set(const Compare& comp,const Allocator& alloc = Allocator()):rb_tree(comp,alloc){}
+		explicit set(const Allocator& alloc) :rb_tree(alloc){}
 		template< typename InputIt ,typename = is_input<Key,InputIt>>
 		set(const InputIt& first, const InputIt& last, const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : base(comp, alloc)
 		{
@@ -51,7 +51,7 @@ namespace uuz
 			return *this;
 		}
 
-		using base::insert;
+		using rb_tree::insert;
 		/*insert_return_type insert(node_type&& nh)
 		{
 
@@ -61,8 +61,8 @@ namespace uuz
 				
 		}*/
 		
-		using base::erase;
-		size_type erase(const key_type& key)
+		using rb_tree::erase;
+		size_t erase(const Key& key)
 		{
 			auto k = truefind(key);
 			if (k)
@@ -73,12 +73,12 @@ namespace uuz
 			return 0;	
 		}
 
-		size_type count(const Key& key) const noexcept
+		size_t count(const Key& key) const noexcept
 		{
 			return find(key) == end() ? 0 : 1;
 		}
 		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
-		size_type count(const K& x) const noexcept
+		size_t count(const K& x) const noexcept
 		{
 			return find(x) == end() ? 0 : 1;
 		}
@@ -136,7 +136,7 @@ namespace uuz
 			return iterator(up_bound(Key(x)));
 		}
 		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
-		const_iterator upper_bound(const K& x) const
+		const iterator upper_bound(const K& x) const
 		{
 			return iterator(up_bound(Key(x)));
 		}
@@ -146,7 +146,7 @@ namespace uuz
 			auto k = eqrange(key);
 			return make_pair(iterator(k.first),iterator(k.second));
 		}
-		pair<const_iterator, const_iterator> equal_range(const Key& key) const noexcept
+		pair<const iterator, const iterator> equal_range(const Key& key) const noexcept
 		{
 			auto k = eqrange(key);
 			return make_pair(iterator(k.first), iterator(k.second));
@@ -158,7 +158,7 @@ namespace uuz
 			return make_pair(iterator(k.first), iterator(k.second));
 		}
 		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
-		pair<const_iterator, const_iterator> equal_range(const K& x) const noexcept
+		pair<const iterator, const iterator> equal_range(const K& x) const noexcept
 		{
 			auto k = eqrange(Key(x));
 			return make_pair(iterator(k.first), iterator(k.second));
@@ -293,7 +293,7 @@ namespace uuz
 		}
 
 		template <class... Args>
-		iterator emplace_hint(const_iterator hint, Args&&... args)
+		iterator emplace_hint(const iterator hint, Args&&... args)
 		{
 			auto t = make(std::forward<Args>(args)...);
 			auto k = check(hint, value);
@@ -316,7 +316,7 @@ namespace uuz
 		}
 
 
-		size_type count(const Key& key) const noexcept
+		size_t count(const Key& key) const noexcept
 		{
 			auto k = eqrange(key);
 			auto f = k.first;
@@ -335,43 +335,38 @@ namespace uuz
 			}
 		}
 		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
-		size_type count(const K& x) const noexcept
+		size_t count(const K& x) const noexcept
 		{
 			return count(Key(k));
 		}
-
-		
-
-		
-
 	};
 	template< class Key, class Compare, class Alloc >
-	bool operator==(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	bool operator==(const multiset<Key, Compare, Alloc>& lhs, const multiset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
 	{
 		return  lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
 	}
 	template< class Key, class Compare, class Alloc >
-	bool operator!=(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	bool operator!=(const multiset<Key, Compare, Alloc>& lhs, const multiset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
 	{
 		return !(lhs == rhs);
 	}
 	template< class Key, class Compare, class Alloc >
-	bool operator<(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	bool operator<(const multiset<Key, Compare, Alloc>& lhs, const multiset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
 	{
 		return lhs.compare(rhs) == -1;
 	}
 	template< class Key, class Compare, class Alloc >
-	bool operator<=(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	bool operator<=(const multiset<Key, Compare, Alloc>& lhs, const multiset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
 	{
 		return lhs.compare(rhs) <= 0;
 	}
 	template< class Key, class Compare, class Alloc >
-	bool operator>(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	bool operator>(const multiset<Key, Compare, Alloc>& lhs, const multiset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
 	{
 		return lhs.compare(rhs) == 1;
 	}
 	template< class Key, class Compare, class Alloc >
-	bool operator>=(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	bool operator>=(const multiset<Key, Compare, Alloc>& lhs, const multiset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
 	{
 		return lhs.compare(rhs) >= 0;
 	}

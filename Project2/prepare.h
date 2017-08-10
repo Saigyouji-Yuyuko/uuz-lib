@@ -141,7 +141,16 @@ namespace uuz
 		if(src +t < to)
 			return move_or_copy_con(src, t, to);
 		move_or_copy_con(src + t - (to - src), to - src, src + t);
-		move_or_copy_ass(src, t - (to - src), to);
+		try
+		{
+			move_or_copy_ass(src, t - (to - src), to);
+		}
+		catch (...)
+		{
+			for (auto i = src + t; i != to + t; ++i)
+				(*i).~T();
+			throw;
+		}
 	}
 	
 

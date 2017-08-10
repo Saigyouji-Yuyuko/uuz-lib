@@ -21,14 +21,11 @@
   <ItemGroup>
     <ClInclude Include="Container\array.h" />
     <ClInclude Include="Container\container.h" />
-    <ClInclude Include="debug.h" />
+    <ClInclude Include="test\debug.h" />
     <ClInclude Include="Container\deque.h" />
-    <ClInclude Include="file.h" />
     <ClInclude Include="Container\forward_list.h" />
-    <ClInclude Include="functor.h" />
     <ClInclude Include="Container\list.h" />
     <ClInclude Include="Container\map.h" />
-    <ClInclude Include="math.h" />
     <ClInclude Include="Container\pair.h" />
     <ClInclude Include="prepare.h" />
     <ClInclude Include="Container\priority_queue.h" />
@@ -36,7 +33,6 @@
     <ClInclude Include="Container\rbtree.h" />
     <ClInclude Include="Container\set.h" />
     <ClInclude Include="Container\string.h" />
-    <ClInclude Include="time.h" />
     <ClInclude Include="Container\vector.h" />
   </ItemGroup>
   <ItemGroup>

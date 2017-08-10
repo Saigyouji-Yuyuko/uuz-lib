@@ -27,21 +27,6 @@
     <ClInclude Include="prepare.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="math.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="file.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="time.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="functor.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="debug.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Container\array.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
@@ -76,6 +61,9 @@
       <Filter>头文件\Container</Filter>
     </ClInclude>
     <ClInclude Include="Container\container.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="test\debug.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
