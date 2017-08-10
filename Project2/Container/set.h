@@ -4,12 +4,18 @@
 #include"pair.h"
 namespace uuz
 {
+
 	template<typename Key,typename Compare = pre_less<Key,nil>,typename Allocator = uuz::allocator<Key>> 
 	class set:public rb_tree<Key,Compare,Allocator>
 	{
 		using base = rb_tree<Key, Compare, Allocator>;
-		using iterator = typename base::iterator;
+		
 	public:
+
+		using iterator = typename base::iterator;
+		using node_type = set_node<Key, Allocator>;
+
+
 		set() : set(Compare()) {}
 		explicit set(const Compare& comp,const Allocator& alloc = Allocator()):base(comp,alloc){}
 		explicit set(const Allocator& alloc) :base(alloc){}
@@ -29,41 +35,31 @@ namespace uuz
 
 		set& operator=(const set& other)
 		{
-			if (this != &other)
-			{
-				auto temp(other);
-				this->swap(other);
-			}
+			base::operator=(other);
 			return *this;
 		}
 		set& operator=(set&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
-			if (this != &other)
-			{
-				auto temp(std::move(other));
-				this->swap(other);
-			}
+			base::operator=(std::move(other));
 			return *this;
 		}
 		set& operator=(std::initializer_list<Key> ilist)
 		{
-			if (this != &other)
-			{
 				auto temp(ilist);
 				this->swap(other);
-			}
+			
 			return *this;
 		}
 
 		using base::insert;
-		insert_return_type insert(node_type&& nh)
+		/*insert_return_type insert(node_type&& nh)
 		{
 
 		}
 		iterator insert(const iterator& hint, node_type&& nh)
 		{
 				
-		}
+		}*/
 		
 		using base::erase;
 		size_type erase(const key_type& key)
@@ -76,6 +72,17 @@ namespace uuz
 			}
 			return 0;	
 		}
+
+		size_type count(const Key& key) const noexcept
+		{
+			return find(key) == end() ? 0 : 1;
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
+		size_type count(const K& x) const noexcept
+		{
+			return find(x) == end() ? 0 : 1;
+		}
+
 
 		iterator find(const Key& key)noexcept
 		{
@@ -134,33 +141,244 @@ namespace uuz
 			return iterator(up_bound(Key(x)));
 		}
 
+		pair<iterator, iterator> equal_range(const Key& key)noexcept
+		{
+			auto k = eqrange(key);
+			return make_pair(iterator(k.first),iterator(k.second));
+		}
+		pair<const_iterator, const_iterator> equal_range(const Key& key) const noexcept
+		{
+			auto k = eqrange(key);
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		pair<iterator, iterator> equal_range(const K& x)noexcept
+		{
+			auto k = eqrange(Key(x));
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		pair<const_iterator, const_iterator> equal_range(const K& x) const noexcept
+		{
+			auto k = eqrange(Key(x));
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+	};
+	template< class Key, class Compare, class Alloc >
+	bool operator==(const set<Key, Compare, Alloc>& lhs, const set<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return  lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator!=(const set<Key, Compare, Alloc>& lhs, const set<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return !(lhs == rhs);
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator<(const set<Key, Compare, Alloc>& lhs, const set<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) == -1;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator<=(const set<Key, Compare, Alloc>& lhs, const set<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) <= 0;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator>(const set<Key, Compare, Alloc>& lhs, const set<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) == 1;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator>=(const set<Key, Compare, Alloc>& lhs, const set<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) >= 0;
+	}
+
+	template< class Key, class Compare, class Alloc >
+	void swap(set<Key, Compare, Alloc>& lhs, set<Key, Compare, Alloc>& rhs) noexcept(is_nothrow_swap_alloc<Alloc>)
+	{
+		lhs->swap(rhs);
+	}
+}
+namespace uuz
+{
+	template<typename Key, typename Compare = pre_less<Key, nil>, typename Allocator = uuz::allocator<Key>>
+	class multiset :public set<Key, Compare, Allocator>
+	{
+		using base = rb_tree<Key, Compare, Allocator>;
+		using iterator = typename set::iterator;
+	public:
+		multiset() : multiset(Compare()) {}
+		explicit multiset(const Compare& comp,const Allocator& alloc = Allocator()):set(comp,alloc){}
+		explicit multiset(const Allocator& alloc):set(alloc){}
+		template< typename InputIt, typename = is_input<Key, InputIt>>
+		multiset(const InputIt& first,const InputIt& last, const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : set(comp, alloc)
+		{
+			mutilinid(first, last);
+		}
+		template< typename InputIt, typename = is_input<Key, InputIt>>
+		multiset(const InputIt& first, const InputIt& last, const Allocator& alloc):set(first,last,Compare(),alloc){}
+		multiset(const multiset& other):set(other){}
+		multiset(const multiset& other, const Allocator& alloc):set(other,alloc){}
+		multiset(multiset&& other):set(std::move(other)){}
+		multiset(multiset&& other, const Allocator& alloc):set(std::move(other),alloc){}
+		multiset(std::initializer_list<Key> init,const Compare& comp = Compare(),const Allocator& alloc = Allocator()):multiset(init.begin(),init.end(),comp,alloc){}
+		multiset(std::initializer_list<Key> init,const Allocator& alloc):mutilmap(init.begin(),init.end(),alloc){}
+
+		multiset& operator=(const multiset& other)
+		{
+			base::operator=(other);
+			return *this;
+		}
+		multiset& operator=(multiset&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			base::operator=(std::move(other));
+			return *this;
+		}
+		multiset& operator=(std::initializer_list<Key> ilist)
+		{
+			auto temp{ ilist };
+			this->swap(temp);
+			return *this;
+		}
+
+		iterator insert(const Key& value)
+		{
+			return emplace(value);
+		}
+		iterator insert(Key&& value)
+		{
+			return emplace(std::move(value));
+		}
+		iterator insert(const iterator hint, const Key& value)
+		{
+			return emplace_hint(hint, value);
+		}
+		iterator insert(const iterator hint, Key&& value)
+		{
+			return emplace_hint(hint, std::move(value));
+		}
+		template< typename InputIt, typename = is_input<Key, InputIt>>
+		void insert(const InputIt& first, const InputIt& last)
+		{
+			auto i = first;
+			try
+			{
+				for (; i != last; ++i)
+					insert(*i);
+			}
+			catch (...)
+			{
+				for (j = first; j != i; ++j)
+					dele(truefind(*i));
+				throw;
+			}
+		}
+		void insert(std::initializer_list<Key> ilist)
+		{
+			return insert(ilist.begin(), ilist.end());
+		}
+		/*iterator insert(node_type&& nh);
+		iterator insert(const_iterator hint, node_type&& nh);*/
+
+		template< class... Args >
+		iterator emplace(Args&&... args)
+		{
+			auto t = make(std::forward<Args>(args)...);
+			auto k = ifind(t->get());
+			if (!cmp(t->get(), k->get()) && !cmp(k->get(), t->get()))
+				k = nextnode(k);
+			return iterator(Insert(t, k, false));
+		}
+
+		template <class... Args>
+		iterator emplace_hint(const_iterator hint, Args&&... args)
+		{
+			auto t = make(std::forward<Args>(args)...);
+			auto k = check(hint, value);
+			if (!cmp(t->get(), k->get()) && !cmp(k->get(), t->get()))
+				k = nextnode(k);
+			return iterator(Insert(t, k, false));
+		}
+
+		size_t erase(const Key& key)
+		{
+			auto k = truefind(key);
+			size_t t = 0;
+			while (!isnul(k))
+			{
+				dele(k);
+				k = truefind(key);
+				++t;
+			}
+			return t;
+		}
 
 
+		size_type count(const Key& key) const noexcept
+		{
+			auto k = eqrange(key);
+			auto f = k.first;
+			auto l = k.second;
+			if (f == l || f == &nul)
+				return 0;
+			else
+			{
+				size_t t = 0;
+				while (f != l)
+				{
+					++f;
+					++t;
+				}
+				return t;
+			}
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
+		size_type count(const K& x) const noexcept
+		{
+			return count(Key(k));
+		}
 
+		
 
-
+		
 
 	};
 	template< class Key, class Compare, class Alloc >
-	bool operator==(const set<Key, Compare, Alloc>& lhs,
-		const set<Key, Compare, Alloc>& rhs);
-		template< class Key, class Compare, class Alloc >
-	bool operator!=(const set<Key, Compare, Alloc>& lhs,
-		const set<Key, Compare, Alloc>& rhs);
-		template< class Key, class Compare, class Alloc >
-	bool operator<(const set<Key, Compare, Alloc>& lhs,
-		const set<Key, Compare, Alloc>& rhs);
-		template< class Key, class Compare, class Alloc >
-	bool operator<=(const set<Key, Compare, Alloc>& lhs,
-		const set<Key, Compare, Alloc>& rhs);
-		template< class Key, class Compare, class Alloc >
-	bool operator>(const set<Key, Compare, Alloc>& lhs,
-		const set<Key, Compare, Alloc>& rhs);
-		template< class Key, class Compare, class Alloc >
-	bool operator>=(const set<Key, Compare, Alloc>& lhs,
-		const set<Key, Compare, Alloc>& rhs);
-
+	bool operator==(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return  lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+	}
 	template< class Key, class Compare, class Alloc >
-	void swap(set<Key, Compare, Alloc>& lhs,
-		set<Key, Compare, Alloc>& rhs) noexcept(/* see below */);
+	bool operator!=(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return !(lhs == rhs);
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator<(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) == -1;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator<=(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) <= 0;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator>(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) == 1;
+	}
+	template< class Key, class Compare, class Alloc >
+	bool operator>=(const mutilset<Key, Compare, Alloc>& lhs, const mutilset<Key, Compare, Alloc>& rhs)noexcept(noexcept(lhs.compare(rhs)))
+	{
+		return lhs.compare(rhs) >= 0;
+	}
+	
+	template< class Key, class Compare, class Alloc >
+	void swap(multiset<Key, Compare, Alloc>& lhs,multiset<Key, Compare, Alloc>& rhs) noexcept(is_nothrow_swap_alloc<Alloc>::value)
+	{
+		lhs->swap(rhs);
+	}
 }

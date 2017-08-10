@@ -211,6 +211,24 @@ namespace uuz
 			ssize = 0;
 		}
 
+		int compare(const rb_tree& t)const noexcept(noexcept(cmp(std::declval<T>(), std::declval<T>())))
+		{
+			auto i = begin();
+			auto j = t.begin();
+			for (; i != end() && j != t.end(); ++i, (void)++j)
+			{
+				if (cmp(*i, *j))
+					return -1;
+				else if (cmp(*j, *i))
+					return 1;
+			}
+			if (i == end() && j != t.end())
+				return -1;
+			else if (i != end() && j == t.end())
+				return 1;
+			return 0;
+		}
+
 		pair<iterator, bool> insert(const T& value)
 		{
 			auto k = ifind(value);
@@ -457,8 +475,33 @@ namespace uuz
 				clear();
 				throw;
 			}
-
 		}
+
+		template< typename InputIt, typename = is_input<T, InputIt>>
+		void mutilinid(const InputIt& a, const InputIt& b)
+		{
+			try
+			{
+				for (auto i = a; i != b; ++i)
+				{
+					auto t = make(*i);
+					auto k = ifind(t);
+					if (!cmp(*i, k->get()) && !cmp(k->get(), *i))
+					{
+						k = nextnode(k);
+						Insert(t, k, false);
+					}
+					else
+						Insert(t, k);
+				}
+			}
+			catch (...)
+			{
+				clear();
+				throw;
+			}
+		}
+
 
 		rb_tree& operator=(const rb_tree& t)
 		{
@@ -473,7 +516,8 @@ namespace uuz
 			return *this;
 		}
 
-		node* truefind(const T& a)const noexcept 
+		template<typename U>
+		node* truefind(const U& a)const noexcept 
 		{
 			auto b = root;
 			while(!isnul(b))
@@ -487,7 +531,8 @@ namespace uuz
 			}
 			return &nul;
 		}	
-		node* low_bound(const T& a)const noexcept
+		template<typename U>
+		node* low_bound(const U& a)const noexcept
 		{
 			auto k = &nul;
 			auto b = root;
@@ -503,7 +548,8 @@ namespace uuz
 			}
 			return k;
 		}
-		node* up_bound(const T& a)const noexcept
+		template<typename U>
+		node* up_bound(const U& a)const noexcept
 		{
 			auto k = &nul;
 			auto b = root;
@@ -519,26 +565,51 @@ namespace uuz
 			}
 			return k;
 		}
-		pair<node*, node*> range(const T& a)const noexcept
+		template<typename U>
+		pair<node*, node*> eqrange(const U& a)const noexcept
 		{
-			auto c = &nul;
-			auto b = root;
-			while (!isnul(b))
+			auto p = root;
+			auto l = &nul;
+			auto r = &nul;
+			while (!isnul(p))
 			{
-				if (cmp(b->get(), a))
-					b = b->right;
-				else if (cmp(a, b->get()))
+				if (cmp(p->get(), a))
+					p = p->right;
+				else 
 				{
-					c = b;
-					b = b->left;
+					if (isnul(r) && cmp(a, p->get()))//??
+						r = p;
+					l = p;
+					p = p->left;
+				}
+			}
+			p = isnul(r) ? root : r->left;
+			while (isnul(p))
+			{
+				if (cmp(a, p->get()))
+				{
+					r = p;
+					p = p->left;
 				}
 				else
-					return make_pair(b,c);
+					p = p->right;
 			}
-			return make_pair(c, c);
+			return make_pair(l, r);
 		}
 
-		node* Insert(node* k,node*b)noexcept
+		node* nextnode(node* a)const noexcept
+		{
+			if (!isnul(a->left))
+			{
+				auto k = a->left;
+				while (!isnul(k->right))
+					k = k->right;
+				return k;
+			}
+			return a;
+		}
+
+		node* Insert(node* k,node*b,bool flag = true)noexcept
 		{
 			if (!b)
 			{
@@ -548,7 +619,7 @@ namespace uuz
 			}
 			else
 			{
-				if (!cmp(k->get(), b->get()) && !cmp(b->get(), k->get()))
+				if (flag && !cmp(k->get(), b->get()) && !cmp(b->get(), k->get()))
 				{
 					destroy(k);
 					return b;
@@ -728,9 +799,10 @@ namespace uuz
 			}
 		}
 		
-		node* check(const iterator& t, node* k)const noexcept
+		template<typename U>
+		node* check(const iterator& t, const U& k)const noexcept
 		{
-			if (cmp(t.t->get(), k->get()))
+			if (cmp(t.t->get(), k))
 			{
 				if (isnul(t.t->right))
 				{
@@ -738,11 +810,11 @@ namespace uuz
 						return t.t;
 				}
 			}
-			else if (cmp(k->get(), t.t->get()))
+			else 
 			{
 				if (isnul(t.t->left))
 				{
-					if ((cmp(t.t->get(), t.t->father->get()) && cmp(k->get(), t.t->father->get())) || (cmp(t.t->father->get(), t.t->get()) && cmp(t.t->father->get(), k->get())))
+					if ((!cmp(t.t->get(), t.t->father->get()) && !cmp(k, t.t->father->get())) || (!cmp(t.t->father->get(), t.t->get()) && !cmp(t.t->father->get(), k->get())))
 						return t.t;
 				}
 			}
