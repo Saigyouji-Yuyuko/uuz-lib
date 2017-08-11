@@ -114,6 +114,7 @@ namespace uuz
 	template<typename T,std::size_t N>
 	class array
 	{
+		using value_type = T;
 		using iterator = array_iterator<T,N>;
 		using size_t = unsigned int;
 	public:

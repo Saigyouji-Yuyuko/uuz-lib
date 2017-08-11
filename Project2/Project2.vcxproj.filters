@@ -66,6 +66,12 @@
     <ClInclude Include="test\debug.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Container\allocator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="test\test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

@@ -1,32 +1,26 @@
 #pragma once
 #include<type_traits>
 #include<cassert>
+#include<exception>
+#include<stdexcept>
 namespace uuz
 {
-
-	class nil {};
-
-	template<typename T, typename b>
-	struct pre_less
-	{
-		template<typename T1, typename T2>
-		constexpr decltype(auto) operator()(const T1& a1, const T2& a2)const noexcept(noexcept(b()(a1,a2)))
-		{
-			return b()(a1, a2);
-		}
-	};
+	//默认less仿函数
 	template<typename T>
-	struct pre_less<T, nil>
+	struct less
 	{
-		template<typename T1, typename T2>
-		constexpr decltype(auto) operator()(const T1& a1, const T2& a2)const noexcept(noexcept(a1 < a2))
+		constexpr bool operator()(const T& a, const T& b)const noexcept(noexcept(a<b))
 		{
- 			return (a1 < a2);
+			return a < b;
 		}
 	};
-	template<typename T,typename InputIt>
+
+
+	template<typename T,typename InputIt>//测试InputIt是否为T类型的迭代器或指针
 	using is_input = std::enable_if_t<std::is_same_v<T, std::decay_t<decltype(*std::declval<InputIt>())>>>;
 
+
+	//考虑将src中的T个位置尽量移动到to中，其中to是脏数据
 	template<typename T>
 	void move_or_copy_con(T* src, size_t t, T* to,
 		typename std::enable_if_t<std::is_nothrow_move_constructible_v<T> || (!std::is_nothrow_copy_constructible_v<T>&&std::is_move_constructible_v<T>)>* = nullptr)
@@ -79,7 +73,7 @@ namespace uuz
 		static_assert(false, "T can't move or copy\n");
 	}
 
-	
+	//考虑将src中的T个位置尽量移动到to中，其中to是有效数据
 	template<typename T>
 	void move_or_copy_ass(T* src, size_t t, T* to,
 		typename std::enable_if_t<std::is_nothrow_move_assignable_v<T> || (!std::is_nothrow_copy_assignable_v<T>&&std::is_move_assignable_v<T>)>* = nullptr)
@@ -130,6 +124,8 @@ namespace uuz
 		static_assert(false, "T can't move or copy\n");
 	}
 
+
+	//考虑将src中的T个位置尽量移动到to中，其中to在src到 t 之间
 	template<typename T>
 	void move_or_copy(T* src, size_t t, T* to)noexcept((std::is_nothrow_copy_assignable_v<T> || std::is_nothrow_move_assignable_v<T>)
 													&& (std::is_nothrow_copy_constructible_v<T> || std::is_nothrow_move_constructible_v<T>))
@@ -153,7 +149,7 @@ namespace uuz
 		}
 	}
 	
-
+	//将 A<B> 替换为 A<C>
 	template<typename AB,typename C>
 	struct exchange;
 	template<template<typename...>class A,typename B, typename C>
@@ -162,10 +158,8 @@ namespace uuz
 		using type = A<C>;
 	};
 
-
-
-
+	//使用std::excption
 	using std::bad_alloc;
 	using std::out_of_range;
-
+	using std::runtime_error;
 }
