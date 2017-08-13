@@ -19,9 +19,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="algorithm.h" />
     <ClInclude Include="Container\allocator.h" />
     <ClInclude Include="Container\array.h" />
     <ClInclude Include="Container\container.h" />
+    <ClInclude Include="iterator.h" />
     <ClInclude Include="test\debug.h" />
     <ClInclude Include="Container\deque.h" />
     <ClInclude Include="Container\forward_list.h" />

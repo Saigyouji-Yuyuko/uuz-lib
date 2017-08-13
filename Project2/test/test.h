@@ -14,14 +14,16 @@
 
 namespace uuz
 {
+	enum class Color
+	{
+		red, green, white
+	};
+	std::ostream& operator<<(std::ostream &out, Color color);
 	namespace
 	{
-		enum class Color
-		{
-			red, green, white
-		};
+		
 #ifdef _WIN32
-		std::ostream& operator<<(std::ostream &out, Color color);
+		
 		class SetColor
 		{
 		public:
@@ -66,23 +68,25 @@ namespace uuz
 		}
 		
 #endif		
-		std::ostream& operator<< (std::ostream &out, Color color)
+		
+	}
+	
+	std::ostream& operator<< (std::ostream &out, Color color)
+	{
+		SetColor setcolor;
+
+		switch (color)
 		{
-			SetColor setcolor;
-			
-			switch (color)
-			{
 #ifdef _WIN32
-			case Color::red:
-				return setcolor.RedColor(out);
-			case Color::green:
-				return setcolor.GreenColor(out);
-			case Color::white:
-				return setcolor.WhiteColor(out);
+		case Color::red:
+			return setcolor.RedColor(out);
+		case Color::green:
+			return setcolor.GreenColor(out);
+		case Color::white:
+			return setcolor.WhiteColor(out);
 #endif
-			}
-			return out;
 		}
+		return out;
 	}
 	class testcase
 	{
@@ -95,6 +99,7 @@ namespace uuz
 		int fail = 0;
 		int pass = 0;
 	};
+	
 	class unittest
 	{
 	public:
@@ -113,25 +118,25 @@ namespace uuz
 				i->numcase = 1;
 				i->fail = 0;
 				i->pass = 0;
-				std::cout << Color::green << "============================================" << std::endl;
-				std::cout << Color::green << " Run TestCase:" << nowcase->name << std::endl;
+				std::cout << uuz::Color::green << "============================================" << std::endl;
+				std::cout << uuz::Color::green << " Run TestCase:" << nowcase->name << std::endl;
 				nowcase->run();
 				if (nowcase->fail == 0)
-					std::cout << Color::green;
+					std::cout << uuz::Color::green;
 				else
-					std::cout << Color::red;
+					std::cout << uuz::Color::red;
 				std::cout << " " << nowcase->pass << " / " << nowcase->pass + nowcase->fail << " Case passed ( " << (double)(nowcase->pass) / (nowcase->pass + nowcase->fail) * 100 << " % )" << std::endl;
-				std::cout << Color::green << " End TestCase:" << nowcase->name << std::endl;
+				std::cout << uuz::Color::green << " End TestCase:" << nowcase->name << std::endl;
 				if (nowcase->numcase)
 					++pass;
 				else
 					++fail;
 			}
-			std::cout << Color::green << "============================================" << std::endl;
-			std::cout << Color::green << "Total TestCase : " << pass + fail << std::endl;
-			std::cout << Color::green << "Total Passed : " << pass << std::endl;
-			std::cout << Color::red << "Total Failed " << fail << std::endl;
-			std::cout << Color::green << " " << pass << " / " << pass + fail << " TestCase passed . ( " << (double)pass / (pass + fail) * 100 << "% )" << std::endl;
+			std::cout << uuz::Color::green << "============================================" << std::endl;
+			std::cout << uuz::Color::green << "Total TestCase : " << pass + fail << std::endl;
+			std::cout << uuz::Color::green << "Total Passed : " << pass << std::endl;
+			std::cout << uuz::Color::red << "Total Failed " << fail << std::endl;
+			std::cout << uuz::Color::green << " " << pass << " / " << pass + fail << " TestCase passed . ( " << (double)pass / (pass + fail) * 100 << "% )" << std::endl<<uuz::Color::white;
 		}
 	public:
 		testcase* nowcase;
@@ -147,155 +152,153 @@ namespace uuz
 	}
 #define TESTCASE_NAME(testcase_name) \
     testcase_name##_TEST
-#define MYTINYSTL_TEST_(testcase_name)                        \
-class TESTCASE_NAME(testcase_name) : public uuz::testcase {        \
-public:                                                       \
-    TESTCASE_NAME(testcase_name)(const char* case_name)       \
-        : uuz::testcase(case_name) {};                             \
+#define MYTINYSTL_TEST_(testcase_name)\
+class TESTCASE_NAME(testcase_name): public uuz::testcase {\
+public:                                                 \
+    TESTCASE_NAME(testcase_name)(const char* case_name): uuz::testcase(case_name) {}\
     virtual void run()override;                                       \
 private:                                                      \
-     const static uuz::testcase* testcasess;                         \
+     static uuz::testcase* testcasess;                         \
 };                                                            \
-                                                              \
-testcase* const TESTCASE_NAME(testcase_name)::testcasess = uuz::unittest::getsingleunit()->push(  \
+uuz::testcase* TESTCASE_NAME(testcase_name)::testcasess = uuz::unittest::getsingleunit()->push(  \
         new TESTCASE_NAME(testcase_name)(#testcase_name));    \
 void TESTCASE_NAME(testcase_name)::run()
 
-#define EXPCET_TRUE(CONDITION)do try{							\
+#define EXPECT_TRUE(CONDITION)do try{							\
 	if(CONDITION){											\
-		unittest::getsingleunit()->nowcase->pass++;			\
-		std::cout<<Color::green<<"EXPCET_TRUE succeeded!"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->pass;			\
+		std::cout<<uuz::Color::green<<"EXPECT_TRUE succeeded!"<<std::endl;}\
 	else{													\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPCET_TRUE failed!"<<std::endl;}}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_TRUE failed!"<<std::endl;}}\
 	catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPCET_TRUE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_TRUE failed and some excption throw !"<<std::endl;}\
 		while(0)
-#define EXPCET_FALSE(CONDITION)do try{							\
+#define EXPECT_FALSE(CONDITION)do try{							\
 	if(!(CONDITION)){											\
-		unittest::getsingleunit()->nowcase->pass++;			\
-		std::cout<<Color::green<<"EXPCET_FALSE succeeded!"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->pass;			\
+		std::cout<<uuz::Color::green<<"EXPECT_FALSE succeeded!"<<std::endl;}\
 	else{													\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPCET_FALSE failed!"<<std::endl;}}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_FALSE failed!"<<std::endl;}}\
 	catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPCET_FALSE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_FALSE failed and some excption throw !"<<std::endl;}\
 		while(0)
 #define EXPECT_EQ(v1, v2) do try { \
-  if ((v1) == (v2)) {                                               \
-    unittest::getsingleunit()->nowcase->pass++;					\
-    std::cout << Color::green << " EXPECT_EQ succeeded!"<<std::endl;}\                                                             \
-  else {                                                        \
-   unittest::getsingleunit()->nowcase->fail++;					\
-		unittest::getsingleunit()->nowcase->numcase = 0;		\
-    std::cout << Color::red << " EXPECT_EQ failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << (v1) << std::endl;               \
-    std::cout << Color::red << " Actual:" << (v2) << std::endl;}}              \
+  if (v1 == v2) {                                               \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;					\
+    std::cout << uuz::Color::green << " EXPECT_EQ succeeded!"<<std::endl;}\
+else {                                                        \
+		++uuz::unittest::getsingleunit()->nowcase->fail;					\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;		\
+    std::cout << uuz::Color::red << " EXPECT_EQ failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << v1 << std::endl;               \
+    std::cout << uuz::Color::red << " Actual:" << v2 << std::endl;}}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_EQ failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_EQ failed and some excption throw !"<<std::endl;}\
  while(0)
 #define EXPECT_NE(v1, v2) do try{                                  \
   if ((v1) != (v2)) {                                               \
-    unittest::getsingleunit()->nowcase->pass++;        \
-   std::cout << Color::green << " EXPECT_NE succeeded!"<<std::endl;             \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+   std::cout << uuz::Color::green << " EXPECT_NE succeeded!"<<std::endl;             \
   }                                                             \
   else {                                                        \
-     unittest::getsingleunit()->nowcase->fail++;					\
-		unittest::getsingleunit()->nowcase->numcase = 0;		\
-    std::cout << Color::red << " EXPECT_NE failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << (v1) << std::endl;               \
-    std::cout << Color::red << " Actual:" << (v2) << std::endl; }}              \
+     ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;		\
+    std::cout << uuz::Color::red << " EXPECT_NE failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << (v1) << std::endl;               \
+    std::cout << uuz::Color::red << " Actual:" << (v2) << std::endl; }}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_NE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_NE failed and some excption throw !"<<std::endl;}\
  while(0)
 #define EXPECT_LT(v1, v2) do try{                                  \
   if ((v1) < (v2)) {                                                \
-    unittest::getsingleunit()->nowcase->pass++;        \
-    std::cout << Color::green << " EXPECT_LT succeeded!"<<std::endl;            \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+    std::cout << uuz::Color::green << " EXPECT_LT succeeded!"<<std::endl;            \
   }                                                             \
   else {                                                        \
-    unittest::getsingleunit()->nowcase->fail++;					\
-		unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_LT failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << (v1) << std::endl;               \
-    std::cout << Color::red << " Actual:" << (v2) << std::endl;}}               \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_LT failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << (v1) << std::endl;               \
+    std::cout << uuz::Color::red << " Actual:" << (v2) << std::endl;}}               \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_LT failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_LT failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_LE(v1, v2) do try{                                  \
   if ((v1) <= (v2)) {                                               \
-    unittest::getsingleunit()->nowcase->pass++;        \
-    std::cout << Color::green << " EXPECT_LE succeeded!"<<std::endl;            \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+    std::cout << uuz::Color::green << " EXPECT_LE succeeded!"<<std::endl;            \
   }                                                             \
   else {                                                        \
-     unittest::getsingleunit()->nowcase->fail++;					\
-		unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_LE failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << (v1) << std::endl;               \
-    std::cout << Color::red << " Actual:" << (v2) << std::endl;}}               \
+     ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_LE failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << (v1) << std::endl;               \
+    std::cout << uuz::Color::red << " Actual:" << (v2) << std::endl;}}               \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_LE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_LE failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_GT(v1, v2) do try{                                  \
   if ((v1) > (v2)) {								                  \
-    unittest::getsingleunit()->nowcase->pass++;        \
-    std::cout << Color::green << " EXPECT_GT succeeded!"<<std::endl;            \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+    std::cout << uuz::Color::green << " EXPECT_GT succeeded!"<<std::endl;            \
   }                                                             \
   else {                                                        \
-     unittest::getsingleunit()->nowcase->fail++;					\
-		unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_GT failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << (v1) << std::endl;               \
-    std::cout << Color::red << " Actual:" << (v2) << std::endl;}}               \
+     ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_GT failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << (v1) << std::endl;               \
+    std::cout << uuz::Color::red << " Actual:" << (v2) << std::endl;}}               \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_GT failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_GT failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_GE(v1, v2) do try {                                  \
   if ((v1) >= (v2)) {                                               \
-    unittest::getsingleunit()->nowcase->pass++;       \
-    std::cout << Color::green << " EXPECT_GE succeeded!"<<std::endl;            \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;       \
+    std::cout << uuz::Color::green << " EXPECT_GE succeeded!"<<std::endl;            \
   }                                                             \
   else {                                                        \
-    unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_GE failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << v1 << std::endl;               \
-    std::cout << Color::red << " Actual:" << v2 << std::endl;}}               \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_GE failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << v1 << std::endl;               \
+    std::cout << uuz::Color::red << " Actual:" << v2 << std::endl;}}               \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_GE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_GE failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_STREQ(s1, s2) do try{                                 \
   if (s1 == nullptr || s2 == nullptr) {                                 \
     if (s1 == nullptr && s2 == nullptr) {                               \
-      unittest::getsingleunit()->nowcase->pass++;        \
-      std::cout << Color::green << " EXPECT_STRED succeeded!"<<std::endl;         \
+      ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+      std::cout << uuz::Color::green << " EXPECT_STRED succeeded!"<<std::endl;         \
     }                                                             \
     else {                                                        \
-       unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;        \
-      std::cout << Color::red << " EXPECT_STRED failed!"<<std::endl;              \
+       ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+      std::cout << uuz::Color::red << " EXPECT_STRED failed!"<<std::endl;              \
       if(s1 == nullptr) std::cout << " Expect: NULL"<<std::endl;              \
       else std::cout << " Expect:" << s1 << std::endl;             \
       if(s2 == nullptr) std::cout << "Actual: NULL"<<std::endl;              \
@@ -303,31 +306,31 @@ catch(...){\
     }                                                             \
   }                                                               \
   else if (strcmp(s1, s2) == 0) {                                 \
-    unittest::getsingleunit()->nowcase->pass++;          \
-    std::cout << Color::green << " EXPECT_STRED succeeded!"<<std::endl;           \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;          \
+    std::cout << uuz::Color::green << " EXPECT_STRED succeeded!"<<std::endl;           \
   }                                                               \
   else {                                                          \
-    unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;          \
-    std::cout << Color::red << " EXPECT_STRED failed!"<<std::endl;                \
-    std::cout << Color::red << " Expect: " << s1 << std::endl;             \
-    std::cout << Color::red << " Actual: " << s2 << std::endl; }}            \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;          \
+    std::cout << uuz::Color::red << " EXPECT_STRED failed!"<<std::endl;                \
+    std::cout << uuz::Color::red << " Expect: " << s1 << std::endl;             \
+    std::cout << uuz::Color::red << " Actual: " << s2 << std::endl; }}            \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_STREQ failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_STREQ failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_STRNE(s1, s2) do try{                                 \
   if (s1 == nullptr || s2 == nullptr) {                                 \
     if (s1 != nullptr || s2 != nullptr) {                               \
-      unittest::getsingleunit()->nowcase->pass++;         \
-      std::cout << Color::green << " EXPECT_STRNE succeeded!"<<std::endl;         \
+      ++uuz::unittest::getsingleunit()->nowcase->pass;         \
+      std::cout << uuz::Color::green << " EXPECT_STRNE succeeded!"<<std::endl;         \
     }                                                             \
     else {                                                        \
-     unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;       \
-      std::cout << Color::red << " EXPECT_STRNE failed!"<<std::endl;              \
+     ++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;       \
+      std::cout << uuz::Color::red << " EXPECT_STRNE failed!"<<std::endl;              \
       if(s1 == nullptr) std::cout << " Expect: NULL"<<std::endl;              \
       else std::cout << " Expect: " << s1 << std::endl;             \
       if(s2 == nullptr) std::cout << " Actual: NULL"<<std::endl;              \
@@ -335,82 +338,82 @@ catch(...){\
     }                                                             \
   }                                                               \
   else if (strcmp(s1, s2) != 0) {                                 \
-    unittest::getsingleunit()->nowcase->pass++;          \
-    std::cout << Color::green << " EXPECT_STRNE succeeded!"<<std::endl;           \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;          \
+    std::cout << uuz::Color::green << " EXPECT_STRNE succeeded!"<<std::endl;           \
   }                                                               \
   else {                                                          \
-    unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;         \
-    std::cout << Color::red << " EXPECT_STRNE failed!"<<std::endl;                \
-    std::cout << Color::red << " Expect: " << s1 <<  std::endl;             \
-    std::cout << Color::red << " Actual: " << s2 <<  std::endl;}}             \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;         \
+    std::cout << uuz::Color::red << " EXPECT_STRNE failed!"<<std::endl;                \
+    std::cout << uuz::Color::red << " Expect: " << s1 <<  std::endl;             \
+    std::cout << uuz::Color::red << " Actual: " << s2 <<  std::endl;}}             \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_STRNE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_STRNE failed and some excption throw !"<<std::endl;}\
  while(0)
 #define EXPECT_PTR_EQ(p1, p2) do try{                              \
   if (*p1 == *p2) {                                             \
-    unittest::getsingleunit()->nowcase->pass++;        \
-    std::cout << Color::green << " EXPECT_PTR_EQ succeeded!"<<std::endl;        \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+    std::cout << uuz::Color::green << " EXPECT_PTR_EQ succeeded!"<<std::endl;        \
   }                                                             \
   else {                                                        \
-    unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_PTR_EQ failed!"<<std::endl;             \
-    std::cout << Color::red << " Expect:" << *p1 << std::endl;              \
-    std::cout << Color::red << " Actual:" << *p2 << std::endl;}}              \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_PTR_EQ failed!"<<std::endl;             \
+    std::cout << uuz::Color::red << " Expect:" << *p1 << std::endl;              \
+    std::cout << uuz::Color::red << " Actual:" << *p2 << std::endl;}}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_PTR_EQ failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_PTR_EQ failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_PTR_NE(p1, p2) do try{                              \
   if (*p1 != *p2) {                                             \
-    unittest::getsingleunit()->nowcase->pass++;        \
-    std::cout << Color::green << " EXPECT_PTR_NE succeeded!"<<std::endl;        \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+    std::cout << uuz::Color::green << " EXPECT_PTR_NE succeeded!"<<std::endl;        \
   }                                                             \
   else {                                                        \
-   unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_PTR_NE failed!"<<std::endl;             \
-    std::cout << Color::red << " Expect:" << *p1 << std::endl;              \
-    std::cout << Color::red << " Actual:" << *p2 << std::endl;}}              \
+   ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_PTR_NE failed!"<<std::endl;             \
+    std::cout << uuz::Color::red << " Expect:" << *p1 << std::endl;              \
+    std::cout << uuz::Color::red << " Actual:" << *p2 << std::endl;}}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_PTR_NE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_PTR_NE failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_PTR_RANGE_EQ(p1, p2, len) do try{                   \
   if (std::equal(p1, p1 + len, p2)) {                           \
-    unittest::getsingleunit()->nowcase->pass++;        \
-    std::cout << Color::green << " EXPECT_PTR_RANGE_EQ succeeded!"<<std::endl;  \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;        \
+    std::cout << uuz::Color::green << " EXPECT_PTR_RANGE_EQ succeeded!"<<std::endl;  \
   }                                                             \
   else {                                                        \
-   unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout << Color::red << " EXPECT_PTR_RANGE_EQ failed!"<<std::endl; }}              \
+   ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout << uuz::Color::red << " EXPECT_PTR_RANGE_EQ failed!"<<std::endl; }}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_PTR_RANGE_EQ failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_PTR_RANGE_EQ failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_PTR_RANGE_NE(p1, p2, len) do try{                   \
   if (!std::equal(p1, p1 + len, p2)) {                          \
-    unittest::getsingleunit()->nowcase->pass++;      \
-    std::cout << Color::green << " EXPECT_PTR_RANGE_NE succeeded!"<<std::endl;  \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;      \
+    std::cout << uuz::Color::green << " EXPECT_PTR_RANGE_NE succeeded!"<<std::endl;  \
   }                                                             \
   else {                                                        \
-    unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;        \
-    std::cout <<Color::red << " EXPECT_PTR_RANGE_NE failed!"<<std::endl; }}              \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;        \
+    std::cout <<uuz::Color::red << " EXPECT_PTR_RANGE_NE failed!"<<std::endl; }}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_PTR_RANGE_NE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_PTR_RANGE_NE failed and some excption throw !"<<std::endl;}\
  while(0)
 		
 #define EXPECT_CON_EQ(c1, c2) do try{                                  \
@@ -419,19 +422,19 @@ catch(...){\
   for (; first1 != last1 && first2 != last2; ++first1,(void)++first2) {  \
     if (*first1 != *first2)  break;}                                    \
   if (first1 == last1 && first2 == last2) {                         \
-    unittest::getsingleunit()->nowcase->pass++;            \
-    std::cout << Color::green << " EXPECT_CON_EQ succeeded!"<<std::endl;            \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;            \
+    std::cout << uuz::Color::green << " EXPECT_CON_EQ succeeded!"<<std::endl;            \
   }                                                                 \
   else {                                                            \
-    unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;            \
-    std::cout << Color::red << " EXPECT_CON_EQ failed!"<<std::endl;                 \
-    std::cout << Color::red << " Expect:" << *first1 << std::endl;              \
-    std::cout << Color::red << " Actual:" << *first2 << std::endl;}}              \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;            \
+    std::cout << uuz::Color::red << " EXPECT_CON_EQ failed!"<<std::endl;                 \
+    std::cout << uuz::Color::red << " Expect:" << *first1 << std::endl;              \
+    std::cout << uuz::Color::red << " Actual:" << *first2 << std::endl;}}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_CON_EQ failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_CON_EQ failed and some excption throw !"<<std::endl;}\
  while(0)
 
 #define EXPECT_CON_NE(c1, c2) do {                                  \
@@ -441,17 +444,17 @@ catch(...){\
     if (*first1 != *first2)  break;                                 \
   }                                                                 \
   if (first1 != last1 || first2 != last2) {                         \
-    unittest::getsingleunit()->nowcase->pass++;            \
-    std::cout << Color::green << " EXPECT_CON_NE succeeded!"<<std::endl;            \
+    ++uuz::unittest::getsingleunit()->nowcase->pass;            \
+    std::cout << uuz::Color::green << " EXPECT_CON_NE succeeded!"<<std::endl;            \
   }                                                                 \
   else {                                                            \
-    unittest::getsingleunit()->nowcase->fail++;					\
-	unittest::getsingleunit()->nowcase->numcase = 0;            \
-    std::cout << Color::red << " EXPECT_CON_NE failed!"<<std::endl;      }}              \
+    ++uuz::unittest::getsingleunit()->nowcase->fail;					\
+	uuz::unittest::getsingleunit()->nowcase->numcase = 0;            \
+    std::cout << uuz::Color::red << " EXPECT_CON_NE failed!"<<std::endl;      }}              \
 catch(...){\
-		unittest::getsingleunit()->nowcase->fail++;			\
-		unittest::getsingleunit()->nowcase->numcase = 0;	\
-		std::cout<<Color::red<<"EXPECT_CON_NE failed and some excption throw !"<<std::endl;}\
+		++uuz::unittest::getsingleunit()->nowcase->fail;			\
+		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
+		std::cout<<uuz::Color::red<<"EXPECT_CON_NE failed and some excption throw !"<<std::endl;}\
  while(0)
 #if defined(_DEBUG) || defined(DEBUG)
 #define LEN1    10000

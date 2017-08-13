@@ -19,6 +19,9 @@
     <Filter Include="头文件\Container">
       <UniqueIdentifier>{6507153a-712a-46f3-8801-b7402399e12c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="头文件\test">
+      <UniqueIdentifier>{baea1fb9-7ffd-4b0b-8a7a-f7e45f137063}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ptr.h">
@@ -42,9 +45,6 @@
     <ClInclude Include="Container\map.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="Container\pair.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Container\priority_queue.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
@@ -60,17 +60,26 @@
     <ClInclude Include="Container\set.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="Container\container.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="algorithm.h">
+      <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="test\debug.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="Container\container.h">
+      <Filter>头文件\Container</Filter>
     </ClInclude>
     <ClInclude Include="Container\allocator.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="test\debug.h">
+      <Filter>头文件\test</Filter>
     </ClInclude>
     <ClInclude Include="test\test.h">
-      <Filter>头文件</Filter>
+      <Filter>头文件\test</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\pair.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="iterator.h">
+      <Filter>头文件\Container</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

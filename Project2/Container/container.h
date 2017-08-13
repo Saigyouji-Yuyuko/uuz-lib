@@ -1,27 +1,9 @@
 #pragma once
 #include"../prepare.h"
 #include"allocator.h"
+#include<initializer_list>
 namespace uuz
 {
-
-	template<typename T>
-	size_t distance(const T& a, const T& b, typename decltype(std::declval<T>() - std::declval<T>())* = nullptr)noexcept(noexcept(b - a))
-	{
-		return b - a;
-	}
-	template<typename T>
-	size_t distance(const T& a, const T& b)noexcept(noexcept(++b) && noexcept(a != b) && std::is_nothrow_constructible_v<T>)
-	{
-		size_t aa = 0;
-		auto k{ a };
-		while (a != b)
-		{
-			++a;
-			++aa;
-		}
-		return aa;
-	}
-	//
 	template<typename T>
 	struct storage
 	{
