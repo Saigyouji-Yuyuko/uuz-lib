@@ -60,9 +60,6 @@
     <ClInclude Include="Container\set.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="algorithm.h">
-      <Filter>头文件\Container</Filter>
-    </ClInclude>
     <ClInclude Include="Container\container.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
@@ -79,6 +76,9 @@
       <Filter>头文件\Container</Filter>
     </ClInclude>
     <ClInclude Include="iterator.h">
+      <Filter>头文件\Container</Filter>
+    </ClInclude>
+    <ClInclude Include="Container\algorithm.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
   </ItemGroup>

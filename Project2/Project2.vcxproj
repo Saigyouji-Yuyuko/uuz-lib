@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="algorithm.h" />
+    <ClInclude Include="Container\algorithm.h" />
     <ClInclude Include="Container\allocator.h" />
     <ClInclude Include="Container\array.h" />
     <ClInclude Include="Container\container.h" />

@@ -258,7 +258,7 @@ namespace uuz
 	template< typename T, typename... Args >
 	shared_ptr<T> make_shared(Args&&... args)
 	{
-		return shared_ptr<T>(new T(uuz::forward<Args>(args)...));
+		return shared_ptr<T>(new T(std::forward<Args>(args)...));
 	}
 
 	template<typename T, typename U>
