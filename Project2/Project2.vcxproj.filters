@@ -75,10 +75,10 @@
     <ClInclude Include="Container\pair.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="iterator.h">
+    <ClInclude Include="Container\algorithm.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
-    <ClInclude Include="Container\algorithm.h">
+    <ClInclude Include="Container\iterator.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
   </ItemGroup>

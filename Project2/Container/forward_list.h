@@ -1,24 +1,28 @@
 #pragma once
 #include"container.h"
+#include"pair.h"
 namespace uuz
 {
+
+	struct forward_list_node_base
+	{
+		forward_list_node_base* next = nullptr;
+	}; 
+
 	template<typename T>
-	struct forward_list_node
+	struct forward_list_node:public forward_list_node_base
 	{
 
 		forward_list_node() = default;
-		forward_list_node(const T& p) :data(T(p)) {}
-		forward_list_node(T&& p) :data(T(std::move(p))) {}
+		forward_list_node(const T& p) :data(p) {}
+		forward_list_node(T&& p) :data(std::move(p)) {}
 		template<typename...Args>
-		forward_list_node(Args...args):data(T(uuz::forward<Args>(args)...)) {}
-		void destroy()noexcept
+		forward_list_node(Args...args):data(uuz::forward<Args>(args)...) {}
+		[[noreturn]] void destroy()noexcept
 		{
-			data.destroy();
 			this->~forward_list_node();
-			return;
 		}
-		storage<T> data;
-		forward_list_node* next = nullptr;
+		T data;
 	};
 
 	template<typename T, typename Allocator>
@@ -38,26 +42,26 @@ namespace uuz
 		}
 		self operator++(int)noexcept
 		{
-		auto p{ *this };
-		t = t->next;
-		return p;
+			auto p{ *this };
+			t = t->next;
+			return p;
 		}
 
 		T& operator*()noexcept
 		{
-			return t->data.get();
+			return ((forward_list_node<T>*)t)->data;
 		}
 		const T& operator*()const noexcept
 		{
-			return t->data.get();
+			return ((forward_list_node<T>*)t)->data;
 		}
 		T* operator->()noexcept
 		{
-			return t->data.get_point();
+			return &(((forward_list_node<T>*)t)->data);
 		}
 		const T* operator->()const noexcept
 		{
-			return t->data.get_point();
+			return &(((forward_list_node<T>*)t)->data);
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
@@ -86,21 +90,24 @@ namespace uuz
 		}
 
 	private:
-		self(forward_list_node<T>* tt) :t(tt) {}
-		self(const forward_list_node<T>* tt) :t(const_cast<forward_list_node<T>*>(tt)) {}
-		self() = default;
-		forward_list_node<T>* t = nullptr;
+		self(forward_list_node_base* tt) :t(tt) {}
+		self(const forward_list_node_base* tt) :t(const_cast<forward_list_node_base*>(tt)) {}
+		forward_list_node_base* t = nullptr;
 	};
 
 	template<typename T, typename A = uuz::allocator<T>>
 	class forward_list
 	{
+	public:
 		using iterator = forward_list_iterator<T, A>;
 		
 		using self = forward_list;
 		using node = forward_list_node<T>;
 		using Allocator = typename uuz::exchange<A, node>::type;
 		using size_t = unsigned int;
+	private:
+		Allocator alloc;
+		forward_list_node_base nul;
 	public:
 		forward_list() : forward_list(Allocator()) {}
 		explicit forward_list(const A& alloc) :alloc(alloc){}
@@ -110,13 +117,12 @@ namespace uuz
 		{
 			if (count)
 			{
-				auto i = 0;
 				try
 				{
-					auto k = make_list(value);
+					nul.next = make_list(value);
+					auto k = nul.next;
 					++i;
-					nul.next = k;
-					for (; i < count; ++i)
+					for (auto i = 0; i < count; ++i)
 					{
 						k->next = make_list(value);
 						k = k->next;
@@ -124,9 +130,7 @@ namespace uuz
 				}
 				catch (...)
 				{
-					if (i > 0)
-						list_destroy(nul.next);
-					nul.next = nullptr;
+					clear();
 					throw;
 				}
 			}
@@ -140,9 +144,8 @@ namespace uuz
 				auto i = first;
 				try
 				{
-
-					auto k = make_list(*first);
-					nul.next = k;
+					nul.next = make_list(*i);
+					auto k = nul.next;
 					++i;
 					for (; i != last; ++i)
 					{
@@ -152,46 +155,20 @@ namespace uuz
 				}
 				catch (...)
 				{
-					if (i != first)
-						list_destroy(nul.next);
-					nul.next = nullptr;
+					clear();
 					throw;
 				}
 			}
 		}
-		forward_list(const forward_list& other) :forward_list(other.begin(), other.end(),other.alloc) {}
+		forward_list(const forward_list& other) :forward_list(other.begin(), other.end(),A()) {}
 		forward_list(const forward_list& other, const A& alloc = A()):forward_list(other.begin(), other.end(), alloc) {}
 		forward_list(forward_list&& other):forward_list{}
 		{
 			this->swap(other);
 		}
-		forward_list(forward_list&& other, const A& alloc)
+		forward_list(forward_list&& other, const A& alloc):forward_list(alloc)
 		{
-			if(other.alloc==alloc)
-				this->swap(other);
-			else if(!other.empty())
-			{
-				auto i = other.begin();
-				try
-				{
-					auto k = make_list(std::move(*i));
-					nul.next = k;
-					++i;
-					for (; i != other.end(); ++i)
-					{
-						k->next = make_list(std::move(*i));
-						k = k->next;
-					}
-				}
-				catch (...)
-				{
-					if (i != other.begin())
-						list_destroy(nul.next);
-					nul.next = nullptr;
-					throw;
-				}
-				other.clear();
-			}
+			this->swap(other);
 		}
 		forward_list(std::initializer_list<T> init,const A& alloc = A()) :forward_list{init.begin(),init.end(),alloc}{}
 
@@ -199,7 +176,7 @@ namespace uuz
 		{
 			if (this == &other)
 				return *this;
-			auto temp(other);
+			auto temp(other,alloc);
 			this->swap(temp);
 			return *this;
 		}
@@ -207,7 +184,7 @@ namespace uuz
 		{
 			if (this == &other)
 				return *this;
-			auto temp{ std::move(other) };
+			auto temp{ std::move(other),alloc };
 			this->swap(temp);
 			return *this;
 
@@ -219,18 +196,18 @@ namespace uuz
 			return *this;
 		}
 
-		void assign(size_t count, const T& value)
+		[[noreturn]] void assign(size_t count, const T& value)
 		{
 			forward_list temp(count, value,alloc);
 			this->swap(temp);
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
-		void assign(const InputIt& first,const InputIt& last)
+		[[noreturn]] void assign(const InputIt& first,const InputIt& last)
 		{
 			forward_list temp(first, last,alloc);
 			this->swap(temp);
 		}
-		void assign(std::initializer_list<T> ilist)
+		[[noreturn]] void assign(std::initializer_list<T> ilist)
 		{
 			forward_list temp(ilist,alloc);
 			this->swap(temp);
@@ -240,13 +217,13 @@ namespace uuz
 		{
 			if (empty())
 				throw(out_of_range(""));
-			return nul.next->data.get();
+			return ((node*)nul.next)->data;
 		}
 		const T& front() const 
 		{
 			if (empty())
 				throw(out_of_range(""));
-			return nul.next->data.get();
+			return ((node*)nul.next)->data;
 		}
 		
 		
@@ -273,7 +250,7 @@ namespace uuz
 		}
 		const iterator cbegin() const noexcept
 		{
-			return iterator{ nul .next };
+			return iterator{ nul.next };
 		}
 
 		iterator end() noexcept
@@ -296,10 +273,9 @@ namespace uuz
 
 		//size_t max_size() const noexcept;
 
-		void clear() noexcept
+		[[noreturn]] void clear() noexcept
 		{
-			if(nul.next)
-				list_destroy(nul.next);
+			list_destroy(nul.next);
 			nul.next = nullptr;
 		}
 
@@ -316,9 +292,10 @@ namespace uuz
 			if (count)
 			{
 				int i = 0;
+				node* k = nullptr;
 				try
 				{
-					auto k = make_list(value);
+					k = make_list(value);
 					auto p = k;
 					++i;
 					for (; i != count; ++i)
@@ -329,11 +306,9 @@ namespace uuz
 				}
 				catch (...)
 				{
-					if(i>0)
-						list_destroy(k);
+					list_destroy(k);
 					throw;
 				}
-
 				p->next = pos.t->next;
 				pos.t->next = k;
 				return { p };
@@ -346,9 +321,10 @@ namespace uuz
 			if (first != last)
 			{
 				auto i = first;
+				node* k = nullptr;
 				try
 				{
-					auto k = make_list(*first);
+					k = make_list(*first);
 					auto p = k;
 					++i;
 					for (; i != last; ++i)
@@ -359,8 +335,7 @@ namespace uuz
 				}
 				catch (...)
 				{
-					if (i!=first)
-						list_destroy(k);
+					list_destroy(k);
 					throw;
 				}
 				
@@ -411,11 +386,11 @@ namespace uuz
 			first.t->next = last.t;
 		}
 
-		void push_front(const T& value)
+		[[noreturn]] void push_front(const T& value)
 		{
 			emplace_front(value);
 		}
-		void push_front(T&& value)
+		[[noreturn]] void push_front(T&& value)
 		{
 			emplace_front(std::move(value));
 		}
@@ -426,19 +401,20 @@ namespace uuz
 			auto k = make_list(uuz::forward<Args>(args)...);
 			k->next = nul.next;
 			nul.next = k;
-			return k->data.get();
+			return ((node*)k)->data;
 		}
 
-		void pop_front()
+		[[noreturn]] void pop_front()
 		{
 			auto k = nul.next;
 			nul.next = nul.next->next;
-			delete k;
+			k->next = nullptr;
+			list_destroy(k);
 		}
 
-		void resize(size_t count)
+		[[noreturn]] void resize(size_t count)
 		{
-			return resize(count, T{});
+			 resize(count, T{});
 		}
 		void resize(size_t count, const T& value)
 		{
@@ -477,18 +453,29 @@ namespace uuz
 			}
 		}
 
-		void swap(forward_list& other) noexcept//(/* see below */)
+		[[noreturn]] void swap(forward_list& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			using std::swap;
 			if(alloc == other.alloc)
 				swap(nul.next, other.nul.next);
+			else
+			{
+#ifdef DEBUG
+				assert(false, "It's undefined that allocate is not equal");
+#else
+				self temp1(other, alloc);
+				self temp2(*this, other.alloc);
+				this->swap(temp1);
+				other.swap(temp2);
+#endif 
+			}
 		}
 
-		void merge(forward_list& other)
+		[[noreturn]] void merge(forward_list& other)
 		{
 			merge(other, [](const T& a, const T& b) {return a < b; });
 		}
-		void merge(forward_list&& other)
+		[[noreturn]] void merge(forward_list&& other)
 		{
 			merge(std::move(other), [](const T& a, const T& b) {return a < b; });
 		}
@@ -501,49 +488,80 @@ namespace uuz
 				return this->swap(other);
 			auto k = other.nul.next;
 			auto t = &nul;
-			while (k&&t->next)
+			if (alloc != other.alloc)
 			{
-				if (comp(k->data.get(), t->next->data.get()))
+#ifdef DEBUG
+				assert(false, "It's undefined that allocate is not equal");
+#else
+				while (k&&t->next)
 				{
-					auto p = k;
-					while (p->next&&comp(p->next->data.get(), t->next->data.get()))
-						p = p->next;
-					auto tt = p->next;
-					p->next = t->next;
-					t->next = k;
-					t = p->next;
-					k = tt;
+					if (comp(k->data.get(), t->next->data.get()))
+					{
+						auto p = k;
+						while (p->next&&comp(p->next->data.get(), t->next->data.get()))
+							p = p->next;
+						auto ff = makelist(k, p);
+						ff.second->next = t->next;
+						t->next = ff.first;
+						t = ff.second->next;
+					}
+					else
+						t = t->next;
 				}
-				else
-					t = t->next;
+				if (t->next == nullptr && k)
+				{
+					auto ff = makelist(iterator(k), other.end());
+					t->next = ff.first;
+				}
+				other.clear();
+#endif // DEBUG
 			}
-			if (t->next == nullptr && k)
-				t->next = k;
-			other.nul.next = nullptr;
+			else
+			{
+				while (k&&t->next)
+				{
+					if (comp(k->data.get(), t->next->data.get()))
+					{
+						auto p = k;
+						while (p->next&&comp(p->next->data.get(), t->next->data.get()))
+							p = p->next;
+						auto tt = p->next;
+						p->next = t->next;
+						t->next = k;
+						t = p->next;
+						k = tt;
+					}
+					else
+						t = t->next;
+				}
+				if (t->next == nullptr && k)
+					t->next = k;
+				other.nul.next = nullptr;
+			}		
 		}
 		template <typename Compare>
-		void merge(forward_list&& other,const Compare& comp)
+		[[noreturn]] void merge(forward_list&& other,const Compare& comp)
 		{
 			auto temp{ std::move(other) };
 			merge(temp, comp);
 		}
 
-		void splice_after(const iterator& pos, forward_list& other)
+		[[noreturn]] void splice_after(const iterator& pos, forward_list& other)
 		{
 			splice_after(pos, other.begin(), other.end());
 
 		}
-		void splice_after(const iterator& pos, forward_list&& other)
+		[[noreturn]] void splice_after(const iterator& pos, forward_list&& other)
 		{
 			auto temp{ std::move(other) };
 			splice_after(pos, temp.begin(), temp.end());
 		}
-		void splice_after(const iterator& pos, forward_list& other,const iterator& it)
+		[[noreturn]] void splice_after(const iterator& pos, forward_list& other,const iterator& it)
 		{
 			auto t{ it };
 			splice_after(pos, other, it, ++t);
 		}
-		void splice_after(const iterator& pos, forward_list&& other,const iterator& it)
+		[[noreturn]] void splice_after(const iterator& pos, forward_list&& other,const iterator& it)
 		{
 			auto t{ it };
 			splice_after(pos, other, it, ++t);
@@ -552,14 +570,31 @@ namespace uuz
 		{
 			if (first == last || first.t->next == last || &other == this)
 				return;
-			auto p = pos.t;
-			auto p1 = p->next;
-			p->next = first.t->next;
-			auto k = first.t->next;
-			first.t->next = last.t;
-			while (k->next != last.t)
-				k = k->next;
-			k->next = p1;
+			if (alloc == other.alloc)
+			{
+				auto p = pos.t;
+				auto p1 = p->next;
+				p->next = first.t->next;
+				auto k = first.t->next;
+				first.t->next = last.t;
+				while (k->next != last.t)
+					k = k->next;
+				k->next = p1;
+			}
+			else
+			{
+#ifdef DEBUG
+				assert(false, "It's undefined that allocate is not equal");
+#else
+				auto pp = first;
+				++pp;
+				auto f = makelist(pp, last);
+				f.second->next = pos.t->next;
+				pos.t->next = f.first;
+				other.erase_after(first, last);
+#endif 
+			}
+			
 			
 		}
 		void splice_after(const iterator& pos, forward_list&& other,const iterator& first, const iterator& last)
@@ -577,11 +612,12 @@ namespace uuz
 			auto k = &nul;
 			while (k->next)
 			{
-				if (p(k->next->data.get()))
+				if (p(((node*)k->next)->data))
 				{
 					auto temp = k->next;
 					k->next = temp->next;
-					delete temp;
+					temp->next = nullptr;
+					list_destroy(temp);
 				}
 				else
 					k = k->next;
@@ -611,7 +647,7 @@ namespace uuz
 			auto k = nul.next;
 			while(k->next)
 			{
-				if (p(k->data.get(), k->next->data.get()))
+				if (p(((node*)k)->data, ((node*)(k->next))->data))
 				{
 					auto t = k->next;
 					k->next = k->next->next;
@@ -642,8 +678,8 @@ namespace uuz
 			}
 			auto d = p->next;
 			p->next = nullptr;
-			forward_list t1{ k };
-			forward_list t2{ d };
+			forward_list t1( k ,alloc);
+			forward_list t2( d ,alloc);
 			t1.sort(comp);
 			t2.sort(comp);
 			t1.merge(t2,comp);
@@ -651,25 +687,6 @@ namespace uuz
 			this->swap(t1);
 		}
 
-		int compare(const forward_list& a)noexcept
-		{
-			auto k = nul.next;
-			auto p = a.nul.next;
-			while (k&&p)
-			{
-				if (k->data.get() < p->data.get())
-					return -1;
-				else if (p->data.get() < k->data.get())
-					return 1;
-				k = k->next;
-				p = p->next;
-			}
-			if (k && !p)
-				return 1;
-			else if (!k&&p)
-				return -1;
-			return 0;
-		}
 
 		~forward_list()
 		{
@@ -701,7 +718,7 @@ namespace uuz
 			
 		}
 
-		void list_destroy(node* p)noexcept
+		void list_destroy(forward_list_node_base* p)noexcept
 		{
 			if (!p)
 				return;
@@ -711,38 +728,102 @@ namespace uuz
 			alloc.deallocate(p, 1);
 		}
 
-		Allocator alloc;
-		node nul;
+		pair<node*, node*>makelist(node* a, node* b)
+		{
+			node* k = nullptr;
+			try
+			{
+				k = make_list(a->data);
+				auto p = k;
+				for (auto i = a->next; i != b->next; i = i->next)
+				{
+					p->next = make((node*(i))->data);
+					p = p->next;
+				}
+				return make_pair(k, p);
+			}
+			catch(...)
+			{
+				list_destroy(k);
+				throw;
+			}
+		}
+
+		template<typename InputIt,typename = is_input<T,InputIt>>
+		pair<node*, node*>makelist(InputIt a, InputIt b)
+		{
+			node* k = nullptr;
+			try
+			{
+				k = make_list(*a);
+				auto p = k;
+				auto i = a;
+				++i;
+				for (; i != b; ++i)
+				{
+					p->next = make((node*(i))->data);
+					p = p->next;
+				}
+				return make_pair(k, p);
+			}
+			catch (...)
+			{
+				list_destroy(k);
+				throw;
+			}
+		}
+		
 	};
+	namespace
+	{
+		template<typename T,typename U>
+		int compare(const forward_list<T,U>& a, const forward_list<T, U>& b)noexcept
+		{
+			auto i = a.begin();
+			auto j = b.begin();
+			for (; i != a.end() && j != b.end(); ++i, (void) ++j)
+			{
+				if (*i < *j)
+					return -1;
+				else if (*j < *i)
+					return 1;
+			}
+			if (i == a.end() && j != b.end())
+				return -1
+			else if (i != a.end() && j == b.end())
+				return 1;
+			return 0;
+		}
+	}
 	template< typename T, typename Alloc >
 	bool operator==(const forward_list<T, Alloc>& lhs, const forward_list<T, Alloc>& rhs)noexcept
 	{
-		return lhs.compare(rhs) == 0;
+		return compare(lhs,rhs) == 0;
 	}
 	template< typename T, typename Alloc >
 	bool operator!=(const forward_list<T, Alloc>& lhs, const forward_list<T, Alloc>& rhs)noexcept
 	{
-		return lhs.compare(rhs) != 0;
+		return compare(lhs, rhs) != 0;
 	}
 	template< typename T, typename Alloc >
 	bool operator<(const forward_list<T, Alloc>& lhs, const forward_list<T, Alloc>& rhs)noexcept
 	{
-		return lhs.compare(rhs) < 0;
+		return compare(lhs, rhs) < 0;
 	}
 	template< typename T, typename Alloc >
 	bool operator<=(const forward_list<T, Alloc>& lhs, const forward_list<T, Alloc>& rhs)noexcept
 	{
-		return lhs.compare(rhs) <= 0;
+		return compare(lhs, rhs) <= 0;
 	}
 	template< typename T, typename Alloc >
 	bool operator>(const forward_list<T, Alloc>& lhs, const forward_list<T, Alloc>& rhs)noexcept
 	{
-		return lhs.compare(rhs) > 0;
+		return compare(lhs, rhs) > 0;
 	}
 	template< typename T, typename Alloc >
 	bool operator>=(const forward_list<T, Alloc>& lhs, const forward_list<T, Alloc>& rhs)noexcept
 	{
-		return lhs.compare(rhs) >= 0;
+		return compare(lhs, rhs) >= 0;
 	}
 
 	template< typename T, typename Alloc >

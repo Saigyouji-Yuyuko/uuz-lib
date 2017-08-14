@@ -6,6 +6,8 @@
 #include"Container\allocator.h"
 #include"Container\array.h"
 #include"Container\vector.h"
+#include"Container\list.h"
+#include"Container\forward_list.h"
 #include<deque>
 //#include"Container/string.h"
 //#include"Container/pair.h"
@@ -42,33 +44,20 @@
 #pragma warning(disable:4996)
 #include<deque>
 using namespace std;
-int foo(vector<int>& a)noexcept
+struct a
 {
-	int s = 0,p=a.size();
-	for (auto i = 0; i != p; ++i)
-		s += a[i];
-	a.clear();
-	return s;
-}
-int bar(vector<int>& a)noexcept
+	~a() { std::cout << "ddd" << std::endl; }
+};
+struct b : public a
 {
-	int s = 0;
-	for (auto i : a)
-		s += i;
-	a.clear();
-	return s;
-}
+	a g;
+};
 int main(void) 
 {
-	uuz::vector<int> p;
-	p.push_back(1);
-	p.push_back(p[0]);
-	p.push_back(p[0]);
-	p.push_back(p[0]);
-	p.push_back(p[0]);
-	p.push_back(p[0]);
-	for (auto i : p)
-		uuz::println(i);
+	
+	{
+		b c;
+	}
 	system("pause");
 	return 0;
 }

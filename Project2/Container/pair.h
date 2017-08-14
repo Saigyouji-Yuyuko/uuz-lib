@@ -2,7 +2,7 @@
 #include"container.h"
 namespace uuz
 {
-	template<typename T1, typename T2 , typename = >
+	template<typename T1, typename T2>
 	class pair
 	{
 	private:
