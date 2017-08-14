@@ -5,7 +5,7 @@
 namespace uuz
 {
 
-	template<typename Key,typename Compare = pre_less<Key,nil>,typename Allocator = uuz::allocator<Key>> 
+	template<typename Key,typename Compare = less<Key>,typename Allocator = uuz::allocator<Key>> 
 	class set:public rb_tree<Key,Compare,Allocator>
 	{
 		using base = rb_tree<Key, Compare, Allocator>;
@@ -203,7 +203,7 @@ namespace uuz
 }
 namespace uuz
 {
-	template<typename Key, typename Compare = pre_less<Key, nil>, typename Allocator = uuz::allocator<Key>>
+	template<typename Key, typename Compare = less<Key>, typename Allocator = uuz::allocator<Key>>
 	class multiset :public set<Key, Compare, Allocator>
 	{
 		using base = rb_tree<Key, Compare, Allocator>;

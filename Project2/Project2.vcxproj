@@ -24,6 +24,7 @@
     <ClInclude Include="Container\array.h" />
     <ClInclude Include="Container\container.h" />
     <ClInclude Include="Container\iterator.h" />
+    <ClInclude Include="test\Container\vector_test.h" />
     <ClInclude Include="test\debug.h" />
     <ClInclude Include="Container\deque.h" />
     <ClInclude Include="Container\forward_list.h" />
@@ -98,22 +99,24 @@
   <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
+      <Optimization>Custom</Optimization>
       <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
+      <Optimization>Custom</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessToFile>false</PreprocessToFile>
       <PreprocessSuppressLineNumbers>false</PreprocessSuppressLineNumbers>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

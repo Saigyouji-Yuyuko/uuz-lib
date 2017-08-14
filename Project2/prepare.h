@@ -67,10 +67,10 @@ namespace uuz
 		return;
 	}
 	template<typename T>
-	void move_or_copy_con(T* src, size_t t, T* to,
+	[[noreturn]] void move_or_copy_con(T* src, size_t t, T* to,
 		typename std::enable_if_t<!std::is_copy_constructible_v<T>&& !std::is_move_constructible_v<T>>* = nullptr)
 	{
-		static_assert(false, "T can't move or copy\n");
+		static_assert(!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>, "T can't move or copy\n");
 	}
 
 	//考虑将src中的T个位置尽量移动到to中，其中to是有效数据
@@ -84,13 +84,21 @@ namespace uuz
 		int i;
 		try
 		{
-			for (i = 0; i != t; ++i)
-				*(to + i) = std::move(*(src + i));
+			if(to >= src +t || to <= src)
+				for (i = 0; i != t; ++i)
+					*(to + i) = std::move(*(src + i));
+			else
+				for (i = t-1; i >= 0; --i)
+					*(to + i) = std::move(*(src + i));
 		}
 		catch (...)
 		{
-			for (int j = 0; j != i; ++j)
-				(to + i)->~T();
+			if (to >= src + t)
+				for (int j = 0; j != i; ++j)
+					(*(to + i)).~T();
+			else
+				for (int j = t - 1; j != i; --j)
+					(*(to + i)).~T();
 			throw;
 		}
 		return;
@@ -106,22 +114,30 @@ namespace uuz
 		int i;
 		try
 		{
-			for (i = 0; i != t; ++i)
-				*(to + i) = *(src + i);
+			if (to >= src + t || to <= src)
+				for (i = 0; i != t; ++i)
+					*(to + i) = *(src + i);
+			else
+				for (i = t - 1; i >= 0; --i)
+					*(to + i) = *(src + i);
 		}
 		catch (...)
 		{
-			for (int j = 0; j != i; ++j)
-				*(to + i).~T();
+			if (to >= src + t)
+				for (int j = 0; j != i; ++j)
+					(*(to + i)).~T();
+			else
+				for (int j = t - 1; j != i; --j)
+					(*(to + i)).~T();
 			throw;
 		}
 		return;
 	}
 	template<typename T>
-	void move_or_copy_ass(T* src, size_t t, T* to,
+	[[noreturn]] void move_or_copy_ass(T* src, size_t t, T* to,
 		typename std::enable_if_t<!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>>* = nullptr)
 	{
-		static_assert(false, "T can't move or copy\n");
+		static_assert(!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>, "T can't move or copy\n");
 	}
 
 

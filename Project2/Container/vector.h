@@ -9,7 +9,7 @@
 #include<iostream>
 namespace uuz
 {
-	constexpr float vector_speed = 1.7;//??
+	constexpr float vector_speed = 1.7f;//??
 	template<typename T,typename A>
 	class vector;
 
@@ -145,12 +145,12 @@ namespace uuz
 		size_t maxsize = 0;
 
 	public:
-		vector() noexcept(noexcept(Allocator())) : vector(Allocator()) {}
+		vector() noexcept(noexcept(Allocator())) :alloc(Allocator()) {}
 		explicit vector(const Allocator& alloc) noexcept : alloc{alloc}{}
 		self(size_t t, const T& value, const Allocator& alloc = Allocator()):vector(alloc)
 		{
 			reserve(t);
-			auto i = 0;
+			size_t i = 0;
 			try
 			{
 				for (; i < t; ++i)
@@ -174,7 +174,7 @@ namespace uuz
 		}
 		self(const vector& other, const Allocator& alloc) :vector(alloc)
 		{
-			initfrom(t.begin(), t.end());
+			initfrom(other.begin(), other.end());
 		}
 		self(self&& t)noexcept:vector(Allocator())
 		{
@@ -199,7 +199,7 @@ namespace uuz
 		{
 			if (this == &other)
 				return *this;
-			auto temp{ other,alloc };
+			self temp( other,alloc );
 			this->swap(temp);
 			return *this;
 		}
@@ -207,7 +207,7 @@ namespace uuz
 		{
 			if (this == &other)
 				return *this;
-			auto temp{ std::move(other),alloc}; 
+			vector temp(std::move(other),alloc); 
 			this->swap(temp);
 			return *this;
 		}
@@ -218,18 +218,18 @@ namespace uuz
 			return *this;
 		}
 
-		[[noreturn]] void assign(const size_t count, const T& value)
+		  void assign(const size_t count, const T& value)
 		{
 			auto temp= self( count,value,alloc );
 			this->swap(temp);
 		}
 		template< class InputIt, typename = is_input<T, InputIt>>
-		[[noreturn]] void assign(InputIt first,InputIt last)
+		  void assign(InputIt first,InputIt last)
 		{
-			auto temp( first,last ,alloc);
+			self temp( first,last ,alloc);
 			this->swap(temp);
 		}
-		[[noreturn]] void assign(const std::initializer_list<T>& ilist)
+		  void assign(const std::initializer_list<T>& ilist)
 		{
 			auto temp{ ilist ,alloc};
 			this->swap(temp);
@@ -276,13 +276,13 @@ namespace uuz
 			return *(data());
 		}
 
-		T& back()noexcept
+		T& back()
 		{
 			if (empty())
 				throw(out_of_range{ "" });
 			return *(data()+size() - 1);
 		}
-		const T& back() const noexcept
+		const T& back() const 
 		{
 			if (empty())
 				throw(out_of_range{ "" });
@@ -341,7 +341,7 @@ namespace uuz
 
 		void reserve(size_t new_cap)
 		{
-			if (new_cap <= max_size()) 
+			if (new_cap <= maxsize) 
 				return;
 			shrinksize(new_cap);
 		}
@@ -351,19 +351,19 @@ namespace uuz
 			return max_size();
 		}
 
-		[[noreturn]] void shrink_to_fit()
+		 void shrink_to_fit()
 		{
 			shrinksize(size());
 		}
 		
-		[[noreturn]] void clean()noexcept
+		 void clean()noexcept
 		{
 			for (auto i = shuju; i != shuju + size(); ++i)
 				(*i).~T();	
 			ssize = 0;
 		}
 
-		[[noreturn]] void clear()noexcept
+		 void clear()noexcept
 		{
 			if (ssize)
 				clean();
@@ -461,12 +461,11 @@ namespace uuz
 			return first;
 		}
 
-		[[noreturn]] void push_back(const T& value)
+		void push_back(const T& value)
 		{
-			auto temp{ value };
-			emplace_back(std::move(temp));
+			  emplace_back(value);
 		}
-		[[noreturn]] void push_back(T&& value)
+	    void push_back(T&& value)
 		{
 			 emplace_back(std::move(value));
 		}
@@ -481,24 +480,24 @@ namespace uuz
 			return *k;
 		}
 
-		[[noreturn]] void pop_back()noexcept
+		  void pop_back()noexcept
 		{
 			auto k = shuju + ssize - 1;
 			(*k).~T();
 			--ssize;
 		}
 
-		[[noreturn]] void resize(const size_t count)
+		  void resize(const size_t count)
 		{
 			resize(count, T{});
 		}
-		[[noreturn]] void resize(const size_t count, const T& value)
+		  void resize(const size_t count, const T& value)
 		{
 			auto temp = T{ value };
 			if (count < size())
 			{
 				for (auto i = shuju + count; i != shuju + ssize; ++i)
-					(*i).T();
+					(*i).~T();
 			}
 			else if (count > size())
 			{
@@ -519,7 +518,7 @@ namespace uuz
 			ssize = count;
 		}
 
-		[[noreturn]] void swap(self& other)noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		  void swap(self& other)noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			using std::swap;
 			if (alloc == other.alloc)
@@ -547,7 +546,7 @@ namespace uuz
 		}
 	private:
 		template<typename U>
-		[[noreturn]] void initfrom(const U& a, const U& b)
+		  void initfrom(const U& a, const U& b)
 		{
 			auto dis = b-a; //bug 双向和前向迭代器无法使用 应该使用distance
 			reserve(dis);
@@ -569,7 +568,7 @@ namespace uuz
 			ssize = dis;
 		}
 
-		[[noreturn]] void shrinksize(size_t new_cap)
+		 void shrinksize(size_t new_cap)
 		{
 			auto temp = alloc.allocate(new_cap);
 			if (shuju)

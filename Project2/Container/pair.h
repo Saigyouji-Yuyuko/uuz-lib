@@ -8,7 +8,7 @@ namespace uuz
 	private:
 
 		using self = pair<T1, T2>;
-
+		
 	public:
 
 		pair() = default;

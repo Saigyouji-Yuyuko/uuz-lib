@@ -25,7 +25,7 @@ namespace uuz
 			auto k = ::operator new[](n * sizeof(T));
 			return (T*)k;
 		}
-		void deallocate(T* p, std::size_t n)
+		void deallocate(T* p, std::size_t n)const
 		{
 			::operator delete[](p);
 		}

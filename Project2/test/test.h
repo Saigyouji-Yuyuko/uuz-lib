@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include"debug.h"
 #ifdef _WIN32
 #include<windows.h>
 #endif // WIN32
@@ -429,8 +430,13 @@ catch(...){\
     ++uuz::unittest::getsingleunit()->nowcase->fail;					\
 	uuz::unittest::getsingleunit()->nowcase->numcase = 0;            \
     std::cout << uuz::Color::red << " EXPECT_CON_EQ failed!"<<std::endl;                 \
-    std::cout << uuz::Color::red << " Expect:" << *first1 << std::endl;              \
-    std::cout << uuz::Color::red << " Actual:" << *first2 << std::endl;}}              \
+    std::cout << uuz::Color::red << " Expect:" ;\
+	COUT(c1); \
+	std::cout<<std::endl;\
+    std::cout << uuz::Color::red << " Actual:" ;\
+	COUT(c2); \
+	std::cout<<std::endl;\
+}}              \
 catch(...){\
 		++uuz::unittest::getsingleunit()->nowcase->fail;			\
 		uuz::unittest::getsingleunit()->nowcase->numcase = 0;	\
@@ -533,31 +539,28 @@ void test_len(size_t len1, size_t len2, size_t len3, size_t wide)
 
 
 #define FUN_TEST_FORMAT(mode, fun, count, ...) do {         \
-  srand((int)time(0));                                       \
-  clock_t start, end;                                        \
+  uuz::block_time a;       \
   mode c;                                                    \
-  char buf[10];                                              \
-  start = clock();                                           \
   for (size_t i = 0; i < count; ++i)                         \
     c.fun(##__VA_ARGS__);                                              \
-  end = clock();                                             \
-  int n = static_cast<int>(static_cast<double>(end - start)  \
-      / CLOCKS_PER_SEC * 1000);                              \
-  std::snprintf(buf, sizeof(buf), "%d", n);                  \
-  std::string t = buf;                                       \
-  t += "ms    |";                                            \
-  std::cout << std::setw(WIDE) << t;                         \
 } while(0)
 #define CON_TEST_P(con, fun, len1,len2, len3,...)         \
+  std::cout<<"Time testing"<<#con<<"::"<<#fun<<"()"<<std::endl;       \
+  std::cout<<"        ";\
   TEST_LEN(len1, len2, len3, WIDE);                          \
-  std::cout << "|         std         |";                    \
+  std::cout << "|         std        | ";                    \
   FUN_TEST_FORMAT(std::con, fun, len1,##__VA_ARGS__);                \
+  std::cout<<" | ";\
   FUN_TEST_FORMAT(std::con, fun, len2,##__VA_ARGS__);                \
+std::cout<<" | ";\
   FUN_TEST_FORMAT(std::con, fun, len3, ##__VA_ARGS__);                \
-  std::cout << "\n|        uuz         |";                  \
+  std::cout << "  \n|        uuz         | ";                  \
   FUN_TEST_FORMAT(uuz::con, fun, len1,##__VA_ARGS__);              \
+std::cout<<" | ";\
   FUN_TEST_FORMAT(uuz::con, fun, len2, ##__VA_ARGS__);              \
-  FUN_TEST_FORMAT(uuz::con, fun, len3, ##__VA_ARGS__);
+std::cout<<" | ";\
+  FUN_TEST_FORMAT(uuz::con, fun, len3, ##__VA_ARGS__);  \
+std::cout<<std::endl;
 #define TEST(testcase_name) \
   MYTINYSTL_TEST_(testcase_name)
 

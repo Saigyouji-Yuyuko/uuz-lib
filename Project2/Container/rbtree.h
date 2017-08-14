@@ -178,7 +178,7 @@ namespace uuz
 		rb_tree_node<T>* t = nullptr;
 	};
 
-	template<typename T, typename Compare=uuz::pre_less<T,nil>, typename A=uuz::allocator<T>>
+	template<typename T, typename Compare=uuz::less<T>, typename A=uuz::allocator<T>>
 	class rb_tree
 	{
 		

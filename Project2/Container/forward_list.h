@@ -18,7 +18,7 @@ namespace uuz
 		forward_list_node(T&& p) :data(std::move(p)) {}
 		template<typename...Args>
 		forward_list_node(Args...args):data(uuz::forward<Args>(args)...) {}
-		[[noreturn]] void destroy()noexcept
+		  void destroy()noexcept
 		{
 			this->~forward_list_node();
 		}
@@ -196,18 +196,18 @@ namespace uuz
 			return *this;
 		}
 
-		[[noreturn]] void assign(size_t count, const T& value)
+		  void assign(size_t count, const T& value)
 		{
 			forward_list temp(count, value,alloc);
 			this->swap(temp);
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
-		[[noreturn]] void assign(const InputIt& first,const InputIt& last)
+		  void assign(const InputIt& first,const InputIt& last)
 		{
 			forward_list temp(first, last,alloc);
 			this->swap(temp);
 		}
-		[[noreturn]] void assign(std::initializer_list<T> ilist)
+		  void assign(std::initializer_list<T> ilist)
 		{
 			forward_list temp(ilist,alloc);
 			this->swap(temp);
@@ -273,7 +273,7 @@ namespace uuz
 
 		//size_t max_size() const noexcept;
 
-		[[noreturn]] void clear() noexcept
+		  void clear() noexcept
 		{
 			list_destroy(nul.next);
 			nul.next = nullptr;
@@ -386,11 +386,11 @@ namespace uuz
 			first.t->next = last.t;
 		}
 
-		[[noreturn]] void push_front(const T& value)
+		  void push_front(const T& value)
 		{
 			emplace_front(value);
 		}
-		[[noreturn]] void push_front(T&& value)
+		  void push_front(T&& value)
 		{
 			emplace_front(std::move(value));
 		}
@@ -404,7 +404,7 @@ namespace uuz
 			return ((node*)k)->data;
 		}
 
-		[[noreturn]] void pop_front()
+		  void pop_front()
 		{
 			auto k = nul.next;
 			nul.next = nul.next->next;
@@ -412,7 +412,7 @@ namespace uuz
 			list_destroy(k);
 		}
 
-		[[noreturn]] void resize(size_t count)
+		  void resize(size_t count)
 		{
 			 resize(count, T{});
 		}
@@ -453,7 +453,7 @@ namespace uuz
 			}
 		}
 
-		[[noreturn]] void swap(forward_list& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		  void swap(forward_list& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			using std::swap;
 			if(alloc == other.alloc)
@@ -471,11 +471,11 @@ namespace uuz
 			}
 		}
 
-		[[noreturn]] void merge(forward_list& other)
+		  void merge(forward_list& other)
 		{
 			merge(other, [](const T& a, const T& b) {return a < b; });
 		}
-		[[noreturn]] void merge(forward_list&& other)
+		  void merge(forward_list&& other)
 		{
 			merge(std::move(other), [](const T& a, const T& b) {return a < b; });
 		}
@@ -540,28 +540,28 @@ namespace uuz
 			}		
 		}
 		template <typename Compare>
-		[[noreturn]] void merge(forward_list&& other,const Compare& comp)
+		  void merge(forward_list&& other,const Compare& comp)
 		{
 			auto temp{ std::move(other) };
 			merge(temp, comp);
 		}
 
-		[[noreturn]] void splice_after(const iterator& pos, forward_list& other)
+		  void splice_after(const iterator& pos, forward_list& other)
 		{
 			splice_after(pos, other.begin(), other.end());
 
 		}
-		[[noreturn]] void splice_after(const iterator& pos, forward_list&& other)
+		  void splice_after(const iterator& pos, forward_list&& other)
 		{
 			auto temp{ std::move(other) };
 			splice_after(pos, temp.begin(), temp.end());
 		}
-		[[noreturn]] void splice_after(const iterator& pos, forward_list& other,const iterator& it)
+		  void splice_after(const iterator& pos, forward_list& other,const iterator& it)
 		{
 			auto t{ it };
 			splice_after(pos, other, it, ++t);
 		}
-		[[noreturn]] void splice_after(const iterator& pos, forward_list&& other,const iterator& it)
+		  void splice_after(const iterator& pos, forward_list&& other,const iterator& it)
 		{
 			auto t{ it };
 			splice_after(pos, other, it, ++t);

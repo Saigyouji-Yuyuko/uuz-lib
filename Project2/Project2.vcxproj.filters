@@ -81,6 +81,9 @@
     <ClInclude Include="Container\iterator.h">
       <Filter>头文件\Container</Filter>
     </ClInclude>
+    <ClInclude Include="test\Container\vector_test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

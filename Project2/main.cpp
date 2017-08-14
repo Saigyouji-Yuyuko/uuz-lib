@@ -8,6 +8,8 @@
 #include"Container\vector.h"
 #include"Container\list.h"
 #include"Container\forward_list.h"
+#include"Container\set.h"
+#include"test\Container\vector_test.h"
 #include<deque>
 //#include"Container/string.h"
 //#include"Container/pair.h"
@@ -44,20 +46,10 @@
 #pragma warning(disable:4996)
 #include<deque>
 using namespace std;
-struct a
-{
-	~a() { std::cout << "ddd" << std::endl; }
-};
-struct b : public a
-{
-	a g;
-};
+
 int main(void) 
 {
-	
-	{
-		b c;
-	}
+	RUN_ALL_TESTS();
 	system("pause");
 	return 0;
 }
