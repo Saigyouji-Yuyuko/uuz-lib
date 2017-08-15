@@ -17,7 +17,7 @@ namespace uuz
 			new((void*)data) T(std::move(p));
 		}
 		template<typename... Args>
-		storage(const Args&&... args)
+		storage(Args&&... args)
 		{
 			new((void*)data) T(std::forward<Args>(args)...);
 		}

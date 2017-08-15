@@ -8,57 +8,57 @@ namespace uuz
 		using first_type = T1;
 		using second_type = T2;
 		
-		template<typename = std::enable_if_t<std::is_default_constructible_v<T1>&&std::is_default_constructible_v<T2>>
-			, std::enable_if_t<std::is_trivially_constructible_v<T1> || std::is_trivially_constructible_v<T2>, int> = 0>
-		constexpr pair()noexcept(noexcept(first()) && noexcept(second()))
-				:first(), second() {}
+		template<typename U1 = T1,typename U2 =T2,typename = std::enable_if_t<std::is_default_constructible_v<U1>&&std::is_default_constructible_v<U2>>
+			, std::enable_if_t<std::is_trivially_constructible_v<U1> || std::is_trivially_constructible_v<U2>, int> = 0>
+		constexpr pair()noexcept(std::is_nothrow_default_constructible_v<T1> && std::is_nothrow_default_constructible_v<T2>)
+			:first(), second() {}
 
-		template<typename = std::enable_if_t<std::is_default_constructible_v<T1>&&std::is_default_constructible_v<T2>>
-			, std::enable_if_t<!std::is_trivially_constructible_v<T1> && !std::is_trivially_constructible_v<T2>, int> = 0>
-		constexpr explicit pair()noexcept(noexcept(first()) && noexcept(second()))
+		template<typename U1 = T1, typename U2 = T2, typename = std::enable_if_t<std::is_default_constructible_v<U1>&&std::is_default_constructible_v<U2>>
+			, std::enable_if_t<!std::is_trivially_constructible_v<U1> && !std::is_trivially_constructible_v<U2>, int> = 0>
+		constexpr explicit pair()noexcept(std::is_nothrow_default_constructible_v<T1> && std::is_nothrow_default_constructible_v<T2>)
 					:first(), second() {}
 
 		pair(const pair& p) = default;
 		pair(pair&& p) = default;
 
-		template<typename = std::enable_if_t<std::is_copy_constructible_v<T1>&&std::is_copy_constructible_v<T2>>
-			, std::enable_if_t<!std::is_constructible_v<const T1&,T1>&&!std::is_constructible_v<const T2&,T2>,int> = 0>
-		explicit constexpr pair(const T1& x, const T2& y)noexcept(noexcept(first(x)) && noexcept(second(y))) 
+		template<typename U1 = T1, typename U2 = T2, typename = std::enable_if_t<std::is_copy_constructible_v<U1>&&std::is_copy_constructible_v<U2>>
+			, std::enable_if_t<!std::is_constructible_v<U1,const U1&>&&!std::is_constructible_v<U2,const U2&>,int> = 0>
+		explicit constexpr pair(const T1& x, const T2& y)noexcept(std::is_nothrow_copy_constructible_v<T1> && std::is_nothrow_copy_constructible_v<T2>)
 				:first(x),second(y){}
 		
-		template<typename = std::enable_if_t<std::is_copy_constructible_v<T1>&&std::is_copy_constructible_v<T2>>
-			, std::enable_if_t<std::is_constructible_v<const T1&, T1> || std::is_constructible_v<const T2&, T2>,int> = 0>
-		constexpr pair(const T1& x, const T2& y)noexcept(noexcept(first(x)) && noexcept(second(y)))
+		template<typename U1 = T1, typename U2 = T2, typename = std::enable_if_t<std::is_copy_constructible_v<U1>&&std::is_copy_constructible_v<T2>>
+			, std::enable_if_t<std::is_constructible_v< U1,const U1&> || std::is_constructible_v<U2,const U2& >,int> = 0>
+		constexpr pair(const T1& x, const T2& y)noexcept(std::is_nothrow_copy_constructible_v<T1> && std::is_nothrow_copy_constructible_v<T2>)
 					:first(x), second(y) {}
 
-		template< typename U1, typename U2 , typename = std::enable_if_t<std::is_constructible_v<first_type, U1&&> && std::is_constructible_v<second_type, U2&&>>
-			,std::enable_if_t<!std::is_convertible_v<U1&&, first_type> && !std::is_convertible_v<U2&&, second_type>,int> = 0>
-		explicit constexpr pair(U1&& x, U2&& y)noexcept(noexcept(first(std::forward<U1>(x))) && noexcept(second(std::forward<U2>(y))))
+		template< typename U1, typename U2 , typename = std::enable_if_t<std::is_constructible_v<T1, U1&&> && std::is_constructible_v<T2, U2&&>>
+			,std::enable_if_t<!std::is_convertible_v<U1&&, T1> && !std::is_convertible_v<U2&&, T2>,int> = 0>
+		explicit constexpr pair(U1&& x, U2&& y)noexcept(std::is_nothrow_constructible_v<T1, U1&&> && std::is_nothrow_constructible_v<T2, U2&&>)
 				:first(std::forward<U1>(x)), second(std::forward<U2>(y)){}
 
-		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<first_type, U1&&> && std::is_constructible_v<second_type, U2&&>>
-			, std::enable_if_t<std::is_convertible_v<U1&&, first_type> || std::is_convertible_v<U2&&, second_type>,int> = 0>
-		constexpr pair(U1&& x, U2&& y)noexcept(noexcept(first(std::forward<U1>(x))) && noexcept(second(std::forward<U2>(y))))
+		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<T1, U1&&> && std::is_constructible_v<T2, U2&&>>
+			, std::enable_if_t<std::is_convertible_v<U1&&, T1> || std::is_convertible_v<U2&&, T2>,int> = 0>
+		constexpr pair(U1&& x, U2&& y)noexcept(std::is_nothrow_constructible_v<T1, U1&&> && std::is_nothrow_constructible_v<T2, U2&&>)
 				:first(std::forward<U1>(x)), second(std::forward<U2>(y)) {}
 
-		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<first_type, const U1&> && std::is_constructible_v<second_type, const U2&>>
-			, std::enable_if_t< !std::is_convertible_v<const U1&, first_type> && !std::is_convertible_v<const U2&, second_type>,int> = 0>
-		explicit constexpr pair(const pair<U1, U2>& p)noexcept(noexcept(first(p.first)) && noexcept(second(p.second)))
-				:first(p.frist),second(p.second){}
+		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<T1, const U1&> && std::is_constructible_v<T2, const U2&>>
+			, std::enable_if_t< !std::is_convertible_v<const U1&, T1> && !std::is_convertible_v<const U2&, T2>,int> = 0>
+		explicit constexpr pair(const pair<U1, U2>& p)noexcept(std::is_nothrow_constructible_v<T1,const U1&> && std::is_nothrow_constructible_v<T2,const U2&>)
+				:first(p.first),second(p.second){}
 
-		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<first_type, const U1&> && std::is_constructible_v<second_type, const U2&>>
-			,std::enable_if_t<std::is_convertible_v<const U1&, first_type> || std::is_convertible_v<const U2&, second_type>, int> = 0 >
-		constexpr pair(const pair<U1, U2>& p)noexcept(noexcept(first(p.first)) && noexcept(second(p.second)))
-				:first(p.frist), second(p.second) {}
+		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<T1, const U1&> && std::is_constructible_v<T2, const U2&>>
+			,std::enable_if_t<std::is_convertible_v<const U1&, T1> || std::is_convertible_v<const U2&, T2>, int> = 0 >
+		constexpr pair(const pair<U1, U2>& p)noexcept(std::is_nothrow_constructible_v<T1, const U1&> && std::is_nothrow_constructible_v<T2, const U2&>)
+				:first(p.first), second(p.second) {}
 		
-		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<first_type, U1&&> && std::is_constructible_v<second_type, U2&&>>
-			, std::enable_if_t<!std::is_convertible_v<U1&&, first_type> && !std::is_convertible_v<U2&&, second_type>,int> = 0>
-		explicit constexpr pair(pair<U1, U2>&& p)noexcept(noexcept(first(std::forward<U1>(p.first))) && noexcept(second(std::forward<U2>(p.second))))
+		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<T1, U1&&> && std::is_constructible_v<T2, U2&&>>
+			, std::enable_if_t<!std::is_convertible_v<U1&&, T1> && !std::is_convertible_v<U2&&, T2>,int> = 0>
+		explicit constexpr pair(pair<U1, U2>&& p)noexcept(std::is_nothrow_constructible_v<T1, U1&&> && std::is_nothrow_constructible_v<T2, U2&&>)
 				:first(std::forward<U1>(p.first)), second(std::forward<U2>(p.second)) {}
 
-		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<first_type, U1&&> && std::is_constructible_v<second_type, U2&&>>
-			, std::enable_if_t<std::is_convertible_v<U1&&, first_type> || std::is_convertible_v<U2&&, second_type>,int> = 0>
-		constexpr pair(pair<U1, U2>&& p)noexcept(noexcept(first(std::forward<U1>(p.first))) && noexcept(second(std::forward<U2>(p.second))))
+		template< typename U1, typename U2, typename = std::enable_if_t<std::is_constructible_v<T1, U1&&> && std::is_constructible_v<T2, U2&&>>
+			, std::enable_if_t<std::is_convertible_v<U1&&, T1> || std::is_convertible_v<U2&&, T2>,int> = 0>
+		constexpr pair(pair<U1, U2>&& p)noexcept(std::is_nothrow_constructible_v<T1, U1&&> && std::is_nothrow_constructible_v<T2, U2&&>)
 				:first(std::forward<U1>(p.first)), second(std::forward<U2>(p.second)) {}
 
 		template< class... Args1, class... Args2 >
@@ -66,7 +66,7 @@ namespace uuz
 			: pair(first_args, second_args, std::index_sequence_for<Args1...>(), std::index_sequence_for<Args2...>()) {}
 		
 
-		pair& operator=(const pair& other)noexcept(noexcept(first = other.first)&&noexcept(second = other.second))
+		pair& operator=(const pair& other)noexcept(std::is_nothrow_copy_assignable_v<T1> && std::is_nothrow_copy_assignable_v<T2>)
 		{
 			static_assert(!std::is_copy_assignable_v<T1> || !std::is_copy_assignable_v<T2>, "this function no defined");
 			first = other.first;
@@ -75,9 +75,9 @@ namespace uuz
 		}
 
 		template< typename U1, typename U2>
-		pair& operator=(const pair<U1, U2>& other)noexcept(noexcept(first = other.first) && noexcept(second = other.second))
+		pair& operator=(const pair<U1, U2>& other)noexcept(std::is_nothrow_assignable_v<T1&,const U1&> && std::is_nothrow_assignable_v<T2&,const U2&>)
 		{
-			static_assert(!std::is_assignable_v<first_type&, const U1&> || !std::is_assignable_v<second_type&, const U2&>, "this function no defined");
+			static_assert(!std::is_assignable_v<T1&, const U1&> || !std::is_assignable_v<T2&, const U2&>, "this function no defined");
 			first = other.first;
 			second = other.second;
 			return *this;
@@ -92,11 +92,11 @@ namespace uuz
 		}
 
 		template<typename U1, typename U2>
-		pair& operator=(pair<U1, U2>&& other)noexcept(noexcept(first = other.first) && noexcept(second = other.second))
+		pair& operator=(pair<U1, U2>&& other)noexcept(std::is_nothrow_assignable_v<T1&,U1&&> && std::is_nothrow_assignable_v<T2&,U2&&>)
 		{
-			static_assert(!std::is_assignable_v<first_type&, U1&&> || !std::is_assignable_v<second_type&, U2&&>, "this function no defined");
-			first = other.first;
-			second = other.second;
+			static_assert(!std::is_assignable_v<T1&, U1&&> || !std::is_assignable_v<T2&, U2&&>, "this function no defined");
+			first = std::forward<U1>(other.first);
+			second = std::forward<U2>(other.second);
 			return *this;
 		}
 		
@@ -203,3 +203,4 @@ namespace uuz
 
 
 }
+

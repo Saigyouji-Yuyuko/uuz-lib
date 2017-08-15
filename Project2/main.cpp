@@ -3,6 +3,7 @@
 #include"ptr.h"
 #include"test\test.h"
 #include"test\debug.h"
+#include"Container/set.h"
 #include"Container\allocator.h"
 #include"Container\array.h"
 #include"Container\vector.h"
@@ -20,6 +21,7 @@
 //#include"Container/rbtree.h"
 //#include"Container/set.h"
 
+#include<set>
 //#include<deque>
 //#include<map>
 //#include<set>
@@ -44,10 +46,38 @@
 //#include<fstream>
 #pragma warning(disable:4996)
 using namespace std;
-
-int main(void) 
+void display_sizes(const uuz::multiset<int> &nums1,
+	const uuz::multiset<int> &nums2,
+	const uuz::multiset<int> &nums3)
 {
-	RUN_ALL_TESTS();
+	std::cout << "nums1: " << nums1.size()
+		<< " nums2: " << nums2.size()
+		<< " nums3: " << nums3.size() << '\n';
+}
+
+int main()
+{
+	uuz::multiset<int> nums1{ 3, 1,3,1,4,9, 4, 6, 5, 9 };
+	uuz::multiset<int> nums2;
+	uuz::multiset<int> nums3;
+
+	std::cout << "Initially:\n";
+	display_sizes(nums1, nums2, nums3);
+
+	// copy assignment copies data from nums1 to nums2
+	nums2 = nums1;
+
+	std::cout << "After assigment:\n";
+	display_sizes(nums1, nums2, nums3);
+
+	// move assignment moves data from nums1 to nums3,
+	// modifying both nums1 and nums3
+	nums3 = std::move(nums1);
+
+	std::cout << "After move assigment:\n";
+	display_sizes(nums1, nums2, nums3);
+	for (auto& i : nums3)
+		std::cout << i << " ";
 	system("pause");
 	return 0;
 }

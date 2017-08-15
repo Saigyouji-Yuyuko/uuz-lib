@@ -397,7 +397,7 @@ namespace uuz
 			auto temp{ value };
 			if (pos == end())
 			{
-				for (int i = 0; i < count-1; ++i)
+				for (size_t i = 0; i < count-1; ++i)
 					push_back(temp);
 				push_back(std::move(temp));
 				return end();
@@ -407,7 +407,7 @@ namespace uuz
 			//std::copy((char*)(data() + p), (char*)(data() + size()), (char*)(data() + p + count));
 			//auto k = size() - p - count;
 			move_or_copy(data() + p, size() - p, data() + p + count);
-			for (int i = 0; i < count-1; ++i)
+			for (size_t i = 0; i < count-1; ++i)
 				 new(data() + p + i) T(temp);
 			*(data() + p + count - 1) = std::move(temp);
 			ssize += count;

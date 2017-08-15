@@ -184,9 +184,9 @@ namespace uuz
 		
 	public:
 		using node = rb_tree_node<T>;
-		using iterator = rb_tree_iterator<T, Compare, A>;
-		using Allocator = typename uuz::exchange<A, node>::type;
 		
+		using Allocator = typename uuz::exchange<A, node>::type;
+		using iterator = rb_tree_iterator<T, Compare, Allocator>;
 
 		Allocator get_allocator() const
 		{
@@ -195,7 +195,7 @@ namespace uuz
 
 		bool empty()const noexcept
 		{
-			return root == nullptr;
+			return ssize == 0;
 		}	 
 
 		size_t size()const noexcept
@@ -232,23 +232,24 @@ namespace uuz
 		pair<iterator, bool> insert(const T& value)
 		{
 			auto k = ifind(value);
-			if (k && !cmp(value, k->get()) && !cmp(k->get(), value))
+			if (!k|| cmp(value, k->get()) || cmp(k->get(), value))
 			{
 				auto l = make(value);
-				return make_pair(iterator(Insert(l, k)), true);
-			}
-			return make_pair(iterator(k), false);
+				return pair<iterator, bool>(iterator(Insert(l, k)), true);
+			}	
+			return pair<iterator, bool>(iterator(k), false);
 
 		}
 		pair<iterator, bool> insert(T&& value)
 		{
 			auto k = ifind(value);
-			if (k && !cmp(value, k->get()) && !cmp(k->get(), value))
+			if (!k || cmp(value, k->get()) || cmp(k->get(), value))
 			{
 				auto l = make(std::move(value));
-				return make_pair(iterator(Insert(l, k)), true);
+				auto t= iterator(Insert(l, k));
+				return pair<iterator, bool>(t, true);
 			}
-			return make_pair(iterator(k), false);
+			return pair<iterator, bool>(iterator(k), false);
 		}
 		iterator insert(const iterator hint, const T& value)
 		{
@@ -329,9 +330,9 @@ namespace uuz
 		pair<iterator, bool> emplace(Args&&...args)
 		{
 			auto k = make(std::forward<Args>(args)...);
-			auto d = find(k->get());
+			auto d = ifind(k->get());
 			auto l = Insert(k, d);
-			return make_pair(iterator(l), k == l);
+			return pair<iterator, bool>(iterator(l), k == l);
 		}
 
 		template<typename...Args>
@@ -374,10 +375,11 @@ namespace uuz
 		{
 			using std::swap;
 			swap(root, t.root);
+			swap(nul.father, t.nul.father);
 			swap(nul.left, t.nul.left);
 			swap(nul.right, t.nul.right);
 			swap(nul.data.end, t.nul.data.end);
-			swap(ssize, t.ssize);
+			
 			if (empty() && !t.empty())
 			{
 				t.nul.father = &t.nul;
@@ -399,6 +401,7 @@ namespace uuz
 				swap(t.nul.left->father, nul.left->father);
 				swap(t.nul.data.end->right, nul.data.end->right);
 			}
+			swap(ssize, t.ssize);
 		}
 
 		~rb_tree()noexcept
@@ -422,7 +425,7 @@ namespace uuz
 
 			}
 		}
-		rb_tree(const rb_tree& t):rb_tree(t.cmp,t.alloc)
+		rb_tree(const rb_tree& t):rb_tree(t.cmp,Allocator())
 		{
 			try
 			{
@@ -434,6 +437,7 @@ namespace uuz
 				clear();
 				throw;
 			}
+			nul.data.end = 
 			nul.left = nul.right = root;
 			root->father = &nul;
 			ssize = t.ssize;
@@ -478,8 +482,8 @@ namespace uuz
 				for (auto i = a; i != b; ++i)
 				{
 					auto t = make(*i);
-					auto k = ifind(t);
-					if (!cmp(*i, k->get()) && !cmp(k->get(), *i))
+					auto k = ifind(t->get());
+					if (k&&!cmp(*i, k->get()) && !cmp(k->get(), *i))
 					{
 						k = nextnode(k);
 						Insert(t, k, false);
@@ -499,13 +503,13 @@ namespace uuz
 		rb_tree& operator=(const rb_tree& t)
 		{
 			auto temp{ t };
-			this->swap(t);
+			this->swap(temp);
 			return *this;
 		}
 		rb_tree& operator=(rb_tree&& t)
 		{
 			auto temp{ std::move(t) };
-			this->swap(t);
+			this->swap(temp);
 			return *this;
 		}
 
@@ -522,7 +526,7 @@ namespace uuz
 				else
 					return b;
 			}
-			return &nul;
+			return const_cast<node*>(&nul);
 		}	
 		template<typename U>
 		node* low_bound(const U& a)const noexcept
@@ -647,16 +651,16 @@ namespace uuz
 			return k;
 		}
 
-		node* copy(node* a,node* n)
+		node* copy(node* a,const node* n)
 		{
 			auto b = make(a->get());
 			b->color = a->color;
 			if (a->left == n )
 			{
 				b->left = &nul;
-				nul->father = b;
+				nul.father = b;
 			}
-			else if (a->right)
+			else if (a->right==n)
 			{
 				b->right = &nul;
 				nul.data.end = b;
@@ -664,9 +668,17 @@ namespace uuz
 			try
 			{
 				if (a->left && a->left !=n)
-					b->left = copy(a->left);
+				{
+					b->left = copy(a->left, n);
+					b->left->father = b;
+				}
+					
 				if (a->right && a->right !=n)
-					b->right = copy(a->right);
+				{
+					b->right = copy(a->right, n);
+					b->right->father = b;
+				}
+					
 			}
 			catch (...)
 			{
@@ -776,12 +788,12 @@ namespace uuz
 		template<typename... Args>
 		node* make(Args&&...args)
 		{
-			node *t;
+			node *t = nullptr;
 			try
 			{
 				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
 			}
-			catch (const bad_alloc& e)
+			catch (const bad_alloc&)
 			{
 				throw;
 			}
@@ -795,21 +807,19 @@ namespace uuz
 		template<typename U>
 		node* check(const iterator& t, const U& k)const noexcept
 		{
-			if (cmp(t.t->get(), k))
+			if (cmp(t.t->get(), k) && isnul(t.t->right))
 			{
-				if (isnul(t.t->right))
-				{
-					if ((cmp(t.t->get(), t.t->father->get()) && cmp(k->get(), t.t->father->get())) || (cmp(t.t->father->get(), t.t->get()) && cmp(t.t->father->get(), k->get())))
-						return t.t;
-				}
+				auto y = t;
+				++y;
+				if (isnul(y.t) || !cmp(y.t->get(),k))
+					return t.t;
 			}
-			else 
+			else if(isnul(t.t->left))
 			{
-				if (isnul(t.t->left))
-				{
-					if ((!cmp(t.t->get(), t.t->father->get()) && !cmp(k, t.t->father->get())) || (!cmp(t.t->father->get(), t.t->get()) && !cmp(t.t->father->get(), k->get())))
-						return t.t;
-				}
+				auto y = t;
+				--y;
+				if (isnul(y.t) || !cmp(k, y.t->get()))
+					return t.t;
 			}
 			return nullptr;
 		}

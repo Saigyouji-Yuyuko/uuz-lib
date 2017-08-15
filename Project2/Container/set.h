@@ -14,40 +14,37 @@ namespace uuz
 
 		using iterator = typename base::iterator;
 		//using node_type = set_node<Key, Allocator>;
-
-
 		set() : rb_tree(Compare(), Allocator()) {}
-		explicit set(const Compare& comp,const Allocator& alloc = Allocator()):rb_tree(comp,alloc){}
-		explicit set(const Allocator& alloc) :rb_tree(alloc){}
-		template< typename InputIt ,typename = is_input<Key,InputIt>>
-		set(const InputIt& first, const InputIt& last, const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : base(comp, alloc)
+		explicit set(const Compare& comp, const Allocator& alloc = Allocator()) :rb_tree(comp, alloc) {}
+		explicit set(const Allocator& alloc) :rb_tree(alloc) {}
+		template< typename InputIt ,typename =uuz::is_input<Key,InputIt>>
+		set(const InputIt& first, const InputIt& last, const Compare& comp = Compare(), const Allocator& alloc = Allocator()) : rb_tree(comp, alloc)
 		{
 			inid(first, last);
 		}
 		template< class InputIt, typename = is_input<Key, InputIt>>
-		set(InputIt first, InputIt last, const Allocator& alloc): set(first, last, Compare(), alloc) {}
-		set(const set& other):base(other){}
-		set(const set& other, const Allocator& alloc):base(other,alloc){}
-		set(set&& other):base(std::move(other)){}
-		set(set&& other, const Allocator& alloc):base(std::move(other),alloc){}
+		set(const InputIt& first,const InputIt& last, const Allocator& alloc): set(first, last, Compare(), alloc) {}
+		set(const set& other):rb_tree(other){}
+		set(const set& other, const Allocator& alloc):rb_tree(other,alloc){}
+		set(set&& other):rb_tree(std::move(other)){}
+		set(set&& other, const Allocator& alloc):rb_tree(std::move(other),alloc){}
 		set(std::initializer_list<Key> init,const Compare& comp = Compare(),const Allocator& alloc = Allocator()):set(init.begin(),init.end(),comp,alloc){}
 		set(std::initializer_list<Key> init, const Allocator& alloc): set(init, Compare(), alloc) {}
 
 		set& operator=(const set& other)
 		{
-			base::operator=(other);
+			rb_tree::operator=(other);
 			return *this;
 		}
 		set& operator=(set&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
-			base::operator=(std::move(other));
+			rb_tree::operator=(std::move(other));
 			return *this;
 		}
 		set& operator=(std::initializer_list<Key> ilist)
 		{
-				auto temp(ilist);
-				this->swap(other);
-			
+			auto temp(ilist);
+			this->swap(temp);
 			return *this;
 		}
 
@@ -228,12 +225,12 @@ namespace uuz
 
 		multiset& operator=(const multiset& other)
 		{
-			base::operator=(other);
+			rb_tree::operator=(other);
 			return *this;
 		}
 		multiset& operator=(multiset&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
-			base::operator=(std::move(other));
+			rb_tree::operator=(std::move(other));
 			return *this;
 		}
 		multiset& operator=(std::initializer_list<Key> ilist)
