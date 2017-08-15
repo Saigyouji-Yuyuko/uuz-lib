@@ -246,8 +246,7 @@ namespace uuz
 			if (!k || cmp(value, k->get()) || cmp(k->get(), value))
 			{
 				auto l = make(std::move(value));
-				auto t= iterator(Insert(l, k));
-				return pair<iterator, bool>(t, true);
+				return pair<iterator, bool>(iterator(Insert(l, k)), true);
 			}
 			return pair<iterator, bool>(iterator(k), false);
 		}
@@ -285,7 +284,7 @@ namespace uuz
 			}
 			catch (...)
 			{
-				for (j = first; j != i; ++j)
+				for (auto j = first; j != i; ++j)
 					dele(ifind(*j));
 				throw;
 			}
@@ -373,35 +372,49 @@ namespace uuz
 
 		void swap(rb_tree& t)noexcept
 		{
-			using std::swap;
-			swap(root, t.root);
-			swap(nul.father, t.nul.father);
-			swap(nul.left, t.nul.left);
-			swap(nul.right, t.nul.right);
-			swap(nul.data.end, t.nul.data.end);
-			
-			if (empty() && !t.empty())
+			if(t.alloc == alloc)
 			{
-				t.nul.father = &t.nul;
-				nul.father->left = &nul;
-				nul.left->father = &nul;
-				nul.data.end->right = &nul;
-			}
-			else if (!empty() && t.empty())
-			{
-				nul.father = &nul;
-				t.nul.father->left = &t.nul;
-				t.nul.left->father = &t.nul;
-				t.nul.data.end->right = &t.nul;
-			}
-			else if (!empty() && !t.empty())
-			{
+				using std::swap;
+				swap(root, t.root);
 				swap(nul.father, t.nul.father);
-				swap(t.nul.father->left, nul.father->left);
-				swap(t.nul.left->father, nul.left->father);
-				swap(t.nul.data.end->right, nul.data.end->right);
+				swap(nul.left, t.nul.left);
+				swap(nul.right, t.nul.right);
+				swap(nul.data.end, t.nul.data.end);
+
+				if (empty() && !t.empty())
+				{
+					t.nul.father = &t.nul;
+					nul.father->left = &nul;
+					nul.left->father = &nul;
+					nul.data.end->right = &nul;
+				}
+				else if (!empty() && t.empty())
+				{
+					nul.father = &nul;
+					t.nul.father->left = &t.nul;
+					t.nul.left->father = &t.nul;
+					t.nul.data.end->right = &t.nul;
+				}
+				else if (!empty() && !t.empty())
+				{
+					swap(nul.father, t.nul.father);
+					swap(t.nul.father->left, nul.father->left);
+					swap(t.nul.left->father, nul.left->father);
+					swap(t.nul.data.end->right, nul.data.end->right);
+				}
+				swap(ssize, t.ssize);
 			}
-			swap(ssize, t.ssize);
+			else
+			{
+#ifdef DEBUG
+				assert(false, "It's undefined that alloc is not equal.");
+#else
+				rb_tree a(t, alloc);
+				rb_tree b(*this, t.alloc);
+				t.swap(b);
+				swap(a);
+#endif
+			}
 		}
 
 		~rb_tree()noexcept
@@ -412,9 +425,25 @@ namespace uuz
 		rb_tree()noexcept(std::is_nothrow_default_constructible_v<Allocator>) = default;
 		rb_tree(const A& a):alloc(a){}
 		rb_tree(const Compare& cmp,const A& a):cmp(cmp),alloc(a){}
-		rb_tree(rb_tree&& t)noexcept:rb_tree(std::move(t.alloc))
+		rb_tree(rb_tree&& t)noexcept:rb_tree(A())
 		{
-			this->swap(t);
+			if(t.alloc == alloc)
+				this->swap(t);
+			else
+			{
+#ifdef DEBUG
+				assert(false, "It's undefined that alloc is not equal.");
+#else
+				if (!t.empty())
+				{
+					root = multimove(t.root, &t.nul);
+					nul.left = nul.right = root;
+					root->father = &nul;
+				}
+				ssize = t.ssize;
+				t.clear();
+#endif
+			}
 		}
 		rb_tree(rb_tree&& t,const A& a)noexcept:rb_tree(a)
 		{
@@ -422,24 +451,28 @@ namespace uuz
 				this->swap(t);
 			else
 			{
-
+#ifdef DEBUG
+				assert(false, "It's undefined that alloc is not equal.");
+#else
+				if (!t.empty())
+				{
+					root = multimove(t.root, &t.nul);
+					nul.left = nul.right = root;
+					root->father = &nul;
+				}
+				ssize = t.ssize;
+				t.clear();
+#endif
 			}
 		}
 		rb_tree(const rb_tree& t):rb_tree(t.cmp,Allocator())
 		{
-			try
+			if(!t.empty())
 			{
-				if(!t.empty())
-					root = copy(t.root,&t.nul);
+				root = copy(t.root, &t.nul);
+				nul.left = nul.right = root;
+				root->father = &nul;
 			}
-			catch (...)
-			{
-				clear();
-				throw;
-			}
-			nul.data.end = 
-			nul.left = nul.right = root;
-			root->father = &nul;
 			ssize = t.ssize;
 		}
 		rb_tree(const rb_tree& t, const A& a) :rb_tree(a)
@@ -499,16 +532,61 @@ namespace uuz
 			}
 		}
 
+		void multimove(node* a,const node* n)
+		{
+			auto b = make(std::move(a->get()));
+			b->color = a->color;
+			if (a->left == n)
+			{
+				b->left = &nul;
+				nul.father = b;
+			}
+			else if (a->right == n)
+			{
+				b->right = &nul;
+				nul.data.end = b;
+			}
+			try
+			{
+				if (a->left && a->left != n)
+				{
+					b->left = copy(a->left, n);
+					b->left->father = b;
+				}
+
+				if (a->right && a->right != n)
+				{
+					b->right = copy(a->right, n);
+					b->right->father = b;
+				}
+
+			}
+			catch (...)
+			{
+				if (!isnul(b->left))
+					tree_destroy(b->left);
+				if (!isnul(b->right))
+					tree_destroy(b->right);
+				if (b->father->left == b)
+					b->father->left = nullptr;
+				else
+					b->father->right = nullptr;
+				destroy(b);
+				throw;
+			}
+			return b;
+		}
+
 
 		rb_tree& operator=(const rb_tree& t)
 		{
-			auto temp{ t };
+			rb_tree temp(t,alloc);
 			this->swap(temp);
 			return *this;
 		}
 		rb_tree& operator=(rb_tree&& t)
 		{
-			auto temp{ std::move(t) };
+			rb_tree temp(std::move(t), alloc);
 			this->swap(temp);
 			return *this;
 		}
@@ -682,10 +760,15 @@ namespace uuz
 			}
 			catch (...)
 			{
-				if (b->left)
-					destroy(b->left);
-				if (b->right)
-					destroy(b->right);
+				if (!isnul(b->left))
+					tree_destroy(b->left);
+				if (!isnul(b->right))
+					tree_destroy(b->right);
+				if (b->father->left == b)
+					b->father->left = nullptr;
+				else
+					b->father->right = nullptr;
+				destroy(b);
 				throw;
 			}		
 			return b;
@@ -832,7 +915,8 @@ namespace uuz
 			alloc.deallocate(t, 1);
 		}
 		
-		node* ifind(const T& a)const noexcept
+		template<typename U>
+		node* ifind(const U& a)const noexcept
 		{
 			if (empty())
 				return nullptr;

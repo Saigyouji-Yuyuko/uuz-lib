@@ -43,7 +43,7 @@ namespace uuz
 		}
 		set& operator=(std::initializer_list<Key> ilist)
 		{
-			auto temp(ilist);
+			auto temp(ilist,alloc);
 			this->swap(temp);
 			return *this;
 		}
@@ -235,7 +235,7 @@ namespace uuz
 		}
 		multiset& operator=(std::initializer_list<Key> ilist)
 		{
-			auto temp{ ilist };
+			auto temp( ilist,alloc );
 			this->swap(temp);
 			return *this;
 		}
