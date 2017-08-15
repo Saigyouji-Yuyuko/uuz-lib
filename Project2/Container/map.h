@@ -37,7 +37,7 @@ namespace
 namespace uuz
 {
 	template<typename Key,typename T,typename Compare =less<Key>,typename Allocator = uuz::allocator<pair<const Key,T>>>
-	class map: rb_tree<pair<const Key,T>,map_less<Key,T,C>,A>
+	class map: rb_tree<pair<const Key,T>,map_less<Key,T, Compare>, Allocator>
 	{
 	public:
 		using iterator = rb_tree<pair<const Key, T>, map_less<Key, T, Compare>, Allocator>::iterator;
