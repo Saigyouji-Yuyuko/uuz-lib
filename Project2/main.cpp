@@ -10,7 +10,6 @@
 #include"Container\forward_list.h"
 #include"Container\set.h"
 #include"test\Container\vector_test.h"
-#include<deque>
 //#include"Container/string.h"
 //#include"Container/pair.h"
 //#include"Container/list.h"
@@ -44,7 +43,6 @@
 //#include<iomanip>
 //#include<fstream>
 #pragma warning(disable:4996)
-#include<deque>
 using namespace std;
 
 int main(void) 
