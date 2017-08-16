@@ -30,6 +30,18 @@ namespace
 			return cmp(a, b);
 		}
 
+		template<typename K>
+		bool operator()(const K& a, const pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
+		{
+			return cmp(a, b.first);
+		}
+
+		template<typename K>
+		bool operator()(const pair<const Key, T>& a,const K&  b)noexcept(noexcept(cmp(a, a)))
+		{
+			return cmp(a.first, b);
+		}
+
 		compare cmp;
 	};
 
@@ -120,6 +132,269 @@ namespace uuz
 			return k->get().second;
 		}
 
+		using rb_tree::insert;
+		template< typename P ,typename = std::enable_if_t<std::is_constructible_v<value_type,P&&>>>
+		std::pair<iterator, bool> insert(P&& value)
+		{
+			return emplace(std::forward<P>(value));
+		}
+		template< typename P, typename = std::enable_if_t<std::is_constructible_v<value_type, P&&>>>
+		iterator insert(const iterator hint, P&& value)
+		{
+			return emplace_hint(hint, std::forward<P>(value));
+		}
+		/*insert_return_type insert(node_type&& nh);
+		iterator insert(const_iterator hint, node_type&& nh);*/
 
+		template <typename M>
+		pair<iterator, bool> insert_or_assign(const Key& k, M&& obj)
+		{
+			auto temp = ifind(k);
+			if(!temp || cmp(k,temp->get()) || cmp(temp->get(),k))
+			{
+				auto l = make(value_type(k,T( std::forward<M>(obj))));
+				auto t = Insert(l, temp);
+				return pair<iterator, bool>(iterator(t), true);
+			}
+			temp->get().second = std::forward<M>(obj);
+			return pair<iterator, bool>(iterator(temp), false);
+		}
+		template <typename M>
+		pair<iterator, bool> insert_or_assign(Key&& k, M&& obj)
+		{
+			auto temp = ifind(k);
+			if (!temp || cmp(k, temp->get()) || cmp(temp->get(), k))
+			{
+				auto l = make(value_type(std::move(k), T(std::forward<M>(obj))));
+				auto t = Insert(l, temp);
+				return pair<iterator, bool>(iterator(t), true);
+			}
+			temp->get().second = std::forward<M>(obj);
+			return pair<iterator, bool>(iterator(temp), false);
+		}
+		template <typename M>
+		iterator insert_or_assign(const iterator, const Key& k, M&& obj)
+		{
+			return insert_or_assign(k, std::forward<M>(obj)).first;
+		}
+		template <typename M>
+		iterator insert_or_assign(const iterator hint, Key&& k, M&& obj)
+		{
+			return insert_or_assign(std::move(k), std::forward<M>(obj)).first;
+		}
+
+		template <typename... Args>
+		pair<iterator, bool> try_emplace(const Key& k, Args&&... args)
+		{
+			auto temp = ifind(k);
+			if (!temp || cmp(k, temp->get()) || cmp(temp->get(), k))
+			{
+				auto l = make(value_type(k, T(std::forward<Args>(args)...)));
+				auto t = Insert(l, temp);
+				return pair<iterator, bool>(iterator(t), true);
+			}
+			return pair<iterator, bool>(iterator(temp), false);
+		}
+		template <typename... Args>
+		pair<iterator, bool> try_emplace(Key&& k, Args&&... args)
+		{
+			auto temp = ifind(k);
+			if (!temp || cmp(k, temp->get()) || cmp(temp->get(), k))
+			{
+				auto l = make(value_type(std::move(k), T(std::forward<Args>(args)...)));
+				auto t = Insert(l, temp);
+				return pair<iterator, bool>(iterator(t), true);
+			}
+			return pair<iterator, bool>(iterator(temp), false);
+		}
+		template <typename... Args>
+		iterator try_emplace(const iterator hint, const Key& k, Args&&... args)
+		{
+			return try_emplace(k, std::forward<Args>(args)...);
+		}
+		template <typename... Args>
+		iterator try_emplace(const iterator hint, Key&& k, Args&&... args)
+		{
+			return try_emplace(std::move(k), std::forward<Args>(args)...);
+		}
+
+		using rb_tree::erase;
+		size_t erase(const Key& key)
+		{
+			auto k = truefind(key);
+			if(!isnul(k))
+			{
+				dele(k);
+				return 1;
+			}
+			return 0;
+		}
+
+		size_t count(const Key& key) const noexcept
+		{
+			if (!isnul(truefind(key)))
+				return 1;
+			return 0;
+		}
+		template< typename K >
+		size_t count(const K& x) const noexcept
+		{
+			if (!isnul(truefind(x)))
+				return 1;
+			return 0;
+		}
+
+		iterator find(const Key& key)noexcept
+		{
+			auto k = truefind(key);
+			return iterator(k);
+		}
+		const iterator find(const Key& key) const noexcept
+		{
+			auto k = truefind(key);
+			return iterator(k);
+		}
+		template< typename K > 
+		iterator find(const K& x)noexcept
+		{
+			auto k = truefind(x);
+			return iterator(k);
+		}
+		template< class K > 
+		const_iterator find(const K& x) const
+		{
+			auto k = truefind(x);
+			return iterator(k);
+		}
+
+		pair<iterator, iterator> equal_range(const Key& key)noexcept
+		{
+			auto k = eqrange(key);
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+		pair<const iterator, const iterator> equal_range(const Key& key) const noexcept
+		{
+			auto k = eqrange(key);
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+		template< typename K >
+		pair<iterator, iterator> equal_range(const K& x)noexcept
+		{
+			auto k = eqrange(K(x));
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+		template< typename K >
+		pair<const iterator, const iterator> equal_range(const K& x) const noexcept
+		{
+			auto k = eqrange(K(x));
+			return make_pair(iterator(k.first), iterator(k.second));
+		}
+
+		iterator lower_bound(const Key& key)noexcept
+		{
+			return iterator(low_bound(key));
+		}
+		const iterator lower_bound(const Key& key) const noexcept
+		{
+			return iterator(low_bound(key));
+		}
+		template< typename K >
+		iterator lower_bound(const K& x)noexcept
+		{
+			return iterator(low_bound(K(x)));
+		}
+		template< typename K >
+		const iterator lower_bound(const K& x) const noexcept
+		{
+			return iterator(low_bound(K(x)));
+		}
+
+		iterator upper_bound(const Key& key)noexcept
+		{
+			return iterator(up_bound(key));
+		}
+		const iterator upper_bound(const Key& key) const
+		{
+			return iterator(up_bound(key));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		iterator upper_bound(const K& x)
+		{
+			return iterator(up_bound(Key(x)));
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>>>
+		const iterator upper_bound(const K& x) const
+		{
+			return iterator(up_bound(Key(x)));
+		}
 	};
+	namespace
+	{
+		template<typename A,typename B,typename C,typename D>
+		int compare(const map<A,B,C,D>& a,const map<A, B, C, D>& b)noexcept
+		{
+			auto cmp = a.key_comp();
+			auto i = a.begin();
+			auto j = b.begin();
+			for(;i!=a.end() && j!=b.end();++i,(void)++j)
+			{
+				if (cmp(*i, *j))
+					return -1;
+				else if (cmp(*j, *i))
+					return 1;
+			}
+			if (a.size() > b.size())
+				return -1;
+			else if (a.size < b.size())
+				return 1;
+			return 0;
+		}
+	}
+
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	bool operator==(const map<Key, T, Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
+	{
+		return  lhs.size() == rhs.size() && compare(lhs, rhs) == 0;
+	}
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	bool operator!=(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
+	{
+		return !(lhs == rhs);
+	}
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	bool operator<(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) == -1;
+	}
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	bool operator<=(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) <= 0;
+	}
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	bool operator>(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) == 1;
+	}
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	bool operator>=(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) >= 0;
+	}
+
+	template< typename Key, typename T ,typename Compare, typename Alloc >
+	void swap(map<Key, T,Compare, Alloc>& lhs, map<Key, T,Compare, Alloc>& rhs) noexcept(is_nothrow_swap_alloc<Alloc>::value)
+	{
+		lhs->swap(rhs);
+	}
+}
+
+namespace uuz
+{
+	template<typename Key, typename T, typename Compare = less<Key>, typename Allocator = uuz::allocator<pair<const Key, T>>>
+	class multimap : map< Key, T,Compare, Allocator>
+	{
+		
+	};
+
 }

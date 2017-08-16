@@ -701,10 +701,12 @@ namespace uuz
 		template<typename...Args>
 		node* make_list(Args...args)
 		{
-			node *t;
+			node *t = nullptr;
 			try
 			{
-				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
+				t = alloc.allocate();
+				new(t) node(std::forward<Args>(args)...);
+				return t;
 			}
 			catch (const bad_alloc& e)
 			{

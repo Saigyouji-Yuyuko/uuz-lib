@@ -22,7 +22,7 @@ namespace uuz
 		list_node(T&& p):data{std::move(p)}{}
 		template<typename...Args>
 		list_node(Args&&... args) : data{std::forward<Args>(args)...}{}
-		  void destroy()noexcept
+		void destroy()noexcept
 		{
 			this->~list_node();
 		}
@@ -792,10 +792,12 @@ namespace uuz
 		template<typename...Args>
 		node* list_make(Args...args)
 		{
-			node *t;
+			node *t = nullptr;
 			try
 			{
-				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
+				t = alloc.allocate();
+				new(t) node(std::forward<Args>(args)...);
+				return t;
 			}
 			catch (const bad_alloc& e)
 			{

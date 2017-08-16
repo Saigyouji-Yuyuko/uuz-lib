@@ -21,14 +21,14 @@
 //#include"Container/rbtree.h"
 //#include"Container/set.h"
 
-#include<set>
-//#include<deque>
+#include<map>
+#include<deque>
 //#include<map>
 //#include<set>
 //#include<string>
 //#include<future>
 //#include<iostream>
-//#include<vector>
+#include<vector>
 //#include<memory>
 //#include<ctime>
 //#include<queue>
@@ -57,27 +57,41 @@ void display_sizes(const uuz::multiset<int> &nums1,
 
 int main()
 {
-	uuz::multiset<int> nums1{ 3, 1,3,1,4,9, 4, 6, 5, 9 };
-	uuz::multiset<int> nums2;
-	uuz::multiset<int> nums3;
-
-	std::cout << "Initially:\n";
-	display_sizes(nums1, nums2, nums3);
-
-	// copy assignment copies data from nums1 to nums2
-	nums2 = nums1;
-
-	std::cout << "After assigment:\n";
-	display_sizes(nums1, nums2, nums3);
-
-	// move assignment moves data from nums1 to nums3,
-	// modifying both nums1 and nums3
-	nums3 = std::move(nums1);
-
-	std::cout << "After move assigment:\n";
-	display_sizes(nums1, nums2, nums3);
-	for (auto& i : nums3)
-		std::cout << i << " ";
+	for(int i =1;i<=10000000;i*=10)
+	{
+		uuz::println(i);
+		{
+			std::deque<int>b;
+			b.resize(i);
+			{
+				uuz::block_time a{ "deque" };
+				for (int j = 0; j != i; ++j)
+					b.push_back(rand());
+			}
+			uuz::println("");
+		}
+		{
+			std::vector<int>b;
+			b.reserve(i);
+			{
+				uuz::block_time a{ "vector" };
+				for (int j = 0; j != i; ++j)
+					b.push_back(rand());
+			}
+			uuz::println("");
+		}
+		{
+			uuz::vector<int>b;
+			b.reserve(i);
+			{
+				uuz::block_time a{ "uuz::vector" };
+				for (int j = 0; j != i; ++j)
+					b.push_back(rand());
+			}
+			uuz::println("");
+		}
+		uuz::println("---------------------------");
+	}
 	system("pause");
 	return 0;
 }

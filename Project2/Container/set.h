@@ -43,7 +43,7 @@ namespace uuz
 		}
 		set& operator=(std::initializer_list<Key> ilist)
 		{
-			auto temp(ilist,alloc);
+			set temp(ilist,alloc);
 			this->swap(temp);
 			return *this;
 		}
@@ -62,7 +62,7 @@ namespace uuz
 		size_t erase(const Key& key)
 		{
 			auto k = truefind(key);
-			if (k)
+			if (!isnul(k))
 			{
 				dele(k);
 				return 1;
@@ -235,7 +235,7 @@ namespace uuz
 		}
 		multiset& operator=(std::initializer_list<Key> ilist)
 		{
-			auto temp( ilist,alloc );
+			multiset temp( ilist,alloc );
 			this->swap(temp);
 			return *this;
 		}

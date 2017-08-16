@@ -874,7 +874,9 @@ namespace uuz
 			node *t = nullptr;
 			try
 			{
-				return t = new(alloc.allocate()) node(std::forward<Args>(args)...);
+				t = alloc.allocate();
+				new(t) node(std::forward<Args>(args)...);
+				return t;
 			}
 			catch (const bad_alloc&)
 			{
@@ -914,7 +916,7 @@ namespace uuz
 			t->destroy();
 			alloc.deallocate(t, 1);
 		}
-		
+			
 		template<typename U>
 		node* ifind(const U& a)const noexcept
 		{
