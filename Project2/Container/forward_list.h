@@ -386,7 +386,7 @@ namespace uuz
 			first.t->next = last.t;
 		}
 
-		  void push_front(const T& value)
+		 void push_front(const T& value)
 		{
 			emplace_front(value);
 		}

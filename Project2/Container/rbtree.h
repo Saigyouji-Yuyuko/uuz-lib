@@ -4,6 +4,9 @@
 #include<functional>
 namespace uuz
 {
+	template<typename T, typename Compare, typename A>
+	class rb_tree;
+
 	template<typename T>
 	struct rb_tree_node
 	{
@@ -59,9 +62,66 @@ namespace uuz
 		rb_tree_node* right = nullptr;
 	};
 
-	template<typename T, typename Compare, typename A>
-	class rb_tree;
+	template<typename T, typename Allocator>
+	class to_node
+	{
+	public:
+		template<typename A,typename B,typename C>
+		friend class rb_tree;
+		using allocator_type = Allocator;
+		constexpr to_node() noexcept:alloc(Allocator()),t(nullptr){}
+		to_node(to_node&& nh) noexcept:to_node()
+		{
+			this->swap(nh);
+		}
+		to_node(rb_tree_node<T>* a,const allocator_type& b):t(a),alloc(b){}
 
+		to_node& operator=(to_node&& nh)noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			to_node temp(std::move(nh), alloc);
+			this->swap(temp);
+			return *this;
+		}
+
+		bool empty() const noexcept
+		{
+			return t == nullptr;
+		}
+
+		explicit operator bool() const noexcept
+		{
+			return t != nullptr;
+		}
+
+		allocator_type get_allocator() const
+		{
+			return alloc;
+		}
+
+		void swap(to_node& nh) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			using std::swap;
+			swap(t, nh.t);
+			swap(alloc, nh.alloc);
+		}
+
+		~to_node()
+		{
+			if(t)
+			{
+				t->destroy();
+				alloc.deallocate(t, 1);
+				t = nullptr;
+			}
+		}
+	protected:
+		allocator_type alloc;
+		rb_tree_node<T>* t = nullptr;
+	};
+
+
+
+	
 	template<typename T, typename Compare, typename A>
 	class rb_tree_iterator
 	{
@@ -186,6 +246,7 @@ namespace uuz
 		using node = rb_tree_node<T>;
 		
 		using Allocator = typename uuz::exchange<A, node>::type;
+		using node_type = to_node<T, Allocator>;
 		using iterator = rb_tree_iterator<T, Compare, Allocator>;
 
 		Allocator get_allocator() const
@@ -294,6 +355,33 @@ namespace uuz
 			insert(ilist.begin(), ilist.end());
 		}
 
+		iterator insert(const iterator& hint, node_type&& nh)
+		{
+			auto k = check(hint, nh.t->get());
+			if (!k &&(cmp(k->get(),nh.t->get())||cmp(nh.t->get(),k->get())))
+			{
+				if (get_allocator() == nh.get_allocator())
+				{
+					auto x = iterator(Insert(nh.t, k));
+					nh.t = nullptr;
+					return x;
+				}
+				else
+				{
+#ifdef DEBUG
+					assert(false, "It's undefined that allocator is not equeal");
+#else
+					auto x = insert(hint, std::move(nh.t->get()));
+					nh->~to_node();
+					return x;
+#endif 
+				}
+			}
+			return end();
+		}
+
+
+
 		iterator erase(const iterator pos)
 		{
 			auto k = pos;
@@ -318,6 +406,8 @@ namespace uuz
 			}
 			return last;
 		}
+
+
 	
 		
 		Compare key_comp() const noexcept
@@ -776,6 +866,12 @@ namespace uuz
 
 		void dele(node* x)
 		{
+			help_dele(x);
+			destroy(x);
+		}
+
+		void help_dele(node* x)noexcept
+		{
 			node* child = nullptr;
 			node* p = nullptr;
 			--ssize;
@@ -813,12 +909,11 @@ namespace uuz
 				x->left->father = replace;
 				if (!c)
 					fixdele(child, p);
-				destroy(x);
 				return;
 			}
 			if (!isnul(x->left))
 				child = x->left;
-			else if(!isnul(x->right))
+			else if (!isnul(x->right))
 				child = x->right;
 			p = x->father;
 			if (!isnul(child))
@@ -841,7 +936,7 @@ namespace uuz
 			{
 				nul.left = nul.right = nul.data.end = root = nullptr;
 				nul.father = &nul;
-			}	
+			}
 			else if (x->left == &nul)
 			{
 				auto k = minimum(p);
@@ -854,9 +949,16 @@ namespace uuz
 				k->right = &nul;
 				nul.data.end = k;
 			}
-			destroy(x);
 		}
-			
+		
+		node* extract(const iterator p)noexcept
+		{
+			help_dele(p.t);
+			p.t->father = p.t->left = p.t->right = nullptr;
+			p.t->color = false;
+			return p.t;
+		}
+
 		void print()const noexcept
 		{
 			auto k = nul.father;

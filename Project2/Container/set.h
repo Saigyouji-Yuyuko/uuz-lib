@@ -4,6 +4,40 @@
 #include"pair.h"
 namespace uuz
 {
+	template<typename Key, typename Compare, typename Allocator>
+	class set;
+
+	template<typename Key, typename Compare, typename Allocator>
+	class multiset;
+
+	template<typename T,typename Allocator>
+	class set_node:public to_node<T,Allocator>
+	{
+	public:
+		template<typename Key, typename Compare, typename A>
+		friend class set;
+		template<typename Key, typename Compare, typename A>
+		friend class multiset;
+
+		using value_type = T;
+		using allocator_type = Allocator;
+		constexpr set_node() noexcept:to_node() {}
+		set_node(set_node&& nh) noexcept :to_node(std::move(nh)){}
+		set_node(rb_tree_node<T>* a, const allocator_type& b) :to_node(a,b){}
+
+		set_node& operator=(set_node&& nh)noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			return to_node::operator=(std::move(nh));
+		}
+
+		value_type& value() const
+		{
+			return t->get();
+		}
+
+	};
+
+
 
 	template<typename Key,typename Compare = less<Key>,typename Allocator = uuz::allocator<Key>> 
 	class set:public rb_tree<Key,Compare,Allocator>
@@ -11,9 +45,16 @@ namespace uuz
 		using base = rb_tree<Key, Compare, Allocator>;
 		
 	public:
-
+		using allocator_type = typename base::Allocator;
 		using iterator = typename base::iterator;
-		//using node_type = set_node<Key, Allocator>;
+		using node_type = set_node<Key, allocator_type>;
+		using insert_return_type = struct
+		{
+			iterator position;
+			bool inserted;
+			node_type node;
+		};
+
 		set() : rb_tree(Compare(), Allocator()) {}
 		explicit set(const Compare& comp, const Allocator& alloc = Allocator()) :rb_tree(comp, alloc) {}
 		explicit set(const Allocator& alloc) :rb_tree(alloc) {}
@@ -49,15 +90,44 @@ namespace uuz
 		}
 
 		using rb_tree::insert;
-		/*insert_return_type insert(node_type&& nh)
+		insert_return_type insert(node_type&& nh)
 		{
-
+			auto z = ifind(nh.value());
+			if(!z &&( cmp(z->get(),nh.value())|| cmp(nh.value(),z->get())))
+			{
+				if(get_allcoator() == nh.get_allocator())
+				{
+					auto k = Insert(nh.t, z);
+					nh.t = nullptr;
+					return insert_return_type{ iterator(k),true,std::move(nh) };
+				}
+				else
+				{
+#ifdef DEBUG
+					assert(false, "It's undefined that allocator is not equeal");
+#else
+					auto k = insert(hint, std::move(nh.t->get()));
+					nh->~to_node();
+					return insert_return_type{k,true,std::move(nh) };
+#endif 
+				}
+			}
+			return insert_return_type{ iterator(z),false,std::move(nh) };
 		}
-		iterator insert(const iterator& hint, node_type&& nh)
-		{
-				
-		}*/
 		
+		node_type extract(const iterator position)
+		{
+			if (position == end())
+				return node_type();
+			auto k = rb_tree::extract(position);
+			return node_type(k, get_allocator());
+		}
+		node_type extract(const Key& x)
+		{
+			auto k = find(x);
+			return extract(k);
+		}
+
 		using rb_tree::erase;
 		size_t erase(const Key& key)
 		{
@@ -205,6 +275,8 @@ namespace uuz
 	{
 		using base = rb_tree<Key, Compare, Allocator>;
 		using iterator = typename set::iterator;
+		using node_type = typename set::node_type;
+		using allocator_type = typename set::allocator_type;
 	public:
 		multiset() : multiset(Compare()) {}
 		explicit multiset(const Compare& comp,const Allocator& alloc = Allocator()):set(comp,alloc){}
@@ -276,8 +348,54 @@ namespace uuz
 		{
 			return insert(ilist.begin(), ilist.end());
 		}
-		/*iterator insert(node_type&& nh);
-		iterator insert(const_iterator hint, node_type&& nh);*/
+		iterator insert(node_type&& nh)
+		{
+			auto z = ifind(nh.value());
+			if (!z)
+			{
+				if (get_allcoator() == nh.get_allocator())
+				{
+					auto k = Insert(nh.t, z, false);
+					nh.t = nullptr;
+					return iterator(k);
+				}
+				else
+				{
+#ifdef DEBUG
+					assert(false, "It's undefined that allocator is not equeal");
+#else
+					auto k = insert(std::move(nh.t->get()));
+					nh->~to_node();
+					return k;
+#endif 
+				}
+			}
+			return end();
+		}
+		iterator insert(const iterator hint, node_type&& nh)
+		{
+			auto k = check(hint, nh.t->get());
+			if (!k)
+			{
+				if (get_allocator() == nh.get_allocator())
+				{
+					auto x = iterator(Insert(nh.t, k, false));
+					nh.t = nullptr;
+					return x;
+				}
+				else
+				{
+#ifdef DEBUG
+					assert(false, "It's undefined that allocator is not equeal");
+#else
+					auto x = insert(hint, std::move(nh.t->get()));
+					nh->~to_node();
+					return x;
+#endif 
+				}
+			}
+			return end();
+		}
 
 		template< class... Args >
 		iterator emplace(Args&&... args)
