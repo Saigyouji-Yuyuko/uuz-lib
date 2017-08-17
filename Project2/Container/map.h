@@ -49,7 +49,7 @@ namespace
 namespace uuz
 {
 	template<typename Key,typename T,typename Compare =less<Key>,typename Allocator = uuz::allocator<pair<const Key,T>>>
-	class map: rb_tree<pair<const Key,T>,map_less<Key,T, Compare>, Allocator>
+	class map: public rb_tree<pair<const Key,T>,map_less<Key,T, Compare>, Allocator>
 	{
 	public:
 		using iterator = rb_tree<pair<const Key, T>, map_less<Key, T, Compare>, Allocator>::iterator;
@@ -328,33 +328,11 @@ namespace uuz
 			return iterator(up_bound(Key(x)));
 		}
 	};
-	namespace
-	{
-		template<typename A,typename B,typename C,typename D>
-		int compare(const map<A,B,C,D>& a,const map<A, B, C, D>& b)noexcept
-		{
-			auto cmp = a.key_comp();
-			auto i = a.begin();
-			auto j = b.begin();
-			for(;i!=a.end() && j!=b.end();++i,(void)++j)
-			{
-				if (cmp(*i, *j))
-					return -1;
-				else if (cmp(*j, *i))
-					return 1;
-			}
-			if (a.size() > b.size())
-				return -1;
-			else if (a.size < b.size())
-				return 1;
-			return 0;
-		}
-	}
 
 	template< typename Key, typename T ,typename Compare, typename Alloc >
 	bool operator==(const map<Key, T, Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
 	{
-		return  lhs.size() == rhs.size() && compare(lhs, rhs) == 0;
+		return  lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
 	}
 	template< typename Key, typename T ,typename Compare, typename Alloc >
 	bool operator!=(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
@@ -364,22 +342,22 @@ namespace uuz
 	template< typename Key, typename T ,typename Compare, typename Alloc >
 	bool operator<(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
 	{
-		return compare(lhs, rhs) == -1;
+		return lhs.compare(rhs) == -1;
 	}
 	template< typename Key, typename T ,typename Compare, typename Alloc >
 	bool operator<=(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
 	{
-		return compare(lhs, rhs) <= 0;
+		return lhs.compare(rhs) <= 0;
 	}
 	template< typename Key, typename T ,typename Compare, typename Alloc >
 	bool operator>(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
 	{
-		return compare(lhs, rhs) == 1;
+		return lhs.compare(rhs) == 1;
 	}
 	template< typename Key, typename T ,typename Compare, typename Alloc >
 	bool operator>=(const map<Key, T,Compare, Alloc>& lhs, const map<Key, T,Compare, Alloc>& rhs)noexcept
 	{
-		return compare(lhs, rhs) >= 0;
+		return lhs.compare(rhs) >= 0;
 	}
 
 	template< typename Key, typename T ,typename Compare, typename Alloc >
@@ -392,9 +370,195 @@ namespace uuz
 namespace uuz
 {
 	template<typename Key, typename T, typename Compare = less<Key>, typename Allocator = uuz::allocator<pair<const Key, T>>>
-	class multimap : map< Key, T,Compare, Allocator>
+	class multimap :public map< Key, T,Compare, Allocator>
 	{
+	public:
+		using value_type = map::value_type;
+	public:
+		multimap() : multimap(Compare()) {}
+		explicit multimap(const Compare& comp,const Allocator& alloc = Allocator()):map(comp,alloc){}
+		template< typename InputIterator,typename = is_input<value_type,InputIterator>>
+		multimap(InputIterator first, InputIterator last,const Compare& comp = Compare(),const Allocator& alloc = Allocator())
+			:rb_tree(comp,alloc)
+		{
+			mutilinid(first, last);
+		}
+		template< typename InputIterator, typename = is_input<value_type, InputIterator>>
+		multimap(InputIterator first, InputIterator last,const Allocator& alloc)
+			:rb_tree(alloc)
+		{
+			mutilinid(first, last);
+		}
+		multimap(const multimap& other):rb_tree(other){}
+		multimap(const multimap& other, const Allocator& alloc):rb_tree(other,alloc){}
+		multimap(multimap&& other):rb_tree(std::move(other)){}
+		multimap(multimap&& other, const Allocator& alloc):rb_tree(std::move(other),alloc){}
+		multimap(std::initializer_list<value_type> init,const Compare& comp = Compare(),const Allocator& alloc = Allocator())
+			:multimap(init.begin(),init.end(),comp,alloc){}
+		multimap(std::initializer_list<value_type> init,const Allocator& alloc)
+			:multimap(init.begin(),init.end(),alloc){}
+	
+		multimap& operator=(const multimap& other)
+		{
+			rb_tree::operator=(other);
+			return *this;
+		}
+		multimap& operator=(multimap&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			rb_tree::operator=(other);
+			return *this;
+		}
+		multimap& operator=(std::initializer_list<value_type> ilist)
+		{
+			multimap temp(ilist, alloc);
+			this->swap(temp);
+			return *this;
+		}
 		
+		iterator insert(const value_type& value)
+		{
+			return emplace(value);
+		}
+		template< typename P ,typename = std::enable_if_t<std::is_constructible_v<value_type, P&&>>>
+		iterator insert(P&& value)
+		{
+			return emplace(std::forward<P>(value));
+		}
+		iterator insert(value_type&& value)
+		{
+			return emplace(std::move(value));
+		}
+		iterator insert(const iterator hint, const value_type& value)
+		{
+			return emplace_hint(hint, value);
+		}
+		template< typename P, typename = std::enable_if_t<std::is_constructible_v<value_type, P&&>>>
+		iterator insert(const iterator hint, P&& value)
+		{
+			return emplace_hint(hint, std::forward<P>(value));
+		}
+		iterator insert(const iterator hint, value_type&& value)
+		{
+			return emplace_hint(hint, std::move(value));
+		}
+		template< class InputIt, typename = is_input<value_type, InputIt>>
+		void insert(InputIt first, InputIt last)
+		{
+			auto i = first;
+			try
+			{
+				for (; i != last; ++i)
+					emplace(*i);
+			}
+			catch (...)
+			{
+				for (auto j = first; j != i; ++j)
+					dele(truefind(*i));
+				throw;
+			}
+		}
+		void insert(std::initializer_list<value_type> ilist)
+		{
+			return insert(ilist.begin(), ilist.end());
+		}
+		/*iterator insert(node_type&& nh);
+		iterator insert(const_iterator hint, node_type&& nh);*/
+
+		template< class... Args >
+		iterator emplace(Args&&... args)
+		{
+			auto t = make(std::forward<Args>(args)...);
+			auto k = ifind(t->get());
+			if (!cmp(t->get(), k->get()) && !cmp(k->get(), t->get()))
+				k = nextnode(k);
+			return iterator(Insert(t, k, false));
+		}
+		template <class... Args>
+		iterator emplace_hint(const iterator hint, Args&&... args)
+		{
+			auto t = make(std::forward<Args>(args)...);
+			auto k = check(hint, t->get());
+			if (!k)
+				return end();
+			if (!cmp(t->get(), k->get()) && !cmp(k->get(), t->get()))
+				k = nextnode(k);
+			return iterator(Insert(t, k, false));
+		}
+
+		using rb_tree::erase;
+		size_t erase(const Key& key)
+		{
+			auto k = truefind(key);
+			size_t t = 0;
+			while (!isnul(k))
+			{
+				dele(k);
+				k = truefind(key);
+				++t;
+			}
+			return t;
+		}
+
+		size_t count(const Key& key) const noexcept
+		{
+			auto k = eqrange(key);
+			auto f = k.first;
+			auto l = k.second;
+			if (f == l || f == &nul)
+				return 0;
+			else
+			{
+				size_t t = 0;
+				while (f != l)
+				{
+					++f;
+					++t;
+				}
+				return t;
+			}
+		}
+		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
+		size_t count(const K& x) const noexcept
+		{
+			return count(Key(x));
+		}
+
 	};
 
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	bool operator==(const multimap<Key, T, Compare, Alloc>& lhs, const multimap<Key, T, Compare, Alloc>& rhs)noexcept
+	{
+		return  lhs.size() == rhs.size() && lhs.compare(rhs) == 0;
+	}
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	bool operator!=(const multimap<Key, T, Compare, Alloc>& lhs, const multimap<Key, T, Compare, Alloc>& rhs)noexcept
+	{
+		return !(lhs == rhs);
+	}
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	bool operator<(const multimap<Key, T, Compare, Alloc>& lhs, const multimap<Key, T, Compare, Alloc>& rhs)noexcept
+	{
+		return lhs.compare(rhs) == -1;
+	}
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	bool operator<=(const multimap<Key, T, Compare, Alloc>& lhs, const multimap<Key, T, Compare, Alloc>& rhs)noexcept
+	{
+		return lhs.compare(rhs) <= 0;
+	}
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	bool operator>(const multimap<Key, T, Compare, Alloc>& lhs, const multimap<Key, T, Compare, Alloc>& rhs)noexcept
+	{
+		return lhs.compare(rhs) == 1;
+	}
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	bool operator>=(const multimap<Key, T, Compare, Alloc>& lhs, const multimap<Key, T, Compare, Alloc>& rhs)noexcept
+	{
+		return lhs.compare(rhs) >= 0;
+	}
+
+	template< typename Key, typename T, typename Compare, typename Alloc >
+	void swap(multimap<Key, T, Compare, Alloc>& lhs, multimap<Key, T, Compare, Alloc>& rhs) noexcept(is_nothrow_swap_alloc<Alloc>::value)
+	{
+		lhs->swap(rhs);
+	}
 }

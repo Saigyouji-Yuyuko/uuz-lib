@@ -263,11 +263,11 @@ namespace uuz
 			try
 			{
 				for (; i != last; ++i)
-					insert(*i);
+					emplace(*i);
 			}
 			catch (...)
 			{
-				for (j = first; j != i; ++j)
+				for (auto j = first; j != i; ++j)
 					dele(truefind(*i));
 				throw;
 			}
@@ -293,12 +293,14 @@ namespace uuz
 		iterator emplace_hint(const iterator hint, Args&&... args)
 		{
 			auto t = make(std::forward<Args>(args)...);
-			auto k = check(hint, value);
+			auto k = check(hint, t->get());
+			if (!k)
+				return end();
 			if (!cmp(t->get(), k->get()) && !cmp(k->get(), t->get()))
 				k = nextnode(k);
 			return iterator(Insert(t, k, false));
 		}
-
+		using rb_tree::erase;
 		size_t erase(const Key& key)
 		{
 			auto k = truefind(key);
@@ -334,7 +336,7 @@ namespace uuz
 		template< typename K, typename = std::enable_if_t<std::is_constructible_v<Key, K&>> >
 		size_t count(const K& x) const noexcept
 		{
-			return count(Key(k));
+			return count(Key(x));
 		}
 	};
 	template< class Key, class Compare, class Alloc >
