@@ -60,19 +60,19 @@ namespace uuz
 
 		T& operator*()noexcept
 		{
-			return (list_node<T>*)t->data;
+			return ((list_node<T>*)t)->data;
 		}
 		const T& operator*()const noexcept
 		{
-			return (list_node<T>*)t->data;
+			return ((list_node<T>*)t)->data;
 		}
 		T* operator->()noexcept
 		{
-			return &((list_node<T>*)t->data);
+			return &((list_node<T>*)t)->data;
 		}
 		const T* operator->()const noexcept
 		{
-			return &((list_node<T>*)t->data);
+			return &((list_node<T>*)t)->data;
 		}
 
 		friend bool operator==(const self& a, const self& b)noexcept
@@ -170,7 +170,7 @@ namespace uuz
 			if (_first != _last)
 			{
 				auto ss = 0;
-				for (auto i = _first; i != last; ++i)
+				for (auto i = _first; i != _last; ++i)
 					++ss;
 				auto k = makelist(_first, _last);
 				ssize = ss;
@@ -306,7 +306,7 @@ namespace uuz
 		{
 			nul.last->next = nullptr;
 			if(nul.next != &nul)
-				list_destroy(nul.next);
+				list_destroy((node*)(nul.next));
 			nul.last = &nul;
 			nul.next = &nul;
 			ssize = 0;
@@ -415,7 +415,7 @@ namespace uuz
 		template< typename... Args >
 		T& emplace_back(Args&&... args)
 		{
-			auto k = make(std::forward<Args>(args)...);
+			auto k = list_make(std::forward<Args>(args)...);
 			nul.last->next = k;
 			k->last = nul.last;
 			k->next = &nul;
@@ -577,7 +577,7 @@ namespace uuz
 						auto k = ob;
 						while (k != &other.nul && comp(((node*)(k))->data, ((node*)(q))->data))
 							k = k->next;
-						auto t = makelist(ob, k);
+						auto t = makelist((node*)ob, (node*)k);
 						charu(q, t.first, t.second);
 						q = k->last;
 						ob = k;
@@ -587,7 +587,7 @@ namespace uuz
 				}
 				if (q == &nul && ob != &other.nul)
 				{
-					auto t = makelist(ob, oe);
+					auto t = makelist((node*)ob,(node*) oe);
 					charu(nul.last, t.first, t.second);
 				}
 #endif 
@@ -599,7 +599,7 @@ namespace uuz
 					if (comp(((node*)(ob))->data, ((node*)(q))->data))
 					{
 						auto k = ob;
-						while (k != &other.nul && comp((node*)(k)->data, (node*)(q)->data))
+						while (k != &other.nul && comp(((node*)(k))->data, ((node*)(q))->data))
 							k = k->next;
 						charu(q, ob, k->last);
 						q = k->last;
@@ -755,8 +755,8 @@ namespace uuz
 			en->next = nullptr;
 			auto mid = midden(be);
 			auto k = mid->next;
-			list t1{ be,mid,alloc };
-			list t2{ k,en ,alloc};
+			list t1{ (node*)be,(node*)mid,alloc };
+			list t2{ (node*)k,(node*)en ,alloc};
 			t1.sort(comp);
 			t2.sort(comp);
 			t1.merge(t2, comp);
@@ -778,16 +778,27 @@ namespace uuz
 				q = q->next->next;
 				m = m->next;
 			}
-			return m;
+			return (node*)m;
 		}
-		void list_destroy(list_node_base* p)noexcept
+		void list_destroy(node* p)noexcept
 		{
 			if (!p)
 				return;
-			if (p->next)
-				list_destroy(p->next);
-			p->destroy();
-			alloc.deallocate(p,1);
+			node* k = nullptr;
+			for(;p;p=k)
+			{
+				k = (node*)p->next;
+				((node*)p)->destroy();
+				alloc.deallocate(p, 1);
+
+			}
+			return;
+
+
+			//if (p->next)
+			//	list_destroy((node*)(p->next));
+			//((node*)p)->destroy();
+			//alloc.deallocate(p,1);
 		}
 		template<typename...Args>
 		node* list_make(Args...args)
@@ -820,20 +831,21 @@ namespace uuz
 			node* k = nullptr;
 			try
 			{
-				node* p = make(a->data);
+				node* p = list_make(a->data);
 				for (auto i = a->next; i != b->next; i = i->next)
 				{
-					p->next = make(((node*)(i))->data);
+					p->next =  list_make(((node*)(i))->data);
 					p->next->last = p;
-					p = p->next;
+					p = (node*)p->next;
 				}
+				return pair<node*, node*>(k, p);
 			}
 			catch (...)
 			{
 				list_destroy(k);
 				throw;
 			}
-			return make_pair(k, p);
+			
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
 		pair<node*, node*> makelist(InputIt a, InputIt b)
@@ -841,24 +853,25 @@ namespace uuz
 			node* k = nullptr;
 			try
 			{
-				node* p = make(*a);
+				node* p = list_make(*a);
 				auto i = a;
 				++i;
 				for (; i != b; ++i)
 				{
-					p->next = make(*i);
+					p->next = list_make(*i);
 					p->next->last = p;
-					p = p->next;
+					p = (node*)p->next;
 				}
+				return pair<node*, node*>(k, p);
 			}
 			catch (...)
 			{
 				list_destroy(k);
 				throw;
 			}
-			return make_pair(k, p);
+			
 		}
-		  void charu(node* d, node* b, node* e)noexcept
+		  void charu(list_node_base* d, list_node_base* b, list_node_base* e)noexcept
 		{
 			if (empty())
 			{

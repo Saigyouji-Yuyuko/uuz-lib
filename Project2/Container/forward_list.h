@@ -453,7 +453,7 @@ namespace uuz
 			}
 		}
 
-		  void swap(forward_list& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		void swap(forward_list& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
 			using std::swap;
 			if(alloc == other.alloc)

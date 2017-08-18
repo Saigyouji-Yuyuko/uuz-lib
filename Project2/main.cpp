@@ -57,41 +57,9 @@ void display_sizes(const uuz::multiset<int> &nums1,
 
 int main()
 {
-	for(int i =1;i<=10000000;i*=10)
-	{
-		uuz::println(i);
-		{
-			std::deque<int>b;
-			b.resize(i);
-			{
-				uuz::block_time a{ "deque" };
-				for (int j = 0; j != i; ++j)
-					b.push_back(rand());
-			}
-			uuz::println("");
-		}
-		{
-			std::vector<int>b;
-			b.reserve(i);
-			{
-				uuz::block_time a{ "vector" };
-				for (int j = 0; j != i; ++j)
-					b.push_back(rand());
-			}
-			uuz::println("");
-		}
-		{
-			uuz::vector<int>b;
-			b.reserve(i);
-			{
-				uuz::block_time a{ "uuz::vector" };
-				for (int j = 0; j != i; ++j)
-					b.push_back(rand());
-			}
-			uuz::println("");
-		}
-		uuz::println("---------------------------");
-	}
+
+	(int* a) [5];
+	uuz::println(sizeof(a));
 	system("pause");
 	return 0;
 }
