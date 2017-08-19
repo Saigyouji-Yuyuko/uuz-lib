@@ -23,7 +23,24 @@ namespace uuz
 	//考虑将src中的T个位置尽量移动到to中，其中to是脏数据
 	template<typename T>
 	void move_or_copy_con(T* src, size_t t, T* to,
-		typename std::enable_if_t<std::is_nothrow_move_constructible_v<T> || (!std::is_nothrow_copy_constructible_v<T>&&std::is_move_constructible_v<T>)>* = nullptr)
+		typename std::enable_if_t<std::is_trivially_constructible_v<T>>* = nullptr)
+		noexcept
+	{
+		//uuz::println("///");
+		//static_assert(false,"123");
+		if (src == to)
+			return;
+		/*if (to >= src + t || to <= src)
+			memcpy(to, src, t * sizeof(T));
+		else*/
+			memmove(to, src, t * sizeof(T));
+		return;
+	}
+	template<typename T>
+	void move_or_copy_con(T* src, size_t t, T* to,
+		typename std::enable_if_t<!std::is_trivially_constructible_v<T> && 
+								std::is_nothrow_move_constructible_v<T> || 
+		(!std::is_nothrow_copy_constructible_v<T>&&std::is_move_constructible_v<T>)>* = nullptr)
 		noexcept(std::is_nothrow_move_constructible_v<T>)
 	{
 		//static_assert(false,"123");
@@ -45,7 +62,8 @@ namespace uuz
 	}
 	template<typename T>
 	void move_or_copy_con(T* src, size_t t, T* to,
-		typename std::enable_if_t<(!std::is_nothrow_move_constructible_v<T> && std::is_nothrow_copy_constructible_v<T>)
+		typename std::enable_if_t<!std::is_trivially_constructible_v<T> && 
+								(!std::is_nothrow_move_constructible_v<T> && std::is_nothrow_copy_constructible_v<T>)
 								||(!std::is_move_constructible_v<T> && std::is_copy_constructible_v<T> )>* = nullptr)
 		noexcept( std::is_nothrow_copy_constructible_v<T>)
 	{
@@ -68,15 +86,32 @@ namespace uuz
 	}
 	template<typename T>
 	[[noreturn]] void move_or_copy_con(T* src, size_t t, T* to,
-		typename std::enable_if_t<!std::is_copy_constructible_v<T>&& !std::is_move_constructible_v<T>>* = nullptr)
+		typename std::enable_if_t<!std::is_trivially_constructible_v<T> && 
+								!std::is_copy_constructible_v<T> &&
+								!std::is_move_constructible_v<T>>* = nullptr)
 	{
-		static_assert(!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>, "T can't move or copy\n");
+		static_assert(!std::is_trivially_constructible_v<T> && !std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>, "T can't move or copy\n");
 	}
 
 	//考虑将src中的T个位置尽量移动到to中，其中to是有效数据
 	template<typename T>
 	void move_or_copy_ass(T* src, size_t t, T* to,
-		typename std::enable_if_t<std::is_nothrow_move_assignable_v<T> || (!std::is_nothrow_copy_assignable_v<T>&&std::is_move_assignable_v<T>)>* = nullptr)
+		typename std::enable_if_t<std::is_trivially_copy_assignable_v<T>>* = nullptr)
+		noexcept
+	{
+		//uuz::println("///");
+		if (src == to)
+			return;
+		/*if (to >= src + t || to <= src)
+			memcpy(to, src, t*sizeof(T));
+		else*/
+			memmove(to, src, t * sizeof(T));
+	}
+	template<typename T>
+	void move_or_copy_ass(T* src, size_t t, T* to,
+		typename std::enable_if_t<!std::is_trivially_copy_assignable_v<T> &&
+		std::is_nothrow_move_assignable_v<T> || 
+		(!std::is_nothrow_copy_assignable_v<T>&&std::is_move_assignable_v<T>)>* = nullptr)
 		noexcept(std::is_nothrow_move_assignable_v<T>)
 	{
 		if (src == to)
@@ -105,7 +140,8 @@ namespace uuz
 	}
 	template<typename T>
 	void move_or_copy_ass(T* src, size_t t, T* to,
-		typename std::enable_if_t<(!std::is_nothrow_move_assignable_v<T> && std::is_nothrow_copy_assignable_v<T>)
+		typename std::enable_if_t<!std::is_trivially_copy_assignable_v<T> &&
+									(!std::is_nothrow_move_assignable_v<T> && std::is_nothrow_copy_assignable_v<T>)
 								|| (!std::is_move_assignable_v<T> && std::is_copy_assignable_v<T>)>* = nullptr)
 		noexcept(std::is_nothrow_copy_assignable_v<T>)
 	{
@@ -135,7 +171,8 @@ namespace uuz
 	}
 	template<typename T>
 	[[noreturn]] void move_or_copy_ass(T* src, size_t t, T* to,
-		typename std::enable_if_t<!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>>* = nullptr)
+		typename std::enable_if_t<!std::is_trivially_copy_assignable_v<T> &&
+		!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>>* = nullptr)
 	{
 		static_assert(!std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>, "T can't move or copy\n");
 	}

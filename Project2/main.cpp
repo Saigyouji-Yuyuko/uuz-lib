@@ -45,21 +45,11 @@
 //#include<iomanip>
 //#include<fstream>
 #pragma warning(disable:4996)
-using namespace std;
-void display_sizes(const uuz::multiset<int> &nums1,
-	const uuz::multiset<int> &nums2,
-	const uuz::multiset<int> &nums3)
-{
-	std::cout << "nums1: " << nums1.size()
-		<< " nums2: " << nums2.size()
-		<< " nums3: " << nums3.size() << '\n';
-}
+
 
 int main()
 {
-
-	(int* a) [5];
-	uuz::println(sizeof(a));
+	RUN_ALL_TESTS();
 	system("pause");
 	return 0;
 }
