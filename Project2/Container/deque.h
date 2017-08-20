@@ -22,13 +22,138 @@ namespace uuz
 	public:
 		template<typename T1, typename A>
 		friend class deque;
-	private:
-		deque_iterator(const T* now,const T* b,const T* block)
-			:block(const_cast<T*>(block)),b(const_cast<T*>(b)),
-				now(const_cast<T*>(now)){}
+		using self = deque_iterator<T>;
+		using block = T[deque_node_size];
+		using map_type = block*;
 
-		T** block = nullptr;
-		T* b = nullptr;
+		self& operator+=(const int t)noexcept
+		{
+			const auto offert = t + (now - first());
+			if (offert >= 0 && offert < deque_node_size<T>)
+			{
+				now += t;
+			}
+			else
+			{
+				auto offect_node = offert > 0 ? offert / deque_node_size<T> : -((-offert - 1) / deque_node_size<T>) - 1;
+				this_block += offect_node;
+				now = first() + (offert - offect_node*deque_node_size<T>);
+			}
+			return *this;
+		}
+		self& operator-=(const int t)noexcept
+		{
+			*this += -t;
+			return *this;
+
+		}
+		self& operator++() noexcept
+		{
+			++now;
+			if(now == last())
+			{
+				++this_block;
+				now = first();
+			}
+			return *this;
+		}
+		self operator++(int)noexcept
+		{
+			auto p{ *this };
+			++(*this);
+			return p;
+		}
+		self& operator--()noexcept
+		{
+			if (now == first())
+			{
+				--this_block;
+				now = last() - 1;
+			}
+			else
+				--now;
+			return *this;
+		}
+		self operator--(int) noexcept
+		{
+			auto p{ *this };
+			--(*this);;
+			return p;
+		}
+
+		T& operator*()noexcept
+		{
+			return *now;
+		}
+		const T& operator*()const noexcept
+		{
+			return *now;
+		}
+		T* operator->()noexcept
+		{
+			return now;
+		}
+		const T* operator->()const noexcept
+		{
+			return now;
+		}
+
+		friend bool operator==(const self& a, const self& b)noexcept
+		{
+			return a.now == b.now;
+		}
+		friend bool operator!=(const self& a, const self& b)noexcept
+		{
+			return !(a == b);
+		}
+		friend bool operator<(const self& a, const self& b)noexcept
+		{
+			return a.now < b.now;
+		}
+		friend bool operator>(const self& a, const self& b)noexcept
+		{
+			return b < a;
+		}
+		friend bool operator<=(const self& a, const self& b)noexcept
+		{
+			return a < b || a == b;
+		}
+		friend bool operator>=(const self& a, const self& b)noexcept
+		{
+			return a > b || a == b;
+		}
+
+		friend self operator+(const self& a, const size_t b)noexcept
+		{
+			self c{ a };
+			c += b;
+			return c;
+		}
+		friend int operator-(const self& a, const self& b)noexcept
+		{
+			return (a.this_block - b.this_block)*deque_node_size<T> +(a.now - a.last()) + (b.first() - b.now);
+		}
+		friend self operator-(const self& a,int b)noexcept
+		{
+			self c{ a };
+			c -= b;	
+			return c;
+		}
+
+	private:
+		deque_iterator(const map_type* b,const T* a)
+			:this_block(const_cast<map_type*>(b)),now(const_cast<T*>(a)){}
+		
+		T* first()const noexcept
+		{
+			return *this_block;
+		}
+		T* last()const noexcept
+		{
+			return first() + deque_node_size<T>;
+		}
+
+		map_type* this_block = nullptr;
 		T* now = nullptr;
 	};
 
@@ -42,217 +167,113 @@ namespace uuz
         using Allocator = typename uuz::exchange<A, map_type>::type;
 		using iterator = deque_iterator<T>;
 	private:
-		map_type* table = nullptr; //map指针
-		size_t block_size = 0;    //map大小
-		size_t back_table = 0;   // 有效block数
-		size_t end_block = 0;    //有数据的block
-		size_t ssize = 0; 
+		map_type* map = nullptr; //map指针
+		size_t block_max_size = 0;    //map大小
+		size_t block_size = 0;   // 有效block数
+		size_t begin_block = 0;  //begin的block
+		size_t end_block = 0;    //end 的block
+		size_t ssize = 0;       
 		T* b_begin = nullptr;  
 		T* b_end = nullptr;
 		Allocator alloc;
 	public:
-		deque()noexcept(std::is_nothrow_copy_constructible_v<Allocator> 
-					&& std::is_nothrow_default_constructible_v<Allocator>) 
-			: deque(Allocator()) {}
-		explicit deque(const A& alloc)noexcept(std::is_nothrow_constructible_v<Allocator,A&>)
-			:alloc(alloc){}
-		explicit deque(size_t count, const T& value = T{}, const Allocator& alloc = Allocator())
-			:deque(alloc)
-		{
-			if(count != 0)
-			{
-				makemap(count);
-				try
-				{
-					auto i = 0;
-					while(count > deque_node_size<T>)
-					{
-						for (auto j = 0; j != deque_node_size<T>; ++j)
-							table[i][j] = value;
-						++i;
-						count -= deque_node_size<T>;
-					}
-					if(count > 0)
-						for (auto j = 0; j != count; ++j)
-							table[i][j] = value;
-					b_end = &table[i][count - 1];
-					end_block = i;
-					b_begin = &table[0][0];
-					ssize = count;
-				}
-				catch (...)
-				{
-					clear();
-					throw;
-				}
-			}
-		}
-		template< typename InputIt,typename = is_input<T,InputIt>>
-		deque(InputIt first, InputIt last,const Allocator& alloc = Allocator()): deque(alloc)
-		{
-			if(last != first)
-			{
-				auto sssize = last - first;
-				makemap(sssize);
-				try
-				{
-					auto k = first;
-					for (auto i = 0; i != block_size; ++i)
-						for (auto j = 0; j != deque_node_size<T>; ++j)
-						{
-							table[i][j] = *k;
-							++k;
-							if (k == last)
-							{
-								end_block = i;
-								b_end = &table[i][j];
-								goto ll;
-							}
-						}
-				ll: b_begin= &table[0][0];
-					ssize = sssize;
-				}
-				catch (...)
-				{
-					clear();
-					throw;
-				}
-			}
-			
-		}
-		deque(const deque& other):deque(other.begin(),other.end(),A()){}
-		deque(const deque& other, const Allocator& alloc) :deque(other.begin(), other.end(), alloc) {}
-		deque(deque&& other)noexcept:deque(other.alloc)
-		{
-			this->swap(other);
-		}
-		deque(deque&& other, const Allocator& alloc):deque(alloc)
-		{
-			this->swap(other);
-		}
-		deque(std::initializer_list<T> init,const Allocator& alloc = Allocator())
-			:deque(init.begin(),init.end(),alloc){}
-
-		deque& operator=(const deque& other)
-		{
-			if(this!=&other)
-			{
-				deque temp(other, alloc);
-				this->swap(temp);
-			}
-			return *this;
-		}
-		deque& operator=(deque&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
-		{
-			if (this != &other)
-			{
-				deque temp(std::move(other), alloc);
-				this->swap(temp);
-			}
-			return *this;
-		}
-		deque& operator=(std::initializer_list<T> ilist)
-		{
-			deque temp(ilist, alloc);
-			this->swap(temp);
-			return *this;
-		}
-
-
-		//待优化
-		void assign(size_t count, const T& value)
-		{
-			deque temp(count, value, alloc);
-			this->swap(temp);
-		}
-		template< typename InputIt, typename = is_input<T, InputIt>>
-		void assign(InputIt first, InputIt last)
-		{
-			deque temp(first, last, alloc);
-			this->swap(temp);
-		}
-		void assign(std::initializer_list<T> ilist)
-		{
-			deque temp(ilist, alloc);
-			this->swap(temp);
-		}
-
-		Allocator get_allocator() const
-		{
-			return alloc;
-		}
 
 		T& at(size_t pos)
 		{
-			if (pos >= size() )
+			if (pos >= size())
 				throw(out_of_range(""));
-			return begin() + pos;
+			return this->operator[](pos);
 		}
 		const T& at(size_t pos) const
 		{
 			if (pos >= size())
 				throw(out_of_range(""));
-			return begin() + pos;
+			return this->operator[](pos);
 		}
 
-		T& operator[](size_t pos)noexcept
+		T& operator[](size_t pos)
 		{
-			return begin() + pos;
+			return *(begin() + pos);
 		}
-		const T& operator[](size_t pos) const noexcept
+		const T& operator[](size_t pos) const
 		{
-			return begin() + pos;
+			return *(begin() + pos);
 		}
 
-		T& front()
+		T& front()noexcept
 		{
-			if (empty())
-				throw(out_of_range(""));
 			return *b_begin;
 		}
-		const T& front() const
+		const T& front() const noexcept
 		{
-			if (empty())
-				throw(out_of_range(""));
 			return *b_begin;
 		}
 
 		T& back()
 		{
-			if (empty())
-				throw(out_of_range(""));
-			return *b_end;
+			if (b_end == map[end_block])
+				return *(static_cast<T*>(map[end_block - 1]) + deque_node_size<T>-1);
+			return *(b_end - 1);
 		}
 		const T& back() const
 		{
-			if (empty())
-				throw(out_of_range(""));
-			return *b_end;
+			if (b_end == map[end_block])
+				return *(static_cast<T*>(map[end_block - 1]) + deque_node_size<T>-1);
+			return *(b_end - 1);
 		}
 
 		iterator begin() noexcept
 		{
-			
+			return iterator(map + begin_block, b_begin);
 		}
 		const iterator begin() const noexcept
 		{
-			
+			return iterator(map + begin_block, b_begin);
 		}
 		const iterator cbegin() const noexcept
 		{
-			
+			return iterator(map + begin_block, b_begin);
 		}
 
 		iterator end() noexcept
 		{
-			
+			return iterator(map + end_block, b_end);
 		}
-		const iterator end() const noexcept;
-		const iterator cend() const noexcept;
+		const iterator end() const noexcept
+		{
+			return iterator(map + end_block, b_end);
+		}
+		const iterator cend() const noexcept
+		{
+			return iterator(map + end_block, b_end);
+		}
+
+		void pop_back()
+		{
+			back().~T();
+			if (b_end == map[end_block])
+			{
+				--end_block;
+				b_end = static_cast<T*>(map[end_block]) + deque_node_size<T> -1;
+			}
+			else
+				--b_end;
+		}
+
+		void pop_front()
+		{
+			front().~T();
+			++b_begin;
+			if(b_begin == static_cast<T*>(map[begin_block])+deque_node_size<T>)
+			{
+				++begin_block;
+				b_begin = static_cast<T*>(map[begin_block]);
+			}
+		}
 
 		bool empty() const noexcept
 		{
-			return b_begin == b_end;
+			return ssize == 0;
 		}
 
 		size_t size() const noexcept
@@ -260,154 +281,78 @@ namespace uuz
 			return ssize;
 		}
 
-		size_t capacity() const noexcept
+		size_t max_size() const noexcept
 		{
-			return back_table * deque_node_size<T>;
+			return size();
 		}
 
-		size_t max_size() const noexcept;
-
-		void shrink_to_fit();
-
-		void clear() noexcept 
+		void clear()
 		{
-
-		}
-
-		iterator insert(const_iterator pos, const T& value);
-		iterator insert(const_iterator pos, T&& value);
-		iterator insert(const_iterator pos, size_type count, const T& value);
-		template< class InputIt >
-		iterator insert(const_iterator pos, InputIt first, InputIt last);
-		iterator insert(const_iterator pos, std::initializer_list<T> ilist);
-
-		template< class... Args >
-		iterator emplace(const_iterator pos, Args&&... args);
-
-		iterator erase(const_iterator pos);
-		iterator erase(const_iterator first, const_iterator last);
-
-		void push_back(const T& value)
-		{
-			emplace_back(value);
-		}
-		void push_back(T&& value)
-		{
-			emplace_back(std::move(value));
-		}
-
-		template< class... Args >
-		T& emplace_back(Args&&... args)
-		{
-			
-		}
-
-		void pop_back()
-		{
-			(*b_end).~T();
-			if (b_end == b_begin)
+			if (begin_block != end_block)
 			{
-				end_block = 0;
-				b_end = b_begin = &table[0][0];
-			}
-			else if (b_end == &table[end_block][0])
-			{
-				--end_block;
-				b_end = &table[end_block][deque_node_size<T>-1];
+				muiltdestory(b_begin, ((T*)map[begin_block]) + deque_node_size<T>);
+				for (auto i = begin_block + 1; i < end_block; ++i)
+					muiltdestory(map[i], ((T*)map[i]) + deque_node_size<T>);
+				muiltdestory(map[end_block], b_end);
 			}
 			else
-				--b_end;
+				muiltdestory(b_begin, b_end);
+			for (auto j = 0; j != block_size; ++j)
+				destoryblock(map[j]);
+			alloc.deallocate(map,block_max_size);
+			map = nullptr;
+			block_max_size = 0;    
+			block_size = 0;   
+			begin_block = 0; 
+			end_block = 0;   
+			ssize = 0;
+			b_begin = nullptr;
+			b_end = nullptr;
 		}
 
-		void push_front(const T& value)
-		{
-			emplace_front(value);
-		}
-		void push_front(T&& value) 
-		{
-			emplace_front(value);
-		}
 
-		template< class... Args >
-		T& emplace_front(Args&&... args);
 
-		void pop_front();
 
-		void resize(size_t count);
-		void resize(size_t count, const T& value);
-
-		void swap(deque& other) noexcept//();
-		{
-			if(other.alloc == alloc)
-			{
-				
-			}
-			else
-			{
-#ifdef DEBUG
-				assert(false, "It's not defined that allocator is not eaqul");
-#else
-				deque temp1(std::move(other), alloc);
-				deque temp2(std::move(*this), other.alloc);
-				this->swap(temp1);
-				other.swap(temp2);
-#endif
-			}
-		}
-
-		~deque()noexcept
+		~deque()
 		{
 			clear();
 		}
 	private:
 		map_type makeblock()
 		{
-			block_Allocator all(alloc);
-			return all.allocate();
-		}
-
-		void destroyblock(map_type t)
-		{
-			block_Allocator all(alloc);
-			all.deallocate(t);
-		}
-
-		void makemap(size_t cap)
-		{
-			auto k = cap >> deque_node_size_log<T> +(cap&-cap == cap ? 0 : 1);
-			auto kk = trans(k);
-			map_type* temp;
+			block_Allocator allo(alloc);
+			map_type k = nullptr;
 			try
 			{
-				temp = alloc.allocate(kk);
-				memset(temp, 0, kk);
-				if (table)
-					memcpy(temp, table, back_table );
+				k = allo.allocate();
 			}
-			catch (bad_alloc&) { throw; }
-			catch (...) { alloc.deallocate(temp);throw; }
-			auto i = back_table;
-			try
+			catch(bad_alloc&)
 			{
-				for (; i != k; ++i)
-					temp[i] = makeblock();
+				throw;
 			}
 			catch(...)
 			{
-				for (auto j = back_table; j != i; ++j)
-					destroyblock(temp[i]);
-				alloc.deallocate(temp);
+				allo.deallocate(k);
 				throw;
 			}
-			back_table = k;
-			block_size = kk;
-			swap(temp, table);
-			alloc.deallocate(temp);
+			return k;
 		}
-		//todo
-		static size_t trans(size_t cap)noexcept
+
+		void destoryblock(map_type t)noexcept
 		{
-			return cap;
+			block_Allocator allo(alloc);
+			allo.deallocate(t);
+		}
+
+		static void muiltdestory(T* a,T*b)noexcept
+		{
+			for (auto i = a; i != b; ++i)
+				(*i).~T();
+		}
+
+		void kuorong()
+		{
+			
 		}
 	};
 	template< class T, class Alloc >
