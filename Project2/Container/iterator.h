@@ -7,8 +7,8 @@ namespace uuz
 	template<typename T>
 	class reverse_iterator
 	{
-		typename value_type = typename T::value_type;
-		typename iterator_type = typename T::iterator_type;
+		using value_type = typename T::value_type;
+		using iterator_type = typename T::iterator_type;
 	};
 
 

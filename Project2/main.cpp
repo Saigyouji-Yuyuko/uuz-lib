@@ -49,7 +49,7 @@
 
 int main()
 {
-	RUN_ALL_TESTS();
+	uuz::println(1 << 2);
 	system("pause");
 	return 0;
 }

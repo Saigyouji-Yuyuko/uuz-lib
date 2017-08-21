@@ -108,7 +108,7 @@ namespace uuz
 		}
 		friend bool operator<(const self& a, const self& b)noexcept
 		{
-			return a.now < b.now;
+			return a.this_block == b.this_block ? a.this_block < b.this_block : a.now < b.now;
 		}
 		friend bool operator>(const self& a, const self& b)noexcept
 		{
@@ -177,6 +177,11 @@ namespace uuz
 		T* b_end = nullptr;
 		Allocator alloc;
 	public:
+
+		Allocator get_allocator()
+		{
+			return alloc;
+		}
 
 		T& at(size_t pos)
 		{
@@ -248,6 +253,146 @@ namespace uuz
 			return iterator(map + end_block, b_end);
 		}
 
+		iterator erase(const iterator& pos)
+		{
+			return erase(pos, pos + 1);
+		}
+		iterator erase(const iterator& first, const iterator& last)
+		{
+			auto k = last - first;
+			move_or_copy_ass_for(last, end() - last, first);
+			auto d = end() - k;
+			auto kk = end();
+			end_block = d.this_block - map;
+			b_end = d.now;
+			for (auto i = end(); i != kk; ++i)
+				(*i).~T();
+			ssize -= k;
+			return first;
+		}
+
+		iterator insert(const iterator& pos, const T& value)
+		{
+			return emplace(pos, value);
+		}
+		iterator insert(const iterator& pos, T&& value)
+		{
+			return emplace(pos, std::move(value));
+		}
+		iterator insert(const iterator& pos, size_t count, const T& value)
+		{
+			auto p = pos - begin();
+			if (p < size() >> 1)
+			{
+				kuorong(count, true);
+				auto k = begin();
+				k -= count;
+				if (count <= p)
+				{
+					move_or_copy_con(begin(), count , k);
+					move_or_copy_ass_for(begin() + p - count, p - count, begin());
+				}
+				else
+					move_or_copy_con(k, p, begin());
+				b_begin = k.now;
+				begin_block = k.this_block - map;
+				auto kk = begin() + count + p;
+				for (auto i = begin() + p; i != kk; ++i)
+					new(&*(i)) T(value);
+			}
+			else
+			{
+				kuorong(count, false);
+				auto k = end();
+				k += count;
+				if (count <= ssize-p)
+				{
+					move_or_copy_con(end() - count, count, end());
+					move_or_copy_ass_back(begin() + p - count, p - count, begin());
+				}
+				else
+					move_or_copy_con(k, p, begin());
+				b_end = k.now;
+				end_block = k.this_block - map;
+				new(&*(begin() + p + 1)) T(std::forward<Args>(args)...);
+			}
+			ssize += count;
+			return begin() + p;
+			
+		}
+		template< class InputIt ,typename = is_input<T,InputIt>>
+		iterator insert(const iterator& pos, InputIt first, InputIt last)
+		{
+			
+		}
+		iterator insert(const iterator& pos, std::initializer_list<T> ilist)
+		{
+			return insert(pos, ilist.begin(), ilist.end());
+		}
+
+		template< class... Args >
+		iterator emplace(const iterator& pos, Args&&... args)
+		{
+			if(pos ==begin())
+			{
+				emplace_front(std::forward<Args>(args)...);
+				return begin();
+			}
+			else if(pos ==end())
+			{
+				emplace_back(std::forward<Args>(args)...);
+				return end();
+			}
+			auto p = pos - begin();
+			if(p < size()>>1)
+			{
+				kuorong(1, true);
+				auto k = begin();
+				--k;
+				move_or_copy_con(b_begin, 1, k.now);
+				move_or_copy_ass_for(begin() + 1, p, begin());
+				b_begin = k.now;
+				begin_block = k.this_block - map;
+				new(&*(begin() + p + 1)) T(std::forward<Args>(args)...);
+			}
+			else
+			{
+				kuorong(1, false);
+				auto k = end();
+				++k;
+				move_or_copy_con(b_end, 1, k.now);
+				move_or_copy_ass_back(begin() + p, ssize - p, begin() + p + 1);
+				b_end = k.now;
+				end_block = k.this_block - map;
+				new(&*(begin() + p + 1)) T(std::forward<Args>(args)...);
+			}
+			++ssize;
+			return begin() + p;
+		}
+
+		void push_back(const T& value)
+		{
+			emplace_back(value);
+		}
+		void push_back(T&& value)
+		{
+			emplace_back(std::move(value));
+		}
+
+		template< typename... Args >
+		T& emplace_back(Args&&... args)
+		{
+			kuorong(1, true);
+			if (b_begin == static_cast<T*>(map[begin_block]))
+			{
+				--begin_block;
+				b_begin = static_cast<T*>(map[begin_block]) + deque_node_size<T> - 1;
+			}
+			new(b_begin) T(std::forward<Args>(args)...);
+			++ssize;
+			return *b_begin;
+		}
+
 		void pop_back()
 		{
 			back().~T();
@@ -258,6 +403,30 @@ namespace uuz
 			}
 			else
 				--b_end;
+		}
+
+		void push_front(const T& value)
+		{
+			 emplace_front(value);
+		}
+		void push_front(T&& value)
+		{
+			 emplace_front(std::move(value));
+		}
+		
+		template< typename... Args >
+		T& emplace_front(Args&&... args)
+		{
+			kuorong(1, false);
+			new(b_end) T(std::forward<Args>(args)...);
+			++b_end;
+			if (b_end == static_cast<T*>(map[end_block])+deque_node_size<T>)
+			{
+				++end_block;
+				b_end = static_cast<T*>(map[end_block]) ;
+			}	
+			++ssize;
+			return *b_end;
 		}
 
 		void pop_front()
@@ -286,17 +455,27 @@ namespace uuz
 			return size();
 		}
 
-		void clear()
+		size_t capacity() const noexcept
+		{
+			return block_size * deque_node_size<T>;
+		}
+
+		void clean()noexcept
 		{
 			if (begin_block != end_block)
 			{
-				muiltdestory(b_begin, ((T*)map[begin_block]) + deque_node_size<T>);
+				muiltdestory(b_begin, block_end(map[begin_block]));
 				for (auto i = begin_block + 1; i < end_block; ++i)
-					muiltdestory(map[i], ((T*)map[i]) + deque_node_size<T>);
-				muiltdestory(map[end_block], b_end);
+					muiltdestory(block_first(map[i]), block_end(map[i]));
+				muiltdestory(block_first(map[end_block]), b_end);
 			}
 			else
 				muiltdestory(b_begin, b_end);
+		}
+
+		void clear()
+		{
+			clean();
 			for (auto j = 0; j != block_size; ++j)
 				destoryblock(map[j]);
 			alloc.deallocate(map,block_max_size);
@@ -310,8 +489,27 @@ namespace uuz
 			b_end = nullptr;
 		}
 
-
-
+		void swap(deque& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			if(other.alloc == alloc)
+			{
+				char temp[sizeof(deque<T>)];
+				memcpy(temp, this, sizeof(deque<T>));
+				memcpy(this, &other, sizeof(deque<T>));
+				memccpy(&other, temp, sizeof(deque<T>));
+			}
+			else
+			{
+#ifdef DEBUG
+				assert(false, "It's not defined that allocator is not equal!");
+#else // DEBUG
+				deque t1(other, alloc);
+				deque t2(*this, other.alloc);
+				this->swap(t1);
+				this->swap(t2);
+#endif
+			}
+		}
 
 		~deque()
 		{
@@ -341,7 +539,7 @@ namespace uuz
 		void destoryblock(map_type t)noexcept
 		{
 			block_Allocator allo(alloc);
-			allo.deallocate(t);
+			allo.deallocate(t, 1);
 		}
 
 		static void muiltdestory(T* a,T*b)noexcept
@@ -350,9 +548,138 @@ namespace uuz
 				(*i).~T();
 		}
 
-		void kuorong()
+		static T* block_first(map_type a)noexcept
 		{
-			
+			return static_cast<T*>(a);
+		}
+
+		static T* block_end(map_type a)noexcept
+		{
+			return static_cast<T*>(a) + deque_node_size<T>;
+		}
+
+		void kuorong(size_t s,bool front)
+		{
+			if(front && b_begin - block_first(map[begin_block]) < s)
+			{
+				auto  need_buffer = ((s - (b_begin - block_first(map[begin_block])))>>deque_node_size_log<T>) + 1;
+				if(begin_block < need_buffer)
+				{
+					auto k = need_buffer - begin_block;
+					if(block_size > end_block + k )//后面有空余块时
+					{
+						std::rotate(map + begin_block, map + end_block + 1,map + end_block + k);
+						begin_block += k;
+						end_block += k;
+					}
+					else if(block_size + k < block_max_size)//后面空余块不够，但是map还够的时候
+					{
+						memmove(map + begin_block + k, map + begin_block, block_size - begin_block);
+						auto i = begin_block;
+						try
+						{
+							for (; i != begin_block + k; ++i)
+								map[i] = makeblock();
+						}
+						catch(...)
+						{
+							for (auto j = begin_block; j != i; ++j)
+								destoryblock(map[j]);
+							memcpy(map + begin_block, map + begin_block + k, block_size - begin_block);
+							throw;
+						}
+						begin_block += k;
+						end_block += k;
+						block_size += k;
+					}
+					else//都不够
+					{
+						map_type* kk = nullptr;
+						auto i = 0;
+						try
+						{
+							kk = alloc.allocate(trans(block_max_size + k));
+							for (; i != k; ++i)
+								kk[i] = makeblock();
+						}
+						catch(...)
+						{
+							if(kk)
+							{
+								for (auto j = 0; j != i; ++j)
+									destoryblock(kk[i]);
+								alloc.deallocate(kk);
+							}
+							throw;
+						}
+						if(map)
+							memcpy(kk + k, map, block_size);
+						::swap(kk, map);
+						alloc.deallocate(kk);
+						block_max_size = trans(block_max_size + k);
+						block_size += k;
+						begin_block += k;
+						end_block += k;
+					}
+				}
+			}
+			else if(!front && block_end(map[end_block]) - b_end < s)
+			{
+				auto  need_buffer = ((s - (block_end(map[end_block]) - b_end)) >> deque_node_size_log<T>) +1;
+				if(block_size - end_block - 1 < need_buffer)
+				{
+					auto k = need_buffer - block_size + end_block + 1;
+					if(begin_block >= k)
+					{
+						std::rotate(map, map + k, map + block_size);
+						begin_block -= k;
+						end_block -= k;
+					}
+					else if(block_size + k < block_max_size)
+					{
+						auto i = 0;
+						try
+						{
+							for (; i != k; ++i)
+								map[block_size + i] = makeblock();
+						}
+						catch(...)
+						{
+							for (auto j = 0; j != i; ++j)
+								destoryblock(map[block_size + j]);
+							throw;
+						}
+						block_size += k;
+					}
+					else
+					{
+						map_type* kk = nullptr;
+						auto i = 0;
+						try
+						{
+							kk = alloc.allocate(trans(block_max_size + k));
+							for (; i != k; ++i)
+								kk[block_size + i] = makeblock();
+						}
+						catch (...)
+						{
+							if (kk)
+							{
+								for (auto j = 0; j != i; ++j)
+									destoryblock(kk[block_size + i]);
+								alloc.deallocate(kk);
+							}
+							throw;
+						}
+						if (map)
+							memcpy(kk, map, block_size);
+						::swap(kk, map);
+						alloc.deallocate(kk);
+						block_max_size = trans(block_max_size + k);
+						block_size += k;
+					}
+				}
+			}
 		}
 	};
 	template< class T, class Alloc >

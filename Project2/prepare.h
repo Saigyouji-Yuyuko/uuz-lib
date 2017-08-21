@@ -19,6 +19,62 @@ namespace uuz
 	template<typename T,typename InputIt>//测试InputIt是否为T类型的迭代器或指针
 	using is_input = std::enable_if_t<std::is_same_v<T, std::decay_t<decltype(*std::declval<InputIt>())>>>;
 
+	template<typename It, typename T = std::decay_t<decltype(*std::declval<It>())>>
+	void move_or_copy_con(It src, size_t t, It to,
+		typename std::enable_if_t<std::is_nothrow_move_constructible_v<T> ||
+		(!std::is_nothrow_copy_constructible_v<T>&&std::is_move_constructible_v<T>)>* = nullptr)noexcept(std::is_nothrow_move_constructible_v<T>)
+	{
+		if (src == to)
+			return;
+		auto k = src;
+		auto k2 = to;
+		auto i = 0;
+		try
+		{
+			for (; i != t; ++i, (void)++k, (void)++k2)
+				new(&*(k2)) T(std::move(*(k)));
+		}
+		catch (...)
+		{
+			auto k3 = to;
+			for (auto j = 0; j != i; ++j)
+			{
+				(*k3).~T();
+				++k3;
+			}
+			throw;
+		}
+		return;
+	}
+	template<typename It, typename T = std::decay_t<decltype(*std::declval<It>())>>
+	void move_or_copy_con(It src, size_t t, It to,
+		typename std::enable_if_t<(!std::is_nothrow_move_constructible_v<T> && std::is_nothrow_copy_constructible_v<T>)
+		|| (!std::is_move_constructible_v<T> && std::is_copy_constructible_v<T>)>* = nullptr)
+		noexcept(std::is_nothrow_copy_constructible_v<T>)
+	{
+		if (src == to)
+			return;
+		auto k = src;
+		auto k2 = to;
+		auto i = 0;
+		try
+		{
+			for (; i != t; ++i, (void)++k, (void)++k2)
+				new(&*(k2)) T(*(k));
+		}
+		catch (...)
+		{
+			auto k3 = to;
+			for (auto j = 0; j != i; ++j)
+			{
+				(*k3).~T();
+				++k3;
+			}
+			throw;
+		}
+		return;
+	}
+
 
 	//考虑将src中的T个位置尽量移动到to中，其中to是脏数据
 	template<typename T>
@@ -92,6 +148,122 @@ namespace uuz
 	{
 		static_assert(!std::is_trivially_constructible_v<T> && !std::is_copy_assignable_v<T> && !std::is_move_assignable_v<T>, "T can't move or copy\n");
 	}
+
+	template<typename It,typename T = std::decay_t<decltype(*std::declval<It>())>>
+	void move_or_copy_ass_for(It src,size_t t,It to, 
+		typename std::enable_if_t<std::is_nothrow_move_constructible_v<T> ||
+		(!std::is_nothrow_copy_constructible_v<T>&&std::is_move_constructible_v<T>)>* = nullptr)noexcept(std::is_nothrow_move_constructible_v<T>)
+	{
+		if (src == to)
+			return;
+		auto k = src;
+		auto k2 = to;
+		auto i = 0;
+		try
+		{
+			for (; i != t; ++i, (void)++k, (void)++k2)
+				*(k2) = std::move(*(k));
+		}
+		catch (...)
+		{
+			auto k3 = to;
+			for(auto j =0;j!=i;++j)
+			{
+				(*k3).~T();
+				++k3;
+			}
+			throw;
+		}
+		return;
+	}
+	template<typename It, typename T = std::decay_t<decltype(*std::declval<It>())>>
+	void move_or_copy_ass_for(It src, size_t t, It to,
+		typename std::enable_if_t<(!std::is_nothrow_move_constructible_v<T> && std::is_nothrow_copy_constructible_v<T>)
+							|| (!std::is_move_constructible_v<T> && std::is_copy_constructible_v<T>)>* = nullptr)
+		noexcept(std::is_nothrow_copy_constructible_v<T>)
+	{
+		if (src == to)
+			return;
+		auto k = src;
+		auto k2 = to;
+		auto i = 0;
+		try
+		{
+			for (; i != t; ++i, (void)++k, (void)++k2)
+				*(k2) = *(k);
+		}
+		catch (...)
+		{
+			auto k3 = to;
+			for (auto j = 0; j != i; ++j)
+			{
+				(*k3).~T();
+				++k3;
+			}
+			throw;
+		}
+		return;
+	}
+
+	template<typename It, typename T = std::decay_t<decltype(*std::declval<It>())>>
+	void move_or_copy_ass_back(It src, size_t t, It to,
+		typename std::enable_if_t<std::is_nothrow_move_constructible_v<T> ||
+		(!std::is_nothrow_copy_constructible_v<T>&&std::is_move_constructible_v<T>)>* = nullptr)noexcept(std::is_nothrow_move_constructible_v<T>)
+	{
+		if (src == to)
+			return;
+		auto k = src + (t - 1);
+		auto k2 = to + (t - 1);
+		auto i = t;
+		try
+		{
+			for (; i != t; ++i, (void)--k, (void)--k2)
+				*(k2) = std::move(*(k));
+		}
+		catch (...)
+		{
+			auto k3 = to + (t - 1);
+			for (auto j = 0; j != i; ++j)
+			{
+				(*k3).~T();
+				--k3;
+			}
+			throw;
+		}
+		return;
+	}
+	template<typename It, typename T = std::decay_t<decltype(*std::declval<It>())>>
+	void move_or_copy_ass_back(It src, size_t t, It to,
+		typename std::enable_if_t<(!std::is_nothrow_move_constructible_v<T> && std::is_nothrow_copy_constructible_v<T>)
+		|| (!std::is_move_constructible_v<T> && std::is_copy_constructible_v<T>)>* = nullptr)
+		noexcept(std::is_nothrow_copy_constructible_v<T>)
+	{
+		if (src == to)
+			return;
+		auto k = src + (t - 1);
+		auto k2 = to + (t - 1);
+		auto i = t;
+		try
+		{
+			for (; i != t; ++i, (void)--k, (void)--k2)
+				*(k2) = *(k);
+		}
+		catch (...)
+		{
+			auto k3 = to + (t - 1);
+			for (auto j = 0; j != i; ++j)
+			{
+				(*k3).~T();
+				--k3;
+			}
+			throw;
+		}
+		return;
+	}
+
+
+
+
 
 	//考虑将src中的T个位置尽量移动到to中，其中to是有效数据
 	template<typename T>
