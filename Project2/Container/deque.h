@@ -177,7 +177,120 @@ namespace uuz
 		T* b_end = nullptr;
 		Allocator alloc;
 	public:
+		deque() : deque(Allocator()) {}
+		explicit deque(const Allocator& alloc):alloc(alloc){}
+		deque(size_t count,const T& value,const Allocator& alloc = Allocator()):deque(alloc)
+		{
+			auto i = 0;
+			try
+			{
+				kuorong(count, true);
+				auto k = begin();
+				for(;i!=count;++i,(void)++k)
+					new(&*k) T(value);
+				auto t = begin() + count;
+				b_end = t.now;
+				block_end = t.this_block - map;
+				ssize = count;
+			}
+			catch(...)
+			{
+				auto kk = begin();
+				for (auto j = 0; j != i; ++j, (void)++kk)
+					kk->~T();
+				b_end = b_begin;
+				end_block = begin_block;
+				clear();
+				throw;
+			}
+		}
+		explicit deque(size_t count, const Allocator& alloc = Allocator()):deque(count,T{},alloc){}
+		template< class InputIt ,typename = is_input<T,InputIt>>
+		deque(InputIt first, InputIt last,const Allocator& alloc = Allocator()):deque(alloc)
+		{
+			auto i = first;
+			auto count = last - first;
+			try
+			{
+				kuorong(count, true);
+				auto k = begin();
+				for (; i != last; ++i, (void)++k)
+					new(&*k) T(*i);
+				auto t = begin() + count;
+				b_end = t.now;
+				block_end = t.this_block - map;
+				ssize = count;
+			}
+			catch (...)
+			{
+				auto kk = begin();
+				for (auto j = first; j != i; ++j, (void)++kk)
+					kk->~T();
+				b_end = b_begin;
+				end_block = begin_block;
+				clear();
+				throw;
+			}
+		}
+		deque(const deque& other):deque(other.begin(),other.end()){}
+		deque(const deque& other, const Allocator& alloc):deque(other.begin(),other.end(),alloc){}
+		deque(deque&& other):deque()
+		{
+			this->swap(other);
+		}
+		deque(deque&& other, const Allocator& alloc):deque()
+		{
+			this->swap(other);
+		}
+		deque(std::initializer_list<T> init,const Allocator& alloc = Allocator()):deque(init.begin(),inti.end(),alloc){}
+		
+		deque& operator=(const deque& other)
+		{
+			if(this != &other)
+			{
+				deque temp(other,alloc);
+				this->swap(temp);
+			}
+			return *this;
+		}
+		deque& operator=(deque&& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
+		{
+			if (this != &other)
+			{
+				deque temp(std::move(other), alloc);
+				this->swap(temp);
+			}
+			return *this;
+		}
+		deque& operator=(std::initializer_list<T> ilist)
+		{
+			deque temp(ilist, alloc);
+			this->swap(temp);
+			return *this;
+		}
+		
+		void assign(size_t count, const T& value)
+		{
+			deque temp(count, value, alloc);
+			this->swap(temp);
+			return *this;
+		}
+		template< class InputIt ,typename = is_input<T,InputIt>>
+		void assign(InputIt first, InputIt last)
+		{
+			deque temp(first, last, alloc);
+			this->swap(temp);
+			return *this;
+		}
+		void assign(std::initializer_list<T> ilist)
+		{
+			deque temp(ilist, alloc);
+			this->swap(temp);
+			return *this;
+		}
 
+		
+		
 		Allocator get_allocator()
 		{
 			return alloc;
@@ -253,6 +366,33 @@ namespace uuz
 			return iterator(map + end_block, b_end);
 		}
 
+		void shrink_to_fit()
+		{
+			iterator k{ map[0],block_first(map[0]) };
+			auto count = begin() - k;
+			if(count >= ssize)
+			{
+				move_or_copy_con(begin(), ssize, k);
+				for (auto i = begin(); i != end(); ++i)
+					(*i).~T();
+			}
+			else
+			{
+				move_or_copy_con(begin(), count, k);
+				move_or_copy_ass_for(begin() + count, ssize - count, begin());
+				for (auto i = begin()+count; i != end(); ++i)
+					(*i).~T();
+			}
+			b_begin = k.now;
+			begin_block = k.this_block;
+			k += ssize;
+			b_end = k.now;
+			end_block = k.this_block;
+			for (auto i = end_block; i != block_size; ++i)
+				destoryblock(map[i]);
+			block_size = end_block;
+		}
+
 		iterator erase(const iterator& pos)
 		{
 			return erase(pos, pos + 1);
@@ -296,8 +436,8 @@ namespace uuz
 					move_or_copy_con(k, p, begin());
 				b_begin = k.now;
 				begin_block = k.this_block - map;
-				auto kk = begin() + count + p;
-				for (auto i = begin() + p; i != kk; ++i)
+				auto kk = 0;
+				for (auto i = begin() + p; kk != p; ++i, (void)++kk)
 					new(&*(i)) T(value);
 			}
 			else
@@ -305,25 +445,65 @@ namespace uuz
 				kuorong(count, false);
 				auto k = end();
 				k += count;
-				if (count <= ssize-p)
+				if (count <= ssize - p)
 				{
 					move_or_copy_con(end() - count, count, end());
-					move_or_copy_ass_back(begin() + p - count, p - count, begin());
+					move_or_copy_ass_back(begin() + p - count, p - count, end() - count);
 				}
 				else
-					move_or_copy_con(k, p, begin());
+					move_or_copy_con(begin() + p, ssize - p, k - ssize + p);
 				b_end = k.now;
 				end_block = k.this_block - map;
-				new(&*(begin() + p + 1)) T(std::forward<Args>(args)...);
+				auto kk = 0;
+				for (auto i = begin() + p; kk!= p; ++i,(void)++kk)
+					new(&*(i)) T(value);
 			}
 			ssize += count;
 			return begin() + p;
-			
 		}
 		template< class InputIt ,typename = is_input<T,InputIt>>
 		iterator insert(const iterator& pos, InputIt first, InputIt last)
 		{
-			
+			auto count = last - first;
+			auto p = pos - begin();
+			if (p < size() >> 1)
+			{
+				kuorong(count, true);
+				auto k = begin();
+				k -= count;
+				if (count <= p)
+				{
+					move_or_copy_con(begin(), count, k);
+					move_or_copy_ass_for(begin() + p - count, p - count, begin());
+				}
+				else
+					move_or_copy_con(k, p, begin());
+				b_begin = k.now;
+				begin_block = k.this_block - map;
+				auto j = first;
+				for (auto i = begin() + p; j!=last; ++i, (void)++j)
+					new(&*(i)) T(*j);
+			}
+			else
+			{
+				kuorong(count, false);
+				auto k = end();
+				k += count;
+				if (count <= ssize - p)
+				{
+					move_or_copy_con(end() - count, count, end());
+					move_or_copy_ass_back(begin() + p - count, p - count, end() - count);
+				}
+				else
+					move_or_copy_con(begin() + p, ssize - p, k - ssize + p);
+				b_end = k.now;
+				end_block = k.this_block - map;
+				auto j = first;
+				for (auto i = begin() + p; j != last; ++i, (void)++j)
+					new(&*(i)) T(*j);
+			}
+			ssize += count;
+			return begin() + p;
 		}
 		iterator insert(const iterator& pos, std::initializer_list<T> ilist)
 		{
@@ -403,6 +583,7 @@ namespace uuz
 			}
 			else
 				--b_end;
+			--ssize;
 		}
 
 		void push_front(const T& value)
@@ -438,6 +619,7 @@ namespace uuz
 				++begin_block;
 				b_begin = static_cast<T*>(map[begin_block]);
 			}
+			--ssize;
 		}
 
 		bool empty() const noexcept
@@ -460,6 +642,28 @@ namespace uuz
 			return block_size * deque_node_size<T>;
 		}
 
+
+		void resize(size_t count)
+		{
+			return resize(count, T{});
+		}
+		void resize(size_t count, const T& value)
+		{
+			if(ssize >= count)
+				erase(begin() + count, end());
+			else
+			{
+				kuorong(count - ssize, false);
+				auto k = end();
+				for (auto i = 0; i != count - ssize; ++i, (void)++k)
+					new(&*k) T(value);
+				k = end() + count - ssize;
+				b_end = k.now;
+				end_block = k.this_block - map;
+			}
+			ssize = count;
+		}
+
 		void clean()noexcept
 		{
 			if (begin_block != end_block)
@@ -471,6 +675,11 @@ namespace uuz
 			}
 			else
 				muiltdestory(b_begin, b_end);
+			ssize = 0;
+			begin_block = 0;
+			end_block = 0;
+			b_begin = map[0];
+			b_end = map[0];
 		}
 
 		void clear()
@@ -483,8 +692,7 @@ namespace uuz
 			block_max_size = 0;    
 			block_size = 0;   
 			begin_block = 0; 
-			end_block = 0;   
-			ssize = 0;
+			end_block = 0;
 			b_begin = nullptr;
 			b_end = nullptr;
 		}
@@ -682,18 +890,57 @@ namespace uuz
 			}
 		}
 	};
+	namespace
+	{
+		template< class T, class Alloc >
+		int compare(const deque<T, Alloc>& lhs, const deque<T, Alloc>& rhs)noexcept
+		{
+			auto i = lhs.begin();
+			auto j = rhs.begin();
+			for (; i != lhs.end() && j != rhs.end();++i,(void)++j)
+			{
+				if (*i < *j)
+					return -1;
+				else if (*j > *i)
+					return 1;
+			}
+			if (lhs.size() > rhs.size())
+				return 1;
+			else if (rhs.size() > lhs.size())
+				return -1;
+			return 0;
+		}
+	}
 	template< class T, class Alloc >
-	bool operator==(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs);
+	bool operator==(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs)noexcept
+	{
+		return lhs.size() == rhs.size() && compare(lhs, rhs) == 0;
+	}
 	template< class T, class Alloc >
-	bool operator!=(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs);
+	bool operator!=(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs)noexcept
+	{
+		return !(lhs == rhs);
+	}
 	template< class T, class Alloc >
-	bool operator<(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs);
+	bool operator<(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) < 0;
+	}
 	template< class T, class Alloc >
-	bool operator<=(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs);
+	bool operator<=(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) <= 0;
+	}
 	template< class T, class Alloc >
-	bool operator>(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs);
+	bool operator>(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) > 0;
+	}
 	template< class T, class Alloc >
-	bool operator>=(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs);
+	bool operator>=(const deque<T, Alloc>& lhs,const deque<T, Alloc>& rhs)noexcept
+	{
+		return compare(lhs, rhs) >= 0;
+	}
 
 	template< class T, class Alloc >
 	void swap(deque<T, Alloc>& lhs,deque<T, Alloc>& rhs) noexcept(noexcept(lhs.swap(rhs)))
