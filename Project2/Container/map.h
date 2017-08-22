@@ -10,17 +10,17 @@ namespace
 		map_less() :cmp(compare()) {}
 		map_less(const compare& t) :cmp(t) {}
 
-		bool operator()(const Key& a, const pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
+		bool operator()(const Key& a, const uuz::pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a, b.first);
 		}
 
-		bool operator()(const pair<const Key, T>& a, const pair<const Key, T>& b)noexcept(noexcept(cmp(a.first, a.first)))
+		bool operator()(const uuz::pair<const Key, T>& a, const uuz::pair<const Key, T>& b)noexcept(noexcept(cmp(a.first, a.first)))
 		{
 			return cmp(a.first, b.first);
 		}
 
-		bool operator()(const pair<const Key, T>& a, const Key& b)noexcept(noexcept(cmp(b, b)))
+		bool operator()(const uuz::pair<const Key, T>& a, const Key& b)noexcept(noexcept(cmp(b, b)))
 		{
 			return cmp(a.first, b);
 		}
@@ -31,13 +31,13 @@ namespace
 		}
 
 		template<typename K>
-		bool operator()(const K& a, const pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
+		bool operator()(const K& a, const uuz::pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a, b.first);
 		}
 
 		template<typename K>
-		bool operator()(const pair<const Key, T>& a,const K&  b)noexcept(noexcept(cmp(a, a)))
+		bool operator()(const uuz::pair<const Key, T>& a,const K&  b)noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a.first, b);
 		}
@@ -92,7 +92,7 @@ namespace uuz
 	class map: public rb_tree<pair<const Key,T>,map_less<Key,T, Compare>, Allocator>
 	{
 	public:
-		using iterator = rb_tree<pair<const Key, T>, map_less<Key, T, Compare>, Allocator>::iterator;
+		using iterator =typename rb_tree<pair<const Key, T>, map_less<Key, T, Compare>, Allocator>::iterator;
 		using value_type = pair<const Key, T>;
 		using allocator_type = typename rb_tree::Allocator;
 		using node_type = map_node<Key, T, allocator_type>;
@@ -347,7 +347,7 @@ namespace uuz
 			return iterator(k);
 		}
 		template< class K > 
-		const_iterator find(const K& x) const
+		const iterator find(const K& x) const
 		{
 			auto k = truefind(x);
 			return iterator(k);

@@ -45,11 +45,32 @@
 //#include<iomanip>
 //#include<fstream>
 #pragma warning(disable:4996)
+class A
+{
+	
+};
+class B : public A
+{
+	
+};
 
 
 int main()
 {
-	uuz::println(1 << 2);
+	try
+	{
+		throw B();
+	}
+	catch(const A&)
+	{
+		std::cout << "1";
+	}
+
+	catch(...)
+	{
+		std::cout << "2";
+	}
+
 	system("pause");
 	return 0;
 }

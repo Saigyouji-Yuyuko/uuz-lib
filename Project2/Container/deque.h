@@ -23,7 +23,7 @@ namespace uuz
 		template<typename T1, typename A>
 		friend class deque;
 		using self = deque_iterator<T>;
-		using block = T[deque_node_size];
+		using block = T[deque_node_size<T>];
 		using map_type = block*;
 
 		self& operator+=(const int t)noexcept
@@ -161,7 +161,7 @@ namespace uuz
 	class deque
 	{
 	public:
-		using block = T[deque_node_size];
+		using block = T[deque_node_size<T>];
 		using block_Allocator = typename uuz::exchange<A, block>::type;
 		using map_type = block*;
         using Allocator = typename uuz::exchange<A, map_type>::type;
