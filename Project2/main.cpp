@@ -11,7 +11,7 @@
 #include"Container\forward_list.h"
 #include"Container\set.h"
 #include"test\Container\vector_test.h"
-//#include"Container\deque.h"
+#include"Container\deque.h"
 //#include"Container/string.h"
 //#include"Container/pair.h"
 //#include"Container/list.h"
@@ -48,8 +48,7 @@
 #pragma warning(disable:4996)
 int main()
 {
-	std::vector<int>p{ 1,2,3,4,5,6,7,8,9 };
-	std::rotate(p.begin(), p.begin() + 5, p.end());
+	uuz::deque<int>p(5,5);
 	for (auto i : p)
 		std::cout << i << " ";
 	system("pause");
