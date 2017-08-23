@@ -170,11 +170,8 @@ namespace uuz
 		map_type* map = nullptr; //map指针
 		size_t block_max_size = 0;    //map大小
 		size_t block_size = 0;   // 有效block数
-		size_t begin_block = 0;  //begin的block
-		size_t end_block = 0;    //end 的block
-		size_t ssize = 0;       
-		T* b_begin = nullptr;  
-		T* b_end = nullptr;
+		iterator _begin;
+		iterator _end;
 		Allocator alloc;
 	public:
 		deque() : deque(Allocator()) {}
@@ -185,21 +182,18 @@ namespace uuz
 			try
 			{
 				kuorong(count, true);
-				auto k = begin();
+				auto k = iterator(map[0], block_first(map[0]));
+				_begin = k;
 				for(;i!=count;++i,(void)++k)
 					new(&*k) T(value);
-				auto t = begin() + count;
-				b_end = t.now;
-				block_end = t.this_block - map;
-				ssize = count;
+				_end = _begin + count;
 			}
 			catch(...)
 			{
 				auto kk = begin();
 				for (auto j = 0; j != i; ++j, (void)++kk)
 					kk->~T();
-				b_end = b_begin;
-				end_block = begin_block;
+				_end = _begin;
 				clear();
 				throw;
 			}
@@ -213,21 +207,19 @@ namespace uuz
 			try
 			{
 				kuorong(count, true);
-				auto k = begin();
+				auto k = iterator(map[0], block_first(map[0]));
+				_begin = k;
 				for (; i != last; ++i, (void)++k)
 					new(&*k) T(*i);
-				auto t = begin() + count;
-				b_end = t.now;
-				block_end = t.this_block - map;
+				_end = _begin + count;
 				ssize = count;
 			}
 			catch (...)
 			{
 				auto kk = begin();
 				for (auto j = first; j != i; ++j, (void)++kk)
-					kk->~T();
-				b_end = b_begin;
-				end_block = begin_block;
+					kk->~T(); 
+				_end = _begin;
 				clear();
 				throw;
 			}
@@ -320,77 +312,71 @@ namespace uuz
 
 		T& front()noexcept
 		{
-			return *b_begin;
+			return *_begin;
 		}
 		const T& front() const noexcept
 		{
-			return *b_begin;
+			return *_begin;
 		}
 
 		T& back()
 		{
-			if (b_end == map[end_block])
-				return *(static_cast<T*>(map[end_block - 1]) + deque_node_size<T>-1);
-			return *(b_end - 1);
+			return *_end;
 		}
 		const T& back() const
 		{
-			if (b_end == map[end_block])
-				return *(static_cast<T*>(map[end_block - 1]) + deque_node_size<T>-1);
-			return *(b_end - 1);
+			return *_end;
 		}
 
 		iterator begin() noexcept
 		{
-			return iterator(map + begin_block, b_begin);
+			return _begin;
 		}
 		const iterator begin() const noexcept
 		{
-			return iterator(map + begin_block, b_begin);
+			return _begin;
 		}
 		const iterator cbegin() const noexcept
 		{
-			return iterator(map + begin_block, b_begin);
+			return _begin;
 		}
 
 		iterator end() noexcept
 		{
-			return iterator(map + end_block, b_end);
+			return _end;
 		}
 		const iterator end() const noexcept
 		{
-			return iterator(map + end_block, b_end);
+			return _end;
 		}
 		const iterator cend() const noexcept
 		{
-			return iterator(map + end_block, b_end);
+			return _end;
 		}
 
 		void shrink_to_fit()
 		{
 			iterator k{ map[0],block_first(map[0]) };
 			auto count = begin() - k;
-			if(count >= ssize)
+			if(count >= size())
 			{
-				move_or_copy_con(begin(), ssize, k);
+				move_or_copy_con(begin(), size(), k);
 				for (auto i = begin(); i != end(); ++i)
 					(*i).~T();
 			}
 			else
 			{
 				move_or_copy_con(begin(), count, k);
-				move_or_copy_ass_for(begin() + count, ssize - count, begin());
+				move_or_copy_ass_for(begin() + count, size() - count, begin());
 				for (auto i = begin()+count; i != end(); ++i)
 					(*i).~T();
 			}
-			b_begin = k.now;
-			begin_block = k.this_block;
-			k += ssize;
-			b_end = k.now;
-			end_block = k.this_block;
-			for (auto i = end_block; i != block_size; ++i)
+			auto temp = size();
+			_begin = k;
+			_end = _begin + temp;
+			for (auto i = _end.this_block - map + 1; i != block_size; ++i)
 				destoryblock(map[i]);
-			block_size = end_block;
+			block_size = _end.this_block - map;
 		}
 
 		iterator erase(const iterator& pos)
@@ -401,13 +387,10 @@ namespace uuz
 		{
 			auto k = last - first;
 			move_or_copy_ass_for(last, end() - last, first);
-			auto d = end() - k;
 			auto kk = end();
-			end_block = d.this_block - map;
-			b_end = d.now;
+			_end -= k;
 			for (auto i = end(); i != kk; ++i)
 				(*i).~T();
-			ssize -= k;
 			return first;
 		}
 
@@ -434,8 +417,7 @@ namespace uuz
 				}
 				else
 					move_or_copy_con(k, p, begin());
-				b_begin = k.now;
-				begin_block = k.this_block - map;
+				_begin = k;
 				auto kk = 0;
 				for (auto i = begin() + p; kk != p; ++i, (void)++kk)
 					new(&*(i)) T(value);
@@ -445,20 +427,18 @@ namespace uuz
 				kuorong(count, false);
 				auto k = end();
 				k += count;
-				if (count <= ssize - p)
+				if (count <= size() - p)
 				{
 					move_or_copy_con(end() - count, count, end());
 					move_or_copy_ass_back(begin() + p - count, p - count, end() - count);
 				}
 				else
-					move_or_copy_con(begin() + p, ssize - p, k - ssize + p);
-				b_end = k.now;
-				end_block = k.this_block - map;
+					move_or_copy_con(begin() + p, size() - p, k - size() + p);
+				_end = k;
 				auto kk = 0;
 				for (auto i = begin() + p; kk!= p; ++i,(void)++kk)
 					new(&*(i)) T(value);
 			}
-			ssize += count;
 			return begin() + p;
 		}
 		template< class InputIt ,typename = is_input<T,InputIt>>
@@ -478,8 +458,7 @@ namespace uuz
 				}
 				else
 					move_or_copy_con(k, p, begin());
-				b_begin = k.now;
-				begin_block = k.this_block - map;
+				_begin = k;
 				auto j = first;
 				for (auto i = begin() + p; j!=last; ++i, (void)++j)
 					new(&*(i)) T(*j);
@@ -489,20 +468,18 @@ namespace uuz
 				kuorong(count, false);
 				auto k = end();
 				k += count;
-				if (count <= ssize - p)
+				if (count <= size() - p)
 				{
 					move_or_copy_con(end() - count, count, end());
 					move_or_copy_ass_back(begin() + p - count, p - count, end() - count);
 				}
 				else
-					move_or_copy_con(begin() + p, ssize - p, k - ssize + p);
-				b_end = k.now;
-				end_block = k.this_block - map;
+					move_or_copy_con(begin() + p, size() - p, k - size() + p);
+				_end = k;
 				auto j = first;
 				for (auto i = begin() + p; j != last; ++i, (void)++j)
 					new(&*(i)) T(*j);
 			}
-			ssize += count;
 			return begin() + p;
 		}
 		iterator insert(const iterator& pos, std::initializer_list<T> ilist)
@@ -529,10 +506,9 @@ namespace uuz
 				kuorong(1, true);
 				auto k = begin();
 				--k;
-				move_or_copy_con(b_begin, 1, k.now);
+				move_or_copy_con(begin(), 1, k);
 				move_or_copy_ass_for(begin() + 1, p, begin());
-				b_begin = k.now;
-				begin_block = k.this_block - map;
+				_begin = k;
 				new(&*(begin() + p + 1)) T(std::forward<Args>(args)...);
 			}
 			else
@@ -540,13 +516,11 @@ namespace uuz
 				kuorong(1, false);
 				auto k = end();
 				++k;
-				move_or_copy_con(b_end, 1, k.now);
-				move_or_copy_ass_back(begin() + p, ssize - p, begin() + p + 1);
-				b_end = k.now;
-				end_block = k.this_block - map;
+				move_or_copy_con(end(), 1, k);
+				move_or_copy_ass_back(begin() + p, size() - p, begin() + p + 1);
+				_end = k;
 				new(&*(begin() + p + 1)) T(std::forward<Args>(args)...);
 			}
-			++ssize;
 			return begin() + p;
 		}
 
@@ -562,28 +536,16 @@ namespace uuz
 		template< typename... Args >
 		T& emplace_back(Args&&... args)
 		{
-			kuorong(1, true);
-			if (b_begin == static_cast<T*>(map[begin_block]))
-			{
-				--begin_block;
-				b_begin = static_cast<T*>(map[begin_block]) + deque_node_size<T> - 1;
-			}
-			new(b_begin) T(std::forward<Args>(args)...);
-			++ssize;
-			return *b_begin;
+			kuorong(1, false);
+			++_end;
+			new(_end.now) T(std::forward<Args>(args)...);
+			return *_end;
 		}
 
 		void pop_back()
 		{
 			back().~T();
-			if (b_end == map[end_block])
-			{
-				--end_block;
-				b_end = static_cast<T*>(map[end_block]) + deque_node_size<T> -1;
-			}
-			else
-				--b_end;
-			--ssize;
+			--_end;
 		}
 
 		void push_front(const T& value)
@@ -598,38 +560,26 @@ namespace uuz
 		template< typename... Args >
 		T& emplace_front(Args&&... args)
 		{
-			kuorong(1, false);
-			new(b_end) T(std::forward<Args>(args)...);
-			++b_end;
-			if (b_end == static_cast<T*>(map[end_block])+deque_node_size<T>)
-			{
-				++end_block;
-				b_end = static_cast<T*>(map[end_block]) ;
-			}	
-			++ssize;
-			return *b_end;
+			kuorong(1, true);
+			--_begin;
+			new(_bgein.now) T(std::forward<Args>(args)...);
+			return *_begin;
 		}
 
 		void pop_front()
 		{
 			front().~T();
-			++b_begin;
-			if(b_begin == static_cast<T*>(map[begin_block])+deque_node_size<T>)
-			{
-				++begin_block;
-				b_begin = static_cast<T*>(map[begin_block]);
-			}
-			--ssize;
+			++_begin;
 		}
 
 		bool empty() const noexcept
 		{
-			return ssize == 0;
+			return _begin == _end;
 		}
 
 		size_t size() const noexcept
 		{
-			return ssize;
+			return  _end - _begin;
 		}
 
 		size_t max_size() const noexcept
@@ -649,37 +599,26 @@ namespace uuz
 		}
 		void resize(size_t count, const T& value)
 		{
-			if(ssize >= count)
+			if(size() >= count)
 				erase(begin() + count, end());
 			else
 			{
-				kuorong(count - ssize, false);
+				kuorong(count - size(), false);
 				auto k = end();
-				for (auto i = 0; i != count - ssize; ++i, (void)++k)
+				for (auto i = 0; i != count - size(); ++i, (void)++k)
 					new(&*k) T(value);
-				k = end() + count - ssize;
-				b_end = k.now;
-				end_block = k.this_block - map;
+				_end = _end + count - size();
 			}
-			ssize = count;
 		}
 
 		void clean()noexcept
 		{
-			if (begin_block != end_block)
-			{
-				muiltdestory(b_begin, block_end(map[begin_block]));
-				for (auto i = begin_block + 1; i < end_block; ++i)
-					muiltdestory(block_first(map[i]), block_end(map[i]));
-				muiltdestory(block_first(map[end_block]), b_end);
-			}
+			for (auto i = _begin; i != _end; ++i)
+				(*i).~T();
+			if(map && map[0])
+				_begin = _end = iterator{ map[0],block_first(map[0]) };
 			else
-				muiltdestory(b_begin, b_end);
-			ssize = 0;
-			begin_block = 0;
-			end_block = 0;
-			b_begin = map[0];
-			b_end = map[0];
+				_begin = _end = iterator{};
 		}
 
 		void clear()
@@ -691,10 +630,7 @@ namespace uuz
 			map = nullptr;
 			block_max_size = 0;    
 			block_size = 0;   
-			begin_block = 0; 
-			end_block = 0;
-			b_begin = nullptr;
-			b_end = nullptr;
+			_begin = _end = iterator{};
 		}
 
 		void swap(deque& other) noexcept(is_nothrow_swap_alloc<Allocator>::value)
@@ -749,145 +685,169 @@ namespace uuz
 			block_Allocator allo(alloc);
 			allo.deallocate(t, 1);
 		}
-
-		static void muiltdestory(T* a,T*b)noexcept
+			
+		static inline T* block_first(map_type a)noexcept
 		{
-			for (auto i = a; i != b; ++i)
-				(*i).~T();
+			return reinterpret_cast<T*>(a);
 		}
 
-		static T* block_first(map_type a)noexcept
+		static inline T* block_end(map_type a)noexcept
 		{
-			return static_cast<T*>(a);
-		}
-
-		static T* block_end(map_type a)noexcept
-		{
-			return static_cast<T*>(a) + deque_node_size<T>;
+			return reinterpret_cast<T*>(a) + deque_node_size<T>;
 		}
 
 		void kuorong(size_t s,bool front)
 		{
-			if(front && b_begin - block_first(map[begin_block]) < s)
+			if(front)
 			{
-				auto  need_buffer = ((s - (b_begin - block_first(map[begin_block])))>>deque_node_size_log<T>) + 1;
-				if(begin_block < need_buffer)
+				iterator head{ map[0],block_first(map[0]) };
+				if(head - _begin < s)
 				{
-					auto k = need_buffer - begin_block;
-					if(block_size > end_block + k )//后面有空余块时
+					auto k = ((s - (head - _begin)) >> deque_node_size_log<T>) + 1;
+					if(block_size - (_end.this_block - map)-1 >=k)
 					{
-						std::rotate(map + begin_block, map + end_block + 1,map + end_block + k);
-						begin_block += k;
-						end_block += k;
+						std::rotate(_begin.this_block, _end.this_block + 1, _end.this_block + k + 1);
+						_begin.this_block += k;
+						_end.this_block += k;
 					}
-					else if(block_size + k < block_max_size)//后面空余块不够，但是map还够的时候
+					else if(block_max_size <= block_size + k)
 					{
-						memmove(map + begin_block + k, map + begin_block, block_size - begin_block);
-						auto i = begin_block;
+						auto ll = trans(block_size + k);
+						map_type* kk = nullptr;
 						try
 						{
-							for (; i != begin_block + k; ++i)
-								map[i] = makeblock();
+							kk = alloc.allocate(ll);
 						}
-						catch(...)
-						{
-							for (auto j = begin_block; j != i; ++j)
-								destoryblock(map[j]);
-							memcpy(map + begin_block, map + begin_block + k, block_size - begin_block);
-							throw;
-						}
-						begin_block += k;
-						end_block += k;
-						block_size += k;
-					}
-					else//都不够
-					{
-						map_type* kk = nullptr;
+						catch (bad_alloc&) { throw; }
+						catch (...) { alloc.deallocate(kk, ll); throw; }
+						memset(kk, 0, ll);
+						memmove(map, kk + k, block_size);
 						auto i = 0;
 						try
 						{
-							kk = alloc.allocate(trans(block_max_size + k));
 							for (; i != k; ++i)
 								kk[i] = makeblock();
 						}
 						catch(...)
 						{
-							if(kk)
-							{
-								for (auto j = 0; j != i; ++j)
-									destoryblock(kk[i]);
-								alloc.deallocate(kk);
-							}
-							throw;
-						}
-						if(map)
-							memcpy(kk + k, map, block_size);
-						::swap(kk, map);
-						alloc.deallocate(kk);
-						block_max_size = trans(block_max_size + k);
-						block_size += k;
-						begin_block += k;
-						end_block += k;
-					}
-				}
-			}
-			else if(!front && block_end(map[end_block]) - b_end < s)
-			{
-				auto  need_buffer = ((s - (block_end(map[end_block]) - b_end)) >> deque_node_size_log<T>) +1;
-				if(block_size - end_block - 1 < need_buffer)
-				{
-					auto k = need_buffer - block_size + end_block + 1;
-					if(begin_block >= k)
-					{
-						std::rotate(map, map + k, map + block_size);
-						begin_block -= k;
-						end_block -= k;
-					}
-					else if(block_size + k < block_max_size)
-					{
-						auto i = 0;
-						try
-						{
-							for (; i != k; ++i)
-								map[block_size + i] = makeblock();
-						}
-						catch(...)
-						{
 							for (auto j = 0; j != i; ++j)
-								destoryblock(map[block_size + j]);
+								destoryblock(kk[i]);
+							alloc.deallocate(kk, ll);
 							throw;
 						}
+						_begin = kk + k + (_begin.this_block - map);
+						_end = kk + k + (_end.this_block - map);
+						block_max_size = ll;
 						block_size += k;
 					}
 					else
 					{
-						map_type* kk = nullptr;
+						memmove(map, map + k, block_size);
 						auto i = 0;
 						try
 						{
-							kk = alloc.allocate(trans(block_max_size + k));
 							for (; i != k; ++i)
-								kk[block_size + i] = makeblock();
+								map[i] = makeblock();
 						}
 						catch (...)
 						{
-							if (kk)
-							{
-								for (auto j = 0; j != i; ++j)
-									destoryblock(kk[block_size + i]);
-								alloc.deallocate(kk);
-							}
+							for (auto j = 0; j != i; ++j)
+								destoryblock(map[i]);
+							memcpy(map+k, map , block_size);
+							//赋值后面的为nullptr
+
 							throw;
 						}
-						if (map)
-							memcpy(kk, map, block_size);
-						::swap(kk, map);
-						alloc.deallocate(kk);
-						block_max_size = trans(block_max_size + k);
+						_begin.this_block += k;
+						_end.this_block += k;
 						block_size += k;
 					}
 				}
 			}
+			else
+			{
+				iterator nil(map[block_size - 1], block_end(map[block_size - 1]));
+				if(_end - nil <s)
+				{
+					auto k = ((s - (_end - nil)) >> deque_node_size_log<T>) + 1;
+					if ((_begin.this_block - map) >= k)
+					{
+						std::rotate(_begin.this_block - k, _begin.this_block, _end.this_block + 1);
+						_begin.this_block -= k;
+						_end.this_block -= k;
+					}
+					else if (block_max_size <= block_size + k)
+					{
+						auto ll = trans(block_size + k);
+						map_type* kk = nullptr;
+						try
+						{
+							kk = alloc.allocate(ll);
+						}
+						catch (bad_alloc&) { throw; }
+						catch (...) { alloc.deallocate(kk, ll); throw; }
+						memset(kk, 0, ll);
+						memmove(map, kk, block_size);
+						auto i = block_size;
+						try
+						{
+							for (; i != block_size + k; ++i)
+								kk[i] = makeblock();
+						}
+						catch (...)
+						{
+							for (auto j = block_size; j != i; ++j)
+								destoryblock(kk[i]);
+							alloc.deallocate(kk, ll);
+							throw;
+						}
+						_begin = kk  + (_begin.this_block - map);
+						_end = kk  + (_end.this_block - map);
+						block_max_size = ll;
+						block_size += k;
+					}
+					else
+					{
+						auto i = block_size;
+						try
+						{
+							for (; i != block_size + k; ++i)
+								map[i] = makeblock();
+						}
+						catch (...)
+						{
+							for (auto j = 0; j != i; ++j)
+							{
+								destoryblock(map[i]);
+								map[i] = nullptr;
+							}
+							throw;
+						}
+						block_size += k;
+					}
+				}
+			}
+		}
+
+		static size_t trans(size_t t)noexcept
+		{
+			if (!t)
+				return 0;
+#ifdef _MSC_VER
+			size_t index;
+			auto k = _BitScanReverse(&index, t - 1);
+			if(k)
+				return 1 << (index + 1);
+			throw("");
+#elif __GNUC__
+			auto k = __builtin_clz(t - 1);
+			return 1 << (k + 1);
+#else
+			size_t k = 1;
+			while (k < t)
+				k << 1;
+			return k;
+#endif
 		}
 	};
 	namespace
@@ -947,5 +907,4 @@ namespace uuz
 	{
 		lhs.swap(rhs);
 	}
-
 }

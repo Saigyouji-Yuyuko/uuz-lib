@@ -11,6 +11,7 @@
 #include"Container\forward_list.h"
 #include"Container\set.h"
 #include"test\Container\vector_test.h"
+//#include"Container\deque.h"
 //#include"Container/string.h"
 //#include"Container/pair.h"
 //#include"Container/list.h"
@@ -20,7 +21,7 @@
 //#include"Container/priority_queue.h"
 //#include"Container/rbtree.h"
 //#include"Container/set.h"
-
+#include<future>
 #include<map>
 #include<deque>
 //#include<map>
@@ -45,32 +46,12 @@
 //#include<iomanip>
 //#include<fstream>
 #pragma warning(disable:4996)
-class A
-{
-	
-};
-class B : public A
-{
-	
-};
-
-
 int main()
 {
-	try
-	{
-		throw B();
-	}
-	catch(const A&)
-	{
-		std::cout << "1";
-	}
-
-	catch(...)
-	{
-		std::cout << "2";
-	}
-
+	std::vector<int>p{ 1,2,3,4,5,6,7,8,9 };
+	std::rotate(p.begin(), p.begin() + 5, p.end());
+	for (auto i : p)
+		std::cout << i << " ";
 	system("pause");
 	return 0;
 }
