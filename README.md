@@ -22,8 +22,7 @@ unordered_multimset 计划<br>
 unordered_set 计划<br>
 wake_ptr 计划<br>
 unique_ptr 计划<br>
-filesystem 计划<br>
-functor 计划<br>
+binder 计划<br>
 regex 计划<br>
 暂时这样<br>
 其实还有个socket库想开坑<br>
