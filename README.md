@@ -17,6 +17,8 @@ deque 计划<br>
 queue 计划<br>
 stack 计划<br>
 unordered_map 计划<br>
+unordered_multimap 计划<br>
+unordered_multimset 计划<br>
 unordered_set 计划<br>
 wake_ptr 计划<br>
 unique_ptr 计划<br>
