@@ -590,6 +590,7 @@ namespace uuz
 
 		size_t capacity() const noexcept
 		{
+			//std::cout << block_size << " " << deque_node_size<T> << std::endl;
 			return block_size * deque_node_size<T>;
 		}
 
@@ -699,6 +700,7 @@ namespace uuz
 
 		void construct(size_t t)
 		{
+			t = (t >> deque_node_size_log<T>) + 1;
 			auto ll = trans(t);
 			try
 			{

@@ -1,4 +1,5 @@
 #pragma once
+#include<type_traits>
 namespace uuz
 {
 
@@ -120,32 +121,58 @@ namespace uuz
     }
  
     // predefined iterators:
-		template <class Iterator>
-		class reverse_iterator : public
-			iterator<typename iterator_traits<Iterator>::iterator_category,
-			typename iterator_traits<Iterator>::value_type,
-			typename iterator_traits<Iterator>::difference_type,
-			typename iterator_traits<Iterator>::pointer,
-			typename iterator_traits<Iterator>::reference> {
+		template <typename Iterator>
+		class reverse_iterator : public Iterator {
 		public:
-			typedef Iterator                                            iterator_type;
-			typedef typename iterator_traits<Iterator>::difference_type difference_type;
-			typedef typename iterator_traits<Iterator>::reference       reference;
-			typedef typename iterator_traits<Iterator>::pointer         pointer;
+			using difference_type = typename iterator_trais<Iterator>::difference_type;
+			using value_type = typename iterator_trais<Iterator>::value_type;
+			using pointer = typename iterator_trais<Iterator>::pointer;
+			using reference = typename iterator_trais<Iterator>::reference;
+			using iterator_category = typename iterator_trais<Iterator>::iterator_category;
+			using  iterator_type = Iterator;
 
-			reverse_iterator();
-			explicit reverse_iterator(Iterator x);
-			template <class U> reverse_iterator(const reverse_iterator<U>& u);
-			template <class U> reverse_iterator& operator=(const reverse_iterator<U>& u);
+			reverse_iterator() = default;
+			explicit reverse_iterator(Iterator x):Iterator(x){}
+			template <class U,typename = std::is_constructible_v<Iterator,U>> 
+    		reverse_iterator(const reverse_iterator<U>& u):Iterator(U(u)){}
+			
+    		template <class U, typename = std::is_constructible_v<Iterator, U>>
+    		reverse_iterator& operator=(const reverse_iterator<U>& u)
+			{
+				reverse_iterator temp(u);
+				this->swap(temp);
+				return *this;
+			}
 
-			Iterator base() const; // explicit
-			reference operator*() const;
-			pointer operator->() const;
+			Iterator base() const noexcept
+			{
+				return *this;
+			}
+			reference operator*() const noexcept(noexcept(Iterator::operator*()))
+			{
+				return Iterator::operator*();
+			}
+			pointer operator->() const noexcept(noexcept(Iterator::operator->()))
+			{
+				return Iterator::operator->();
+			}
 
-			reverse_iterator& operator++();
-			reverse_iterator  operator++(int);
-			reverse_iterator& operator--();
-			reverse_iterator  operator--(int);
+			reverse_iterator& operator++()noexcept(noexcept(Iterator::operator++()))
+			{
+				return reverse_iterator(Iterator::operator++());
+			}
+			reverse_iterator  operator++(int)noexcept(noexcept(Iterator::operator++(1)))
+			{
+				return reverse_iterator(Iterator::operator++(1));
+			}
+			reverse_iterator& operator--()noexcept(noexcept(Iterator::operator--()))
+			{
+				return reverse_iterator(Iterator::operator--());
+			}
+			reverse_iterator  operator--(int)noexcept(noexcept(Iterator::operator--(1)))
+			{
+				return reverse_iterator(Iterator::operator--(1));
+			}
 
 			reverse_iterator  operator+ (difference_type n) const;
 			reverse_iterator& operator+=(difference_type n);
@@ -153,10 +180,6 @@ namespace uuz
 			reverse_iterator& operator-=(difference_type n);
 
 			reference operator[](difference_type n) const;
-		protected:
-			Iterator current;
-		private:
-			Iterator deref_tmp; // exposition only
 		};
     template <class Iterator1, class Iterator2>
         bool operator==(

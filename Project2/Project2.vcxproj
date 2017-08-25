@@ -24,6 +24,7 @@
     <ClInclude Include="Container\array.h" />
     <ClInclude Include="Container\container.h" />
     <ClInclude Include="Container\iterator.h" />
+    <ClInclude Include="Container\hash_table.h" />
     <ClInclude Include="test\Container\vector_test.h" />
     <ClInclude Include="test\debug.h" />
     <ClInclude Include="Container\deque.h" />

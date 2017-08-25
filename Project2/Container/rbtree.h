@@ -1247,7 +1247,7 @@ namespace uuz
 
 		}	
 		
-		Compare cmp;
+		mutable Compare cmp;
 		size_t ssize = 0;
 		Allocator alloc;
 		node* root=nullptr;

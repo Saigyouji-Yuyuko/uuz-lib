@@ -7,42 +7,42 @@ namespace
 	template<typename Key, typename T, typename compare>
 	struct map_less
 	{
-		map_less() :cmp(compare()) {}
-		map_less(const compare& t) :cmp(t) {}
+		constexpr map_less() :cmp(compare()) {}
+		constexpr map_less(const compare& t) :cmp(t) {}
 
-		bool operator()(const Key& a, const uuz::pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
+		constexpr bool operator()(const Key& a, const uuz::pair<const Key, T>& b)const noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a, b.first);
 		}
 
-		bool operator()(const uuz::pair<const Key, T>& a, const uuz::pair<const Key, T>& b)noexcept(noexcept(cmp(a.first, a.first)))
+		constexpr bool operator()(const uuz::pair<const Key, T>& a, const uuz::pair<const Key, T>& b)const noexcept(noexcept(cmp(a.first, a.first)))
 		{
 			return cmp(a.first, b.first);
 		}
 
-		bool operator()(const uuz::pair<const Key, T>& a, const Key& b)noexcept(noexcept(cmp(b, b)))
+		constexpr bool operator()(const uuz::pair<const Key, T>& a, const Key& b)const noexcept(noexcept(cmp(b, b)))
 		{
 			return cmp(a.first, b);
 		}
 
-		bool operator()(const Key& a, const Key& b)noexcept(noexcept(cmp(a, a)))
+		constexpr bool operator()(const Key& a, const Key& b)const noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a, b);
 		}
 
 		template<typename K>
-		bool operator()(const K& a, const uuz::pair<const Key, T>& b)noexcept(noexcept(cmp(a, a)))
+		constexpr bool operator()(const K& a, const uuz::pair<const Key, T>& b)const noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a, b.first);
 		}
 
 		template<typename K>
-		bool operator()(const uuz::pair<const Key, T>& a,const K&  b)noexcept(noexcept(cmp(a, a)))
+		constexpr bool operator()(const uuz::pair<const Key, T>& a,const K&  b)const noexcept(noexcept(cmp(a, a)))
 		{
 			return cmp(a.first, b);
 		}
 
-		compare cmp;
+		mutable compare cmp;
 	};
 
 }
