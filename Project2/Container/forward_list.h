@@ -29,10 +29,11 @@ namespace uuz
 	class forward_list;
 
 
-	template<typename T, typename Allocator>
+	template<typename T>
 	class forward_list_iterator
 	{
 		using self = forward_list_iterator;
+		template<typename Allocator>
 		friend forward_list<T, Allocator>;
 	public:
 		self& operator++() noexcept
@@ -90,8 +91,8 @@ namespace uuz
 		}
 
 	private:
-		self(forward_list_node_base* tt) :t(tt) {}
-		self(const forward_list_node_base* tt) :t(const_cast<forward_list_node_base*>(tt)) {}
+		forward_list_iterator(forward_list_node_base* tt) :t(tt) {}
+		forward_list_iterator(const forward_list_node_base* tt) :t(const_cast<forward_list_node_base*>(tt)) {}
 		forward_list_node_base* t = nullptr;
 	};
 
@@ -99,7 +100,7 @@ namespace uuz
 	class forward_list
 	{
 	public:
-		using iterator = forward_list_iterator<T, A>;
+		using iterator = forward_list_iterator<T>;
 		
 		using self = forward_list;
 		using node = forward_list_node<T>;
@@ -176,7 +177,7 @@ namespace uuz
 		{
 			if (this == &other)
 				return *this;
-			auto temp(other,alloc);
+			forward_list temp(other,alloc);
 			this->swap(temp);
 			return *this;
 		}
@@ -791,7 +792,7 @@ namespace uuz
 					return 1;
 			}
 			if (i == a.end() && j != b.end())
-				return -1
+				return -1;
 			else if (i != a.end() && j == b.end())
 				return 1;
 			return 0;

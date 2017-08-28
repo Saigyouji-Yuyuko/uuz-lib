@@ -9,15 +9,16 @@
 #include<iostream>
 namespace uuz
 {
-	constexpr float vector_speed = 1.7f;//??
+	constexpr static float vector_speed = 1.7f;//??
 	template<typename T,typename A>
 	class vector;
 
-	template<typename T,typename A>
+	template<typename T>
 	class vector_iterator
 	{
 		using self = vector_iterator;
-		friend class vector<T, A>;
+		template<typename T1, typename A>
+		friend class vector<T1, A>;
 	public:
 		self& operator+=(const int t)noexcept
 		{
@@ -133,8 +134,8 @@ namespace uuz
 		using const_reference = const value_type&;
 //		using pointer = std::allocator_traits<Allocator>::pointer;
 //		using const_pointer = std::allocator_traits<Allocator>::const_pointer;
-		using iterator = vector_iterator<T,Allocator>;
-		using const_iterator=const  vector_iterator<T, Allocator>;
+		using iterator = vector_iterator<T>;
+		using const_iterator=const  vector_iterator<T>;
 		using reverse_iterator = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -616,7 +617,7 @@ namespace uuz
 	}
 
 	template<typename T1, typename T2>
-	 void swap(vector<T1, T2>& a, vector<T1, T2>&b)noexcept(is_nothrow_swap_alloc<T2>)
+	 void swap(vector<T1, T2>& a, vector<T1, T2>&b)noexcept(is_nothrow_swap_alloc<T2>::value)
 	{
 		a.swap(b);
 	}

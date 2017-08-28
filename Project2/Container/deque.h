@@ -639,10 +639,10 @@ namespace uuz
 		{
 			if(other.alloc == alloc)
 			{
-				char temp[sizeof(deque<T>)];
-				memcpy(temp, this, sizeof(deque<T>));
-				memcpy(this, &other, sizeof(deque<T>));
-				memccpy(&other, temp, sizeof(deque<T>));
+				char temp[sizeof(deque)];
+				memcpy(temp, this, sizeof(deque));
+				memcpy(this, &other, sizeof(deque));
+				memcpy(&other, temp, sizeof(deque));
 			}
 			else
 			{
@@ -652,7 +652,7 @@ namespace uuz
 				deque t1(other, alloc);
 				deque t2(*this, other.alloc);
 				this->swap(t1);
-				this->swap(t2);
+				other.swap(t2);
 #endif
 			}
 		}

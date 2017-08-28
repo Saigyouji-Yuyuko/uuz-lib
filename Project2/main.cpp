@@ -21,10 +21,12 @@
 //#include"Container/priority_queue.h"
 //#include"Container/rbtree.h"
 //#include"Container/set.h"
+import std;
 #include<future>
 #include<unordered_set>
 #include<unordered_map>
 #include<map>
+#include<fstream>
 #include<deque>
 #include<map>
 #include<set>
@@ -46,68 +48,63 @@
 #include<cstring>
 #include<cmath>
 #include<cstdio>
+#include<sstream>
+#undef max
+#undef min
 //#pragma warning(disable:4996)
+std::array<int, 5000>num;
+std::multimap<int, std::pair<int,int>>cha;
 using namespace std;
-vector<int>minn;
-vector<int>kkk;
-string p; 
-vector<string> dict;
-map<int, vector<int>> ss;
-void mincut()
+bool istixing(int a,int b,int c,int d)
 {
-	ss.insert({ 0,vector<int>() });
-	for (auto i = 0; i != p.size(); ++i)
-	{
-		if(ss.count(i) !=0)
-		{
-			for (auto j = 0; j != dict.size(); ++j)
-			{
-				auto k = p.find(dict[j], i);
-				if(k == i)
-				{
-					if(ss.count(i+ dict[j].size()) == 0)
-					{
-						std::vector<int> p(ss[i]);
-						p.push_back(j);
-						ss.insert({ i + dict[j].size(), p });
-					}
-					else
-					{
-						auto kk = ss[i + dict[j].size()].size();
-						if(kk > ss[i].size()+1)
-						{
-							std::vector<int> p(ss[i]);
-							p.push_back(j);
-							ss[i] = p;
-						}
-					}
-				}
-			}
-		}
-	}
-	if (ss.count(p.size()) == 0)
-		cout << "";
-	else
-	{
-		for (auto i: ss[p.size()])
-			cout << dict[i] << " ";
-	}
+	std::is_permutation()
+	if (a - b > c - d && a - b < c + d && c ==d)
+		return true;
+	else if (a - c > b - d && a - c < b + d&& b ==d)
+		return true;
+	else if (a - d > b - c && a - d < b + c&& b==c)
+		return true;
+	else if (b - c > a - d && b - c < a + d&& a ==d)
+		return true;
+	else if (b - d > a - c && b - d < a + c&&a ==c)
+		return true;
+	else if (c - d > a - b && c - d < a + b&& a ==b)
+		return true;
+	return false;
 }
 int main()
 {
-	
 	int n;
-	cin >> p;
-	string temp;
+	std::invoke(istixing,1,2,3,4);
+//	string d{ 300 };
+	freopen("C:\\Users\\99650\\Desktop\\123.in", "r+", stdin);
+	freopen("C:\\Users\\99650\\Desktop\\1111.txt", "w+", stdout);
 	scanf("%d", &n);
-	dict.resize(n);
-	while(n--)
+	for(auto i=1;i<=n;++i)
 	{
-		cin >> temp;
-		dict.push_back(temp);
+		int p;
+		scanf("%d", &p);
+		for (auto j = 0; j != p; ++j)
+			scanf("%d", &num[j]);
+		std::sort(num.begin(), num.begin()+p);
+		int dd = 0;
+		if(p<=3)
+		{
+			printf("Case #%d: 0\n", i);
+			continue;
+		}
+		for (auto j = 0; j != p-3; ++j)
+			for (auto k = j+1; k != p-2; ++k)
+				for (auto l = k + 1; l != p - 1; ++l)
+					for (auto m = l + 1; m != p; ++m)
+					{
+						if (istixing(num[m],num[l],num[k],num[j]))
+							++dd;
+							
+					}
+		printf("Case #%d: %d\n", i, dd);
+		cha.clear();
 	}
-	minn.resize(p.size());
-	mincut();
-	system("pause");
+	//system("pause");
 	return 0;
 }
