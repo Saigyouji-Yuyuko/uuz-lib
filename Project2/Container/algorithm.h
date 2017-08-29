@@ -7,6 +7,15 @@ namespace
 {
 	template<typename T>
 	struct is_execution_policy_v;
+
+	template<typename T1,typename T2,typename = decltype((std::declval<T1>()) == (std::declval<T2>()))>
+	class _equal
+	{
+		bool operator()(const T1& a,const T2& b)const noexcept(noexcept(a==b))
+		{
+			return a == b;
+		}
+	};
 }
 namespace uuz
 {
@@ -18,35 +27,35 @@ namespace uuz
 		bool any_of(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p);
 		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
 		bool none_of(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p);
-		
-		
+
+
 		template< class ExecutionPolicy, class ForwardIt, class UnaryFunction2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
 		void for_each(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryFunction2 f);
-		
+
 		template< class ExecutionPolicy, class ForwardIt, class Size, class UnaryFunction2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
 		ForwardIt for_each_n(ExecutionPolicy&& policy, ForwardIt first, Size n, UnaryFunction2 f);
 
 		template< class ExecutionPolicy, class ForwardIt, class T, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
 		ForwardIt find(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, const T& value);
 		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt find_if(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last,UnaryPredicate p);
+		ForwardIt find_if(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p);
 		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt find_if_not(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last,UnaryPredicate q);
-		
-		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt1 find_end(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,ForwardIt2 s_first, ForwardIt2 s_last);
-		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>> >
-		ForwardIt1 find_end(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p);
+		ForwardIt find_if_not(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate q);
 
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt1 find_first_of(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,ForwardIt2 s_first, ForwardIt2 s_last);
+		ForwardIt1 find_end(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>> >
+		ForwardIt1 find_end(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
+		ForwardIt1 find_first_of(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last);
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt1 find_first_of(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p);
-	
+		ForwardIt1 find_first_of(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p);
+
 		template< class ExecutionPolicy, class ForwardIt, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt adjacent_find(ExecutionPolicy&& policy,ForwardIt first, ForwardIt last);
+		ForwardIt adjacent_find(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last);
 		template< class ExecutionPolicy, class ForwardIt, class BinaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		ForwardIt adjacent_find(ExecutionPolicy&& policy,ForwardIt first, ForwardIt last, BinaryPredicate p);
+		ForwardIt adjacent_find(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, BinaryPredicate p);
 
 		template< class ExecutionPolicy, class ForwardIt, class T, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
 		typename iterator_traits<ForwardIt>::difference_type
@@ -54,15 +63,15 @@ namespace uuz
 		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
 		typename iterator_traits<ForwardIt>::difference_type
 			count_if(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p);
-		
+
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,ForwardIt2 first2);
+		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2);
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,ForwardIt2 first2,BinaryPredicate p);
+		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, BinaryPredicate p);
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,ForwardIt2 first2, ForwardIt2 last2);
+		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2);
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate, typename = is_execution_policy_v<std::decay_t<ExecutionPolicy>>>
-		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,ForwardIt2 first2, ForwardIt2 last2,BinaryPredicate p);
+		std::pair<ForwardIt1, ForwardIt2> mismatch(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2, ForwardIt2 last2, BinaryPredicate p);
 
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2 >
 		bool equal(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,
@@ -77,6 +86,70 @@ namespace uuz
 		bool equal(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,
 			ForwardIt2 first2, ForwardIt2 last2,
 			BinaryPredicate p);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2 >
+		ForwardIt1 search(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 s_first, ForwardIt2 s_last);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate >
+		ForwardIt1 search(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 s_first, ForwardIt2 s_last, BinaryPredicate p);
+
+
+		template< class ExecutionPolicy, class ForwardIt, class Size, class T >
+		ForwardIt search_n(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, Size count, const T& value);
+		template< class ExecutionPolicy, class ForwardIt, class Size, class T, class BinaryPredicate >
+		ForwardIt search_n(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, Size count, const T& value,
+			BinaryPredicate p);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2 >
+		ForwardIt2 copy(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class UnaryPredicate >
+		ForwardIt2 copy_if(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 d_first,
+			UnaryPredicate pred);
+		template< class ExecutionPolicy, class ForwardIt1, class Size, class ForwardIt2 >
+		ForwardIt2 copy_n(ExecutionPolicy&& policy, ForwardIt1 first, Size count, ForwardIt2 result);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2 >
+		ForwardIt2 move(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last, ForwardIt2 d_first);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2 >
+		ForwardIt2 swap_ranges(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1, ForwardIt2 first2);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class UnaryOperation >
+		ForwardIt2 transform(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,
+			ForwardIt2 d_first, UnaryOperation unary_op);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class ForwardIt3, class BinaryOperation >
+		ForwardIt3 transform(ExecutionPolicy&& policy, ForwardIt1 first1, ForwardIt1 last1,
+			ForwardIt2 first2, ForwardIt3 d_first, BinaryOperation binary_op);
+
+		template< class ExecutionPolicy, class ForwardIt, class T >
+		void replace(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last,
+			const T& old_value, const T& new_value);
+		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate, class T >
+		void replace_if(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last,
+			UnaryPredicate p, const T& new_value);
+
+		template< class ExecutionPolicy, class ForwardIt, class T >
+		void fill(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, const T& value);
+		template< class ExecutionPolicy, class ForwardIt, class Size, class T >
+		ForwardIt fill_n(ExecutionPolicy&& policy, ForwardIt first, Size count, const T& value);
+
+		template< class ExecutionPolicy, class ForwardIt, class Generator >
+		void generate(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, Generator g);
+		template< class ExecutionPolicy, class ForwardIt, class Size, class Generator >
+		ForwardIt generate_n(ExecutionPolicy&& policy, ForwardIt first, Size count, Generator g);
+
+		template< class ExecutionPolicy, class ForwardIt, class T >
+		ForwardIt remove(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, const T& value);
+		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate >
+		ForwardIt remove_if(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class T >
+		ForwardIt2 remove_copy(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 d_first, const T& value);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class UnaryPredicate >
+		ForwardIt2 remove_copy_if(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 d_first, UnaryPredicate p);
 	}
 
 	template <typename InputIterator, typename UnaryPredicate>
@@ -115,11 +188,11 @@ namespace uuz
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
 			, "iterator must be a input_iterator");
-		for (; first != last; ++first) 
+		for (; first != last; ++first)
 			f(*first);
 		return f;
 	}
-	
+
 	template< class InputIt, class Size, class UnaryFunction >
 	inline InputIt for_each_n(InputIt first, Size n, UnaryFunction f)
 	{
@@ -129,43 +202,43 @@ namespace uuz
 			f(*first);
 		return first;
 	}
-	
-	template<typename InputIterator, typename T,typename = decltype((*std::decay<InputIterator>()) == std::decay<T>())>
-	inline InputIterator find(InputIterator first, InputIterator last,const T& value)
-	{
-		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
-			, "iterator must be a input_iterator");
-		for (; first != last; ++first) 
-			if (*first == value) 
-				return first;
-		return last;
-	}
-	template<typename InputIterator, typename UnaryPredicate>
-	inline InputIterator find_if(InputIterator first, InputIterator last,UnaryPredicate pred)
+
+	template<typename InputIterator, typename T, typename = decltype((*std::decay<InputIterator>()) == std::decay<T>())>
+	inline InputIterator find(InputIterator first, InputIterator last, const T& value)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
 			, "iterator must be a input_iterator");
 		for (; first != last; ++first)
-			if (pred(*first)) 
+			if (*first == value)
 				return first;
 		return last;
 	}
 	template<typename InputIterator, typename UnaryPredicate>
-	inline InputIterator find_if_not(InputIterator first, InputIterator last,UnaryPredicate pred)
+	inline InputIterator find_if(InputIterator first, InputIterator last, UnaryPredicate pred)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
 			, "iterator must be a input_iterator");
-		for (; first != last; ++first) 
-			if (!pred(*first)) 
+		for (; first != last; ++first)
+			if (pred(*first))
+				return first;
+		return last;
+	}
+	template<typename InputIterator, typename UnaryPredicate>
+	inline InputIterator find_if_not(InputIterator first, InputIterator last, UnaryPredicate pred)
+	{
+		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
+			, "iterator must be a input_iterator");
+		for (; first != last; ++first)
+			if (!pred(*first))
 				return first;
 		return last;
 	}
 
 
-	template<typename ForwardIterator1, typename ForwardIterator2,typename BinaryPredicate>
+	template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
 	inline ForwardIterator1 find_end(ForwardIterator1 first1, ForwardIterator1 last1,
-								ForwardIterator2 first2, ForwardIterator2 last2,
-									BinaryPredicate pred)
+		ForwardIterator2 first2, ForwardIterator2 last2,
+		BinaryPredicate pred)
 	{
 		if (first2 == last2 || first1 == last1)
 			return last1;
@@ -201,8 +274,8 @@ namespace uuz
 				}
 			}
 		}
-		else if constexpr(std::is_base_of_v<bidirectional_iterator_tag,typename iterator_traits<ForwardIterator1>::iterator_category> 
-					&& std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<ForwardIterator2>::iterator_category>)
+		else if constexpr(std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<ForwardIterator1>::iterator_category>
+			&& std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<ForwardIterator2>::iterator_category>)
 		{
 
 			auto temp1 = last1;
@@ -233,12 +306,12 @@ namespace uuz
 		else if constexpr(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator1>::iterator_category>
 			&& std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator2>::iterator_category>)
 		{
-		
+
 			auto answer = last1;
 
-			for(;;)
+			for (;;)
 			{
-				for(;;++first1)
+				for (;; ++first1)
 				{
 					if (first1 == last1)
 						return answer;
@@ -248,15 +321,15 @@ namespace uuz
 				auto kk = first2;
 				for (auto l = first1;;)
 				{
-					if(++kk == last2)
+					if (++kk == last2)
 					{
 						answer = first1;
 						++first1;
 						break;
 					}
-					if(++l == last1)
+					if (++l == last1)
 						return answer;
-					if(!pred(*l,*kk))
+					if (!pred(*l, *kk))
 					{
 						++first1;
 						break;
@@ -272,36 +345,36 @@ namespace uuz
 	}
 	template<typename ForwardIterator1, typename ForwardIterator2, typename = decltype((*std::decay<ForwardIterator1>()) == (*std::decay<ForwardIterator2>()))>
 	inline ForwardIterator1 find_end(ForwardIterator1 first1, ForwardIterator1 last1,
-								ForwardIterator2 first2, ForwardIterator2 last2)
+		ForwardIterator2 first2, ForwardIterator2 last2)
 	{
-		return find_end(first1, last1, first2, last2, 
-			[](const typename iterator_traits<ForwardIterator1>::value_type& x, 
-				const typename iterator_traits<ForwardIterator2>::value_type& y) {return x == y; });
+		return find_end(first1, last1, first2, last2,
+			_equal< typename iterator_traits<ForwardIterator1>::value_type,
+			typename iterator_traits<ForwardIterator2>::value_type>());
 	}
-	
-	template<typename InputIterator, typename ForwardIterator,typename BinaryPredicate>
+
+	template<typename InputIterator, typename ForwardIterator, typename BinaryPredicate>
 	inline InputIterator find_first_of(InputIterator first1, InputIterator last1,
-							ForwardIterator first2, ForwardIterator last2,
-							BinaryPredicate pred)
+		ForwardIterator first2, ForwardIterator last2,
+		BinaryPredicate pred)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
 			, "iterator must be a input_iterator");
 		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator>::iterator_category>
 			, "iterator must be a forward_iterator");
 
-		for (; first1 != last1; ++first1) 
-			for (auto it = first2; it != last2; ++it) 
+		for (; first1 != last1; ++first1)
+			for (auto it = first2; it != last2; ++it)
 				if (pred(*first1, *it))
 					return first1;
 		return last1;
 	}
 	template<typename InputIterator, typename ForwardIterator>
 	inline InputIterator find_first_of(InputIterator first1, InputIterator last1,
-								ForwardIterator first2, ForwardIterator last2)
+		ForwardIterator first2, ForwardIterator last2)
 	{
 		return find_first_of(first1, last1, first2, last2,
-			[](const typename iterator_traits<InputIterator>::value_type& x,
-				const typename iterator_traits<ForwardIterator>::value_type& y) {return x == y; });
+			_equal< typename iterator_traits<InputIterator>::value_type,
+			typename iterator_traits<ForwardIterator>::value_type>());
 	}
 
 	template<typename ForwardIterator, typename BinaryPredicate>
@@ -310,34 +383,34 @@ namespace uuz
 		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator>::iterator_category>
 			, "iterator must be a forward_iterator");
 
-		if (first == last) 
+		if (first == last)
 			return last;
 
 		auto next = first;
 		++next;
 
-		for (; next != last; first = next,(void)++next)
-			if (pred(*first,*next))
+		for (; next != last; first = next, (void)++next)
+			if (pred(*first, *next))
 				return first;
-			
+
 		return last;
 	}
 
 	template<typename ForwardIterator>
-	inline ForwardIterator adjacent_find(ForwardIterator first,ForwardIterator last)
+	inline ForwardIterator adjacent_find(ForwardIterator first, ForwardIterator last)
 	{
 		return adjacent_find(first, last,
-			[](const typename iterator_traits<ForwardIterator>::value_type& x,
-				const typename iterator_traits<ForwardIterator>::value_type& y) {return x == y; });
+			_equal< typename iterator_traits<ForwardIterator>::value_type,
+			typename iterator_traits<ForwardIterator>::value_type>());
 	}
-	
+
 	template<typename InputIterator, typename Predicate>
 	inline typename iterator_traits<InputIterator>::difference_type
 		count_if(InputIterator first, InputIterator last, Predicate pred)
 	{
-		typename iterator_traits<InputIterator>::difference_type ss{0};
+		typename iterator_traits<InputIterator>::difference_type ss{ 0 };
 
-		for(;first!=last;++first)
+		for (; first != last; ++first)
 			if (pred(*first))
 				++ss;
 		return ss;
@@ -346,13 +419,17 @@ namespace uuz
 	inline typename iterator_traits<InputIterator>::difference_type
 		count(InputIterator first, InputIterator last, const T& value)
 	{
-		return count_if(first, last, 
-			[&value](const typename iterator_traits<InputIterator>::value_type& x) {return *x == value; });
+		typename iterator_traits<InputIterator>::difference_type ss{ 0 };
+
+		for (; first != last; ++first)
+			if (*first == value)
+				++ss;
+		return ss;
 	}
-	
+
 	template<typename InputIterator1, typename InputIterator2, typename BinaryPredicate>
 	inline pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator1 last1,
-													InputIterator2 first2, BinaryPredicate pred)
+		InputIterator2 first2, BinaryPredicate pred)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator1>::iterator_category>
 			, "iterator must be a input_iterator");
@@ -366,8 +443,8 @@ namespace uuz
 	}
 	template< class InputIt1, class InputIt2, class BinaryPredicate >
 	inline pair<InputIt1, InputIt2> mismatch(InputIt1 first1, InputIt1 last1,
-										InputIt2 first2, InputIt2 last2,
-										BinaryPredicate pred)
+		InputIt2 first2, InputIt2 last2,
+		BinaryPredicate pred)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIt1>::iterator_category>
 			, "iterator must be a input_iterator");
@@ -381,47 +458,47 @@ namespace uuz
 	}
 	template<typename InputIterator1, typename InputIterator2>
 	inline pair<InputIterator1, InputIterator2> mismatch(InputIterator1 first1, InputIterator1 last1,
-													InputIterator2 first2)
+		InputIterator2 first2)
 	{
-		return mismatch(first1, last1, first2, 
-			[](const typename iterator_traits<InputIterator1>::value_type& x,
-				const typename iterator_traits<InputIterator2>::value_type& y) {return x == y; });
+		return mismatch(first1, last1, first2,
+			_equal< typename iterator_traits<InputIterator1>::value_type,
+			typename iterator_traits<InputIterator2>::value_type>());
 	}
 	template< class InputIt1, class InputIt2 >
 	inline pair<InputIt1, InputIt2> mismatch(InputIt1 first1, InputIt1 last1,
-										InputIt2 first2, InputIt2 last2)
+		InputIt2 first2, InputIt2 last2)
 	{
 		return mismatch(first1, last1, first2, last2,
-			[](const typename iterator_traits<InputIt1>::value_type& x,
-				const typename iterator_traits<InputIt2>::value_type& y) {return x == y; });
+			_equal< typename iterator_traits<InputIt1>::value_type,
+			typename iterator_traits<InputIt2>::value_type>());
 	}
-	
+
 	template< class InputIt1, class InputIt2, class BinaryPredicate >
 	__forceinline bool equal(InputIt1 first1, InputIt1 last1,
-				InputIt2 first2, BinaryPredicate p)
+		InputIt2 first2, BinaryPredicate p)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIt1>::iterator_category>
 			, "iterator must be a input_iterator");
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIt2>::iterator_category>
 			, "iterator must be a input_iterator");
 
-		for(;first1!=last1;++first1,(void)++first2)
+		for (; first1 != last1; ++first1, (void)++first2)
 			if (!p(*first1, *first2))
 				return false;
 		return true;
 	}
 	template< class InputIt1, class InputIt2, class BinaryPredicate >
 	__forceinline bool equal(InputIt1 first1, InputIt1 last1,
-			InputIt2 first2, InputIt2 last2,
-			BinaryPredicate p)
+		InputIt2 first2, InputIt2 last2,
+		BinaryPredicate p)
 	{
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIt1>::iterator_category>
 			, "iterator must be a input_iterator");
 		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIt2>::iterator_category>
 			, "iterator must be a input_iterator");
-		
+
 		if constexpr(std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<InputIt1>::iterator_category>
-				&& std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<InputIt2>::iterator_category>)
+			&& std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<InputIt2>::iterator_category>)
 		{
 			if (distance(first1, last1) != distance(first2, last2))
 				return false;
@@ -436,160 +513,606 @@ namespace uuz
 	__forceinline bool equal(InputIt1 first1, InputIt1 last1,
 		InputIt2 first2)
 	{
-		return equal(first1, last1, first2, [](const typename iterator_traits<InputIt1>::value_type& x,
-										const typename iterator_traits<InputIt2>::value_type& y) {return x == y; });
+		return equal(first1, last1, first2, _equal< typename iterator_traits<InputIt1>::value_type,
+			typename iterator_traits<InputIt2>::value_type>());
 	}
 	template< class InputIt1, class InputIt2 >
 	__forceinline bool equal(InputIt1 first1, InputIt1 last1,
 		InputIt2 first2, InputIt2 last2)
 	{
-		return equal(first1, last1, first2,last2, [](const typename iterator_traits<InputIt1>::value_type& x,
-			const typename iterator_traits<InputIt2>::value_type& y) {return x == y; });
+		return equal(first1, last1, first2, last2, _equal< typename iterator_traits<InputIt1>::value_type,
+			typename iterator_traits<InputIt2>::value_type>());
 	}
-	
-	template<typename ForwardIterator1, typename ForwardIterator2,typename BinaryPredicate>
+
+	template<typename ForwardIterator1, typename ForwardIterator2, typename BinaryPredicate>
 	__forceinline bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1,
-											ForwardIterator2 first2, BinaryPredicate pred)
+		ForwardIterator2 first2, BinaryPredicate pred)
 	{
 		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator1>::iterator_category>
 			, "iterator must be a forward_iterator");
 		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator2>::iterator_category>
 			, "iterator must be a forward_iterator");
 
-		auto k = distance(first1, last1);
+		for (; first1 != last1; ++first1, (void)++first2)
+			if (!pred(first1, first2))
+				goto keke;
+		return true;
+
+	keke:	auto k = distance(first1, last1);
+		if (k == 1)
+			return false;
 		auto last2 = next(first2, k);
 
-		for(;first1!=last1;)
+		for (auto i = first1; i != last1; ++i)
+		{
+			for (auto j = first1; j != i; ++j)
+				if (pred(*j, *i))
+					goto llll;
 
-
+			decltype(k) dis = 1;
+			for (auto j = next(i); j != last1; ++j)
+				if (pred(*i, *j))
+					++dis;
+			for (auto j = first2; j != last2; ++j)
+				if (pred(*i, *j) && --dis < 0)
+					return false;
+			if (dis > 0)
+				return false;
+		llll:;
+		}
+		return true;
 	}
 	template< class ForwardIt1, class ForwardIt2, class BinaryPredicate >
 	__forceinline bool is_permutation(ForwardIt1 first1, ForwardIt1 last1,
-									ForwardIt2 first2, ForwardIt2 last2,
-									BinaryPredicate p)
+		ForwardIt2 first2, ForwardIt2 last2,
+		BinaryPredicate p)
 	{
-		
+		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIt1>::iterator_category>
+			, "iterator must be a forward_iterator");
+		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIt2>::iterator_category>
+			, "iterator must be a forward_iterator");
+
+		if constexpr(std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<ForwardIt1>::iterator_category>
+			&& std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<ForwardIt2>::iterator_category>)
+		{
+			if (distance(first1, last1) != distance(first2, last2))
+				return false;
+		}
+
+		for (; first1 != last1 && first2 != last2; ++first1, (void)++first2)
+			if (!pred(first1, first2))
+				goto keke;
+		return first1 == last1 && first2 == last2;
+
+	keke:	auto k = distance(first1, last1);
+		auto k2 = distanc(first2, last2);
+		if (k != k2 || k == 1)
+			return false;
+
+		for (auto i = first1; i != last1; ++i)
+		{
+			for (auto j = first1; j != i; ++j)
+				if (pred(*j, *i))
+					goto llll;
+
+			decltype(k) dis = 1;
+			for (auto j = next(i); j != last1; ++j)
+				if (pred(*i, *j))
+					++dis;
+			for (auto j = first2; j != last2; ++j)
+				if (pred(*i, *j) && --dis < 0)
+					return false;
+			if (dis > 0)
+				return false;
+		llll:;
+		}
+		return true;
+
 	}
 	template<typename ForwardIterator1, typename ForwardIterator2>
 	__forceinline bool is_permutation(ForwardIterator1 first1, ForwardIterator1 last1,
 		ForwardIterator2 first2)
 	{
-		return equal(first1, last1, first2, [](const typename iterator_traits<ForwardIterator1>::value_type& x,
-			const typename iterator_traits<ForwardIterator2>::value_type& y) {return x == y; });
+		return equal(first1, last1, first2, _equal< typename iterator_traits<ForwardIterator1>::value_type,
+			typename iterator_traits<ForwardIterator2>::value_type>());
 	}
 	template< class ForwardIt1, class ForwardIt2 >
 	__forceinline bool is_permutation(ForwardIt1 first1, ForwardIt1 last1,
 		ForwardIt2 first2, ForwardIt2 last2)
 	{
-		return equal(first1, last1, first2, last2, [](const typename iterator_traits<ForwardIt1>::value_type& x,
-			const typename iterator_traits<ForwardIt2>::value_type& y) {return x == y; });
+		return equal(first1, last1, first2, last2, _equal< typename iterator_traits<ForwardIt1>::value_type,
+			typename iterator_traits<ForwardIt2>::value_type>());
 	}
 
-
-	template<typename ForwardIterator1, typename ForwardIterator2>
-	ForwardIterator1 search(
-		ForwardIterator1 first1, ForwardIterator1 last1,
-		ForwardIterator2 first2, ForwardIterator2 last2);
-	template< class ForwardIt1, class ForwardIt2 >
-	bool is_permutation(ForwardIt1 first1, ForwardIt1 last1,
-		ForwardIt2 first2, ForwardIt2 last2);
 	template<typename ForwardIterator1, typename ForwardIterator2,
 		typename BinaryPredicate>
 		ForwardIterator1 search(
 			ForwardIterator1 first1, ForwardIterator1 last1,
 			ForwardIterator2 first2, ForwardIterator2 last2,
-			BinaryPredicate pred);
+			BinaryPredicate pred)
+	{
+		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator1>::iterator_category>
+			, "iterator must be a forward_iterator");
+		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator2>::iterator_category>
+			, "iterator must be a forward_iterator");
 
-	template<typename ForwardIterator, typename Size, typename T>
-	ForwardIterator search_n(ForwardIterator first, ForwardIterator last,
-		Size count, const T& value);
+		if (first1 == last1 || first2 == last2)
+			return first1;
+
+		if constexpr(std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<ForwardIterator1>::iterator_category>
+			&& std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<ForwardIterator2>::iterator_category>)
+		{
+			auto c1 = distance(first1, last1);
+			auto c2 = distance(first2, last2);
+			if (c2 > c1)
+				return last1;
+
+			auto s = last1 - (c2 - 1);
+
+			for (;;)
+			{
+				for (;;)
+				{
+					if (first1 == s)
+						return last1;
+					if (pred(*first1, *first2))
+						break;
+					++first1;
+				}
+				auto t1 = first1;
+				auto t2 = first2;
+				for (;;)
+				{
+					if (++t2 == last2)
+						return first1;
+					if (!pred(*++t1, *t2))
+					{
+						++first1;
+						break;
+					}
+
+				}
+			}
+		}
+		else
+		{
+			for (;;)
+			{
+				for (;;)
+				{
+					if (first1 == last1)
+						return last1;
+					if (pred(*first1, *first2))
+						break;
+					++first1;
+				}
+				auto t1 = first1;
+				auto t2 = first2;
+				for (;;)
+				{
+					if (++t2 == last2)
+						return first1;
+					if (++t1 == last1)
+						return last1;
+					if (!pred(*t1, *t2))
+					{
+						++first1;
+						break;
+					}
+
+				}
+			}
+		}
+
+	}
+	template<typename ForwardIterator1, typename ForwardIterator2>
+	ForwardIterator1 search(ForwardIterator1 first1, ForwardIterator1 last1,
+		ForwardIterator2 first2, ForwardIterator2 last2)
+	{
+		return search(first1, last1, first2, last2, _equal< typename iterator_traits<ForwardIterator1>::value_type,
+			typename iterator_traits<ForwardIterator2>::value_type>());
+
+	}
+	template<class ForwardIterator, class Searcher>
+	ForwardIterator search(ForwardIterator first, ForwardIterator last,
+		const Searcher& searcher);
+
 	template<typename ForwardIterator, typename Size, typename T, typename BinaryPredicate>
 	ForwardIterator search_n(ForwardIterator first, ForwardIterator last,
 		Size count, const T& value,
-		BinaryPredicate pred);
+		BinaryPredicate pred)
+	{
+		static_assert(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<ForwardIterator>::iterator_category>
+			, "iterator must be a forward_iterator");
+
+		if (count <= 0)
+			return first;
+		if constexpr(std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<ForwardIterator>::iterator_category>)
+		{
+			auto ss = distance(first, last);
+			if (ss < count)
+				return last;
+
+		}
+		else
+		{
+			auto count1 = 0;
+			for (;;)
+			{
+				for (;;)
+				{
+					if (first == last)
+						return last;
+					if (pred(*first, value))
+						break;
+					++first;
+				}
+			}
+			decltype(distance(first, last)) s{ 0 };
+			for (auto kk = first;;)
+			{
+				if (++s == count)
+					return first;
+				if (++kk == last)
+					return last;
+				if (!pred(*kk, value))
+				{
+					first = ++kk;
+					break;
+				}
+			}
+		}
+	}
+	template<typename ForwardIterator, typename Size, typename T>
+	ForwardIterator search_n(ForwardIterator first, ForwardIterator last,
+		Size count, const T& value)
+	{
+		return search_n(first, last, count, value, _equal< typename iterator_traits<ForwardIterator>::value_type,
+			T>());
+	}
+
 
 	// modifying sequence operations:
 
 	// copy:
 	template<typename InputIterator, typename OutputIterator>
-	OutputIterator copy(InputIterator first, InputIterator last,
-		OutputIterator result);
+	OutputIterator copy(InputIterator first, InputIterator last, OutputIterator result)
+	{
+		using T1 = typename iterator_traits<InputIterator>::value_type;
+		using T2 = typename iterator_traits<OutputIterator>::value_type;
+		if constexpr(std::is_pointer_v<InputIterator> && std::is_pointer_v<OutputIterator>
+			&&  std::is_same_v<typename std::decay_t<T1>, typename std::decay_t<T2>>
+			&& std::is_trivially_copy_assignable_v<std::decay_t<T2>>)
+		{
+			auto k = last - first;
+			if (k > 0)
+				memmove(result, first, k * sizeof(T1));
+			return result + k;
+		}
+		else
+		{
+			for (; first != last; ++result, (void)++first)
+				*result = *first;
+			return result;
+		}
+	}
 	template<typename InputIterator, typename Size, typename OutputIterator>
-	OutputIterator copy_n(InputIterator first, Size n,
-		OutputIterator result);
+	OutputIterator copy_n(InputIterator first, Size n, OutputIterator result)
+	{
+		using T1 = typename iterator_traits<InputIterator>::value_type;
+		using T2 = typename iterator_traits<OutputIterator>::value_type;
+		if (n == 0)
+			return result;
+		if constexpr(std::is_pointer_v<InputIterator> && std::is_pointer_v<OutputIterator>
+			&&  std::is_same_v<typename std::decay_t<T1>, typename std::decay_t<T2>>
+			&& std::is_trivially_copy_assignable_v<std::decay_t<T2>>)
+		{
+			memmove(result, first, n * sizeof(T1));
+			return result + n;
+		}
+		else if constexpr(std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
+			&& std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<OutputIterator>::iterator_category>)
+		{
+			auto last = first + n;
+			for (; first != last; ++result, (void)++first)
+				*result = *first;
+			return result;
+		}
+		else
+		{
+			*result = *first;
+			++result;
+			for (--n; n > 0; --n)
+			{
+				++first;
+				*result = *first;
+				++result;
+			}
+			return result;
+		}
+
+
+	}
 	template<typename InputIterator, typename OutputIterator, typename Predicate>
 	OutputIterator copy_if(InputIterator first, InputIterator last,
-		OutputIterator result, Predicate pred);
+		OutputIterator result, Predicate pred)
+	{
+		while (first != last)
+			if (pred(*first))
+				*result++ = *first++;
+		return result;
+	}
 	template<typename BidirectionalIterator1, typename BidirectionalIterator2>
-	BidirectionalIterator2 copy_backward(
-		BidirectionalIterator1 first, BidirectionalIterator1 last,
-		BidirectionalIterator2 result);
+	BidirectionalIterator2 copy_backward(BidirectionalIterator1 first, BidirectionalIterator1 last,
+		BidirectionalIterator2 result)
+	{
+		static_assert(std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<BidirectionalIterator1>::iterator_category>
+			, "iterator must be a bidirectional_iterator");
+		static_assert(std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<BidirectionalIterator2>::iterator_category>
+			, "iterator must be a bidirectional_iterator");
+
+		using T1 = typename iterator_traits<BidirectionalIterator1>::value_type;
+		using T2 = typename iterator_traits<BidirectionalIterator2>::value_type;
+		if constexpr(std::is_pointer_v<BidirectionalIterator2> && std::is_pointer_v<BidirectionalIterator1>
+			&&  std::is_same_v<typename std::decay_t<T1>, typename std::decay_t<T2>>
+			&& std::is_trivially_copy_assignable_v<std::decay_t<T2>>)
+		{
+			auto k = last - first;
+			result -= k;
+			if (k > 0)
+				memmove(result, first, k * sizeof(T1));
+			return result;
+		}
+		else
+		{
+			while (first != last)
+				*--result = *--last;
+			return result;
+		}
+
+
+	}
 
 	// move:
 	template<typename InputIterator, typename OutputIterator>
-	OutputIterator move(InputIterator first, InputIterator last,
-		OutputIterator result);
+	OutputIterator move(InputIterator first, InputIterator last, OutputIterator result)
+	{
+		using T1 = typename iterator_traits<InputIterator>::value_type;
+		using T2 = typename iterator_traits<OutputIterator>::value_type;
+
+		if constexpr(std::is_pointer_v<InputIterator> && std::is_pointer_v<InputIterator>
+			&&  std::is_same_v<typename std::decay_t<T1>, typename std::decay_t<T2>>
+			&& std::is_trivially_copy_assignable_v<std::decay_t<T2>>)
+		{
+			auto k = last - first;
+			if (k > 0)
+				memmove(result, first, k * sizeof(T1));
+			return result + k;
+		}
+		else
+		{
+			for (; first != last; ++first, (void) ++result)
+				*result = std::move(*first);
+			return result;
+		}
+
+	}
 	template<typename BidirectionalIterator1, typename BidirectionalIterator2>
-	BidirectionalIterator2 move_backward(
-		BidirectionalIterator1 first, BidirectionalIterator1 last,
-		BidirectionalIterator2 result);
+	BidirectionalIterator2 move_backward(BidirectionalIterator1 first, BidirectionalIterator1 last,
+		BidirectionalIterator2 result)
+	{
+		static_assert(std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<BidirectionalIterator1>::iterator_category>
+			, "iterator must be a bidirectional_iterator");
+		static_assert(std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<BidirectionalIterator2>::iterator_category>
+			, "iterator must be a bidirectional_iterator");
+
+		using T1 = typename iterator_traits<BidirectionalIterator1>::value_type;
+		using T2 = typename iterator_traits<BidirectionalIterator2>::value_type;
+		if constexpr(std::is_pointer_v<BidirectionalIterator2> && std::is_pointer_v<BidirectionalIterator1>
+			&&  std::is_same_v<typename std::decay_t<T1>, typename std::decay_t<T2>>
+			&& std::is_trivially_copy_assignable_v<std::decay_t<T2>>)
+		{
+			auto k = last - first;
+			result -= k;
+			if (k > 0)
+				memmove(result, first, k * sizeof(T1));
+			return result;
+		}
+		else
+		{
+			while (first != last)
+				*--result = std::move(*--last);
+			return result;
+		}
+
+	}
 
 	// swap:
 	template<typename ForwardIterator1, typename ForwardIterator2>
-	ForwardIterator2 swap_ranges(ForwardIterator1 first1,
-		ForwardIterator1 last1, ForwardIterator2 first2);
+	void iter_swap(ForwardIterator1 a, ForwardIterator2 b)
+	{
+		using std::swap;
+		swap(*a, *b);
+	}
 	template<typename ForwardIterator1, typename ForwardIterator2>
-	void iter_swap(ForwardIterator1 a, ForwardIterator2 b);
+	ForwardIterator2 swap_ranges(ForwardIterator1 first1,
+		ForwardIterator1 last1, ForwardIterator2 first2)
+	{
+		while (first1 != last1)
+			std::swap(*first1++, *first2++);
+		return first2;
+	}
+
 	template<typename InputIterator, typename OutputIterator, typename UnaryOperation>
 	OutputIterator transform(InputIterator first, InputIterator last,
-		OutputIterator result, UnaryOperation op);
+		OutputIterator result, UnaryOperation op)
+	{
+		while (first != last)
+			*result++ = op(*first++);
+		return result;
+	}
 
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
 		typename BinaryOperation>
 		OutputIterator transform(InputIterator1 first1, InputIterator1 last1,
 			InputIterator2 first2, OutputIterator result,
-			BinaryOperation binary_op);
+			BinaryOperation binary_op)
+	{
+		while (first1 != last1)
+			*result++ = binary_op(*first1++, *first2++);
+		return result;
+	}
 
 	template<typename ForwardIterator, typename T>
 	void replace(ForwardIterator first, ForwardIterator last,
-		const T& old_value, const T& new_value);
+		const T& old_value, const T& new_value)
+	{
+		for (; first != last; ++first)
+			if (*first == old_value)
+				*first = new_value;
+	}
 	template<typename ForwardIterator, typename Predicate, typename T>
 	void replace_if(ForwardIterator first, ForwardIterator last,
-		Predicate pred, const T& new_value);
+		Predicate pred, const T& new_value)
+	{
+		for (; first != last; ++first)
+			if (pred(*first))
+				*first = new_value;
+	}
 	template<typename InputIterator, typename OutputIterator, typename T>
 	OutputIterator replace_copy(InputIterator first, InputIterator last,
-		OutputIterator result,
-		const T& old_value, const T& new_value);
+		OutputIterator result, const T& old_value, const T& new_value)
+	{
+		for (; first != last; ++first, (void)++result)
+			if (*first == old_value)
+				*result = new_value;
+			else
+				*result = *first;
+		return result;
+	}
 	template<typename InputIterator, typename OutputIterator, typename Predicate, typename T>
 	OutputIterator replace_copy_if(InputIterator first, InputIterator last,
-		OutputIterator result,
-		Predicate pred, const T& new_value);
+		OutputIterator result, Predicate pred, const T& new_value)
+	{
+		for (; first != last; ++first, (void)++result)
+			if (pred(*first))
+				*result = new_value;
+			else
+				*result = *first;
+		return result;
+	}
 
-	template<typename ForwardIterator, typename T>
-	void fill(ForwardIterator first, ForwardIterator last, const T& value);
+
 	template<typename OutputIterator, typename Size, typename T>
-	OutputIterator fill_n(OutputIterator first, Size n, const T& value);
+	OutputIterator fill_n(OutputIterator first, Size n, const T& value)
+	{
+		using T1 = typename iterator_traits<OutputIterator>::value_type;
+		if (n <= 0)
+			return first;
+		if constexpr(std::is_pointer_v<OutputIterator> &&
+			is_integral_v<T1> && sizeof(T1) == 1 && !is_same_v<T, bool> &&is_integral_v<T> && sizeof(T) == 1)
+		{
+			::memset(first, (unsigned char)value, (size_t)n);
+			return first + n;
+		}
+		else
+		{
+			for (; n != 0; --n, (void)++first)
+				*first = value;
+			return first;
+		}
+	}
+	template<typename ForwardIterator, typename T>
+	void fill(ForwardIterator first, ForwardIterator last, const T& value)
+	{
+		using T1 = typename iterator_traits<ForwardIterator>::value_type;
+
+		if constexpr(std::is_pointer_v<ForwardIterator> &&
+			is_integral_v<T1> && sizeof(T1) == 1 && !is_same_v<T, bool> &&is_integral_v<T> && sizeof(T) == 1)
+		{
+			auto n = last - first;
+			if (n > 0)
+				::memset(first, (unsigned char)value, (size_t)n);
+		}
+		else
+		{
+			for (; first != last; ++first)
+				*first = value;
+		}
+	}
+
 	template<typename ForwardIterator, typename Generator>
 	void generate(ForwardIterator first, ForwardIterator last,
-		Generator gen);
+		Generator gen)
+	{
+		for (; first != last; ++first)
+			*first = gen();
+	}
 	template<typename OutputIterator, typename Size, typename Generator>
-	OutputIterator generate_n(OutputIterator first, Size n, Generator gen);
+	OutputIterator generate_n(OutputIterator first, Size n, Generator gen)
+	{
+		auto t{ n };
+		for (; n > 0; ++first, (void)--n)
+			*first = gen();
+		return first;
+	}
 
 	template<typename ForwardIterator, typename T>
 	ForwardIterator remove(ForwardIterator first, ForwardIterator last,
-		const T& value);
+							const T& value)
+	{
+		first = find(first, last, value);
+		if(first!=last)
+		{
+			auto i = first;
+			while(++i!=last)
+				*first++ = std::move(*i);
+		}
+		return first;
+	}
 	template<typename ForwardIterator, typename Predicate>
 	ForwardIterator remove_if(ForwardIterator first, ForwardIterator last,
-		Predicate pred);
+		Predicate pred)
+	{
+		first = find(first, last, pred);
+		if (first != last)
+		{
+			auto i = first;
+			while (++i != last)
+				*first++ = std::move(*i);
+		}
+		return first;
+	}
 	template<typename InputIterator, typename OutputIterator, typename T>
 	OutputIterator remove_copy(InputIterator first, InputIterator last,
-		OutputIterator result, const T& value);
+		OutputIterator result, const T& value)
+	{
+		while(first!=last)
+		{
+			if (*first != value)
+				*result++ = *first;
+			++first;
+		}
+		return result;
+	}
 	template<typename InputIterator, typename OutputIterator, typename Predicate>
 	OutputIterator remove_copy_if(InputIterator first, InputIterator last,
-		OutputIterator result, Predicate pred);
+		OutputIterator result, Predicate pred)
+	{
+		while (first != last)
+		{
+			if (!pred(*first))
+				*result++ = *first;
+			++first;
+		}
+		return result;
+	}
 
 	template<typename ForwardIterator>
-	ForwardIterator unique(ForwardIterator first, ForwardIterator last);
+	ForwardIterator unique(ForwardIterator first, ForwardIterator last)
+	{
+		
+	}
 	template<typename ForwardIterator, typename BinaryPredicate>
 	ForwardIterator unique(ForwardIterator first, ForwardIterator last,
 		BinaryPredicate pred);

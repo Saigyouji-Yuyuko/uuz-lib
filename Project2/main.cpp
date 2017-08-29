@@ -21,7 +21,6 @@
 //#include"Container/priority_queue.h"
 //#include"Container/rbtree.h"
 //#include"Container/set.h"
-import std;
 #include<future>
 #include<unordered_set>
 #include<unordered_map>
@@ -52,59 +51,12 @@ import std;
 #undef max
 #undef min
 //#pragma warning(disable:4996)
-std::array<int, 5000>num;
-std::multimap<int, std::pair<int,int>>cha;
-using namespace std;
-bool istixing(int a,int b,int c,int d)
-{
-	std::is_permutation()
-	if (a - b > c - d && a - b < c + d && c ==d)
-		return true;
-	else if (a - c > b - d && a - c < b + d&& b ==d)
-		return true;
-	else if (a - d > b - c && a - d < b + c&& b==c)
-		return true;
-	else if (b - c > a - d && b - c < a + d&& a ==d)
-		return true;
-	else if (b - d > a - c && b - d < a + c&&a ==c)
-		return true;
-	else if (c - d > a - b && c - d < a + b&& a ==b)
-		return true;
-	return false;
-}
+#define ADDD(x,y = 0) (x)+(y);
+
 int main()
 {
-	int n;
-	std::invoke(istixing,1,2,3,4);
-//	string d{ 300 };
-	freopen("C:\\Users\\99650\\Desktop\\123.in", "r+", stdin);
-	freopen("C:\\Users\\99650\\Desktop\\1111.txt", "w+", stdout);
-	scanf("%d", &n);
-	for(auto i=1;i<=n;++i)
-	{
-		int p;
-		scanf("%d", &p);
-		for (auto j = 0; j != p; ++j)
-			scanf("%d", &num[j]);
-		std::sort(num.begin(), num.begin()+p);
-		int dd = 0;
-		if(p<=3)
-		{
-			printf("Case #%d: 0\n", i);
-			continue;
-		}
-		for (auto j = 0; j != p-3; ++j)
-			for (auto k = j+1; k != p-2; ++k)
-				for (auto l = k + 1; l != p - 1; ++l)
-					for (auto m = l + 1; m != p; ++m)
-					{
-						if (istixing(num[m],num[l],num[k],num[j]))
-							++dd;
-							
-					}
-		printf("Case #%d: %d\n", i, dd);
-		cha.clear();
-	}
+	std::cout << ADDD(5, 1) << std::endl;
+	std::cout << ADDD(5) << std::endl;
 	//system("pause");
 	return 0;
 }
