@@ -150,6 +150,23 @@ namespace uuz
 		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class UnaryPredicate >
 		ForwardIt2 remove_copy_if(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
 			ForwardIt2 d_first, UnaryPredicate p);
+
+		template< class ExecutionPolicy, class ForwardIt >
+		ForwardIt unique(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last);
+		template< class ExecutionPolicy, class ForwardIt, class BinaryPredicate >
+		ForwardIt unique(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, BinaryPredicate p);
+
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2 >
+		ForwardIt2 unique_copy(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 d_first);
+		template< class ExecutionPolicy, class ForwardIt1, class ForwardIt2, class BinaryPredicate >
+		ForwardIt2 unique_copy(ExecutionPolicy&& policy, ForwardIt1 first, ForwardIt1 last,
+			ForwardIt2 d_first, BinaryPredicate p);
+
+		template< class ExecutionPolicy, class BidirIt >
+		void reverse(ExecutionPolicy&& policy, BidirIt first, BidirIt last);
+		template< class ExecutionPolicy, class BidirIt, class ForwardIt >
+		ForwardIt reverse_copy(ExecutionPolicy&& policy, BidirIt first, BidirIt last, ForwardIt d_first);
 	}
 
 	template <typename InputIterator, typename UnaryPredicate>
@@ -1108,35 +1125,150 @@ namespace uuz
 		return result;
 	}
 
+	template<typename ForwardIterator, typename BinaryPredicate>
+	ForwardIterator unique(ForwardIterator first, ForwardIterator last,
+		BinaryPredicate pred)
+	{
+		first = adjacent_find(first, last, pred);
+		if (first != last)
+		{
+			auto i = first;
+			for (++i; i != last; ++i)
+				if (!pred(*first, *i))
+					*++first = std::move(*i);
+			++first;
+		}
+		return first;
+	}
 	template<typename ForwardIterator>
 	ForwardIterator unique(ForwardIterator first, ForwardIterator last)
 	{
-		
+		first = adjacent_find(first, last);
+		if (first != last)
+		{
+			auto i = first;
+			for (++i; i != last; ++i)
+				if (*first != *i)
+					*++first = std::move(*i);
+			++first;
+		}
+		return first;
 	}
-	template<typename ForwardIterator, typename BinaryPredicate>
-	ForwardIterator unique(ForwardIterator first, ForwardIterator last,
-		BinaryPredicate pred);
-	template<typename InputIterator, typename OutputIterator>
-	OutputIterator unique_copy(InputIterator first, InputIterator last,
-		OutputIterator result);
+	
 	template<typename InputIterator, typename OutputIterator, typename BinaryPredicate>
 	OutputIterator unique_copy(InputIterator first, InputIterator last,
-		OutputIterator result, BinaryPredicate pred);
+		OutputIterator result, BinaryPredicate pred)
+	{
+		static_assert(std::is_base_of_v<input_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>
+			, "iterator must be a input_iterator");
+
+		if (first != last)
+		{
+			if constexpr(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<OutputIterator>::iterator_category>)
+			{
+				*result = *first;
+				while(++first != last)
+					if (!pred(*result, *first))
+						*++result = *first;
+				++result;
+			}
+			else if constexpr(std::is_same_v<output_iterator_tag, typename iterator_traits<OutputIterator>::iterator_category>)
+			{
+				if constexpr(std::is_base_of_v<forward_iterator_tag, typename iterator_traits<InputIterator>::iterator_category>)
+				{
+					auto i = first;
+					*result = *i;
+					++result;
+					while(++first != last)
+					{
+						if(!pred(*i,*first))
+						{
+							*result = *first;
+							++result;
+							i = first;
+						}
+					}
+				}
+				else
+				{
+					auto k(*first);
+					*result = k;
+					++result;
+					while (++first != last)
+					{
+						if (!pred(k, *first))
+						{
+							k = *first;
+							*result = k;
+							++result;
+						}
+					}
+				}
+			}
+			else
+			{
+				static_assert(false);
+			}
+		}
+		return result;
+	}
+	template<typename InputIterator, typename OutputIterator>
+	OutputIterator unique_copy(InputIterator first, InputIterator last,
+								OutputIterator result)
+	{
+		return unique_copy(first, last, result, _equal<typename iterator_traits<InputIterator>::value_type,
+														typename iterator_traits<InputIterator>::value_type>());
+	}
+	
 
 	template<typename BidirectionalIterator>
-	void reverse(BidirectionalIterator first, BidirectionalIterator last);
+	void reverse(BidirectionalIterator first, BidirectionalIterator last)
+	{
+		static_assert(std::is_base_of_v<bidirectional_iterator_tag, typename iterator_traits<BidirectionalIterator>::iterator_category>
+			, "iterator must be a bidirectional_iterator");
+		if(first!=last)
+		{
+			if constexpr(std::is_base_of_v<random_access_iterator_tag, typename iterator_traits<BidirectionalIterator>::iterator_category>)
+			{
+				for (;first < --last; ++first)
+					iter_swap(first, last);
+			}
+			else
+			{
+				while(first != --last)
+				{
+					iter_swap(first, last);
+					++first;
+				}
+			}
+		}
+
+	}
 	template<typename BidirectionalIterator, typename OutputIterator>
 	OutputIterator reverse_copy(BidirectionalIterator first,
-		BidirectionalIterator last,
-		OutputIterator result);
+							BidirectionalIterator last,
+							OutputIterator result)
+	{
+		for (; first != last; ++result)
+			*result = *--last;
+		return result;
+	}
 
+
+	//ÓÅ»¯¾¯¸æ http://www.cnblogs.com/flyinghearts/archive/2011/05/27/2060265.html
 	template<typename ForwardIterator>
 	ForwardIterator rotate(ForwardIterator first, ForwardIterator middle,
-		ForwardIterator last);
+						ForwardIterator last)
+	{
+		
+	}
 	template<typename ForwardIterator, typename OutputIterator>
 	OutputIterator rotate_copy(
-		ForwardIterator first, ForwardIterator middle,
-		ForwardIterator last, OutputIterator result);
+					ForwardIterator first, ForwardIterator middle,
+					ForwardIterator last, OutputIterator result)
+	{
+		return copy(first, middle, copy(middle, last, result));
+	}
 
 	template<typename RandomAccessIterator>
 	void random_shuffle(RandomAccessIterator first,
