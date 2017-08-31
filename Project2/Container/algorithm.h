@@ -2,6 +2,7 @@
 #include"container.h"
 #include"pair.h"
 #include"iterator.h"
+#include<random>
 //#include<execution>
 namespace
 {
@@ -16,6 +17,16 @@ namespace
 			return a == b;
 		}
 	};
+	template<typename T>
+	constexpr bool is_random_access_iterator = std::is_base_of_v<uuz::random_access_iterator_tag, std::decay_t<T>>;
+	template<typename T>
+	constexpr bool is_forward_iterator = std::is_base_of_v<uuz::forward_iterator_tag, std::decay_t<T>>;
+	template<typename T>
+	constexpr bool is_bidirectional_iterator = std::is_base_of_v<uuz::bidirectional_iterator_tag, std::decay_t<T>>;
+	template<typename T>
+	constexpr bool is_output_iterator = std::is_base_of_v<uuz::output_iterator_tag, std::decay_t<T>>;
+	template<typename T>
+	constexpr bool is_input_iterator = std::is_base_of_v<uuz::input_iterator_tag, std::decay_t<T>>;
 }
 namespace uuz
 {
@@ -167,6 +178,9 @@ namespace uuz
 		void reverse(ExecutionPolicy&& policy, BidirIt first, BidirIt last);
 		template< class ExecutionPolicy, class BidirIt, class ForwardIt >
 		ForwardIt reverse_copy(ExecutionPolicy&& policy, BidirIt first, BidirIt last, ForwardIt d_first);
+
+		template< class ExecutionPolicy, class ForwardIt, class UnaryPredicate >
+		bool is_partitioned(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, UnaryPredicate p);
 	}
 
 	template <typename InputIterator, typename UnaryPredicate>
@@ -1270,31 +1284,71 @@ namespace uuz
 		return copy(first, middle, copy(middle, last, result));
 	}
 
-	template<typename RandomAccessIterator>
+
+	//until C++17
+	/*template<typename RandomAccessIterator>
 	void random_shuffle(RandomAccessIterator first,
 		RandomAccessIterator last);
 	template<typename RandomAccessIterator, typename RandomNumberGenerator>
 	void random_shuffle(RandomAccessIterator first,
 		RandomAccessIterator last,
-		RandomNumberGenerator&& rand);
+		RandomNumberGenerator&& rand);*/
 	template<typename RandomAccessIterator, typename UniformRandomNumberGenerator>
-	void shuffle(RandomAccessIterator first,
-		RandomAccessIterator last,
-		UniformRandomNumberGenerator&& rand);
+	void shuffle(RandomAccessIterator first,RandomAccessIterator last,
+					UniformRandomNumberGenerator&& rand)
+	{
+
+		using dif = typename iterator_traits<RandomAccessIterator>::difference_type;
+		using ddp = std::uniform_int_distribution<dif>;
+
+		ddp D;
+		using std::swap;
+		for (auto i = (last - first) - 1; i > 0; --i)
+			swap(first[i], first[D(rand, typename ddp::param_t(0, i))]);
+	}
 
 	// partitions:
 	template <typename InputIterator, typename Predicate>
-	bool is_partitioned(InputIterator first, InputIterator last, Predicate pred);
+	bool is_partitioned(InputIterator first, InputIterator last, Predicate pred)
+	{
+		for (; first != last; ++first)
+			if (!pred(*first))
+				break;
+		for (; first != last; ++first)
+			if (pred(*first))
+				return false;
+		return true;
+	}
 
 	template<typename ForwardIterator, typename Predicate>
-	ForwardIterator partition(ForwardIterator first,
-		ForwardIterator last,
-		Predicate pred);
+	ForwardIterator partition(ForwardIterator first,ForwardIterator last,
+								Predicate pred)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>, "!!!");
+		
+		if constexpr(is_bidirectional_iterator<ForwardIterator>)
+		{
+			
+		}
+		else
+		{
+			for (;; ++first)
+			{
+				if (first == last)
+					return last;
+				if (!pred(*first))
+					break;
+			}
+			for (auto p = first; ++p != last;)
+				if (pred(*p))
+					swap(*first++, *p);
+		}
+		return first;
+	}
 
 	template<typename BidirectionalIterator, typename Predicate>
-	BidirectionalIterator stable_partition(BidirectionalIterator first,
-		BidirectionalIterator last,
-		Predicate pred);
+	BidirectionalIterator stable_partition(BidirectionalIterator first,BidirectionalIterator last,
+										Predicate pred);
 
 	template <typename InputIterator, typename OutputIterator1,
 		typename OutputIterator2, typename Predicate>

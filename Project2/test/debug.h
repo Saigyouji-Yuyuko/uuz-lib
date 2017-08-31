@@ -26,6 +26,14 @@ namespace uuz
 		block_time(block_time&&) = delete;
 		block_time& operator=(const block_time&) = delete;
 		block_time& operator=(block_time&&) = delete;
+
+		double getms()const noexcept
+		{
+			auto end = std::chrono::system_clock::now();
+			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+			return double(duration.count()) * std::chrono::microseconds::period::num / 1000;
+		}
+
 		~block_time()
 		{
 			auto end = std::chrono::system_clock::now();

@@ -250,72 +250,158 @@ void test(T beg, T mid, T end, const Iterator_tag& iterator_tag)
 
 
 }
+template < typename T >
+struct Is_Void
+{
+	//enum nCon { value = std::is_void_v<T> ? 3 : 0 };
+	constexpr static bool value = std::is_void_v<T> ;
+};
+
+template < typename T >
+auto f()
+{
+	if constexpr (Is_Void<T>::value)
+	{
+		return(0);
+	}
+	else
+	{
+		T a{1.333};
+
+		return(a);
+	}
+}
 
 int main()
 {
 	const int N = 1e7;
 	const int M = 1024;
-	//const int M = 777;
-	
-	for(auto i =10;i<=1e7;i*=10)
+	//uuz::println(f<void>());
+	//uuz::println(f<double>());
+//	const int M = 777;
+	/*std::vector<std::vector<double>> msvc_random{8};
+	std::vector<std::vector<double>> msvc_bidirectional{ 8 };
+	std::vector<std::vector<double>> msvc_forward{ 8 };
+	std::vector<std::vector<double>> libcxx_random{ 8 };
+	std::vector<std::vector<double>> libcxx_bidirectional{ 8 };
+	std::vector<std::vector<double>> libcxx_forward{ 8 };*/
+	auto kk = 0;
+	for(auto i =10;i<=1e4;i*=10,++kk)
 	{
 		std::vector<int> vec(i);
-		std::vector<int>::iterator beg(vec.begin()), mid(vec.begin() + vec.size()*4/5), end(vec.end());
-		uuz::println(i);
+		for(int k=1;k<=10;++k)
 		{
-
-			uuz::println("random");
+			std::vector<int>::iterator beg(vec.begin()), mid(vec.begin() + vec.size() * 9 / 10), end(vec.end());
+			uuz::println(i);
+			uuz::println(k);
 			{
-				uuz::block_time a{ "msvc " };
-				test(beg, mid, end, std::random_access_iterator_tag());
 
+				uuz::println("random");
+				{
+					uuz::block_time a{ "msvc " };
+					int j = 100;
+					while(j--)
+					test(beg, mid, end, std::random_access_iterator_tag());
+					//msvc_random[kk].push_back(a.getms());
+
+				}
+				uuz::println("");
+				{
+					uuz::block_time a{ "libcxx " };
+					int j = 100;
+					while (j--)
+					test1(beg, mid, end, std::random_access_iterator_tag());
+					//libcxx_random[kk].push_back(a.getms());
+				}
 			}
 			uuz::println("");
 			{
-				uuz::block_time a{ "libcxx " };
-				test1(beg, mid, end, std::random_access_iterator_tag());
+				uuz::println("bidirectional");
 
-			}
-		}
-		uuz::println("");
-		{
-			uuz::println("bidirectional");
-
-			{
-				uuz::block_time a{ "msvc " };
-				test(beg, mid, end, std::bidirectional_iterator_tag());
-
-			}
-			uuz::println("");
-			{
-				uuz::block_time a{ "libcxx " };
-				test1(beg, mid, end, std::bidirectional_iterator_tag());
-
-			}
-		}
-		uuz::println("");
-		{
-			uuz::println("forward");
-			{
-				uuz::block_time a{ "msvc " };
-				test(beg, mid, end, std::forward_iterator_tag());
-
+				{
+					uuz::block_time a{ "msvc " };
+					int j = 100;
+					while (j--)
+					test(beg, mid, end, std::bidirectional_iterator_tag());
+					//msvc_bidirectional[kk].push_back(a.getms());
+				}
+				uuz::println("");
+				{
+					uuz::block_time a{ "libcxx " };
+					int j = 100;
+					while (j--)
+					test1(beg, mid, end, std::bidirectional_iterator_tag());
+					//libcxx_bidirectional[kk].push_back(a.getms());
+				}
 			}
 			uuz::println("");
 			{
-				uuz::block_time a{ "libcxx " };
-				test1(beg, mid, end, std::forward_iterator_tag());
-
+				uuz::println("forward");
+				{
+					uuz::block_time a{ "msvc " };
+					int j = 100;
+					while (j--)
+					test(beg, mid, end, std::forward_iterator_tag());
+					//msvc_forward[kk].push_back(a.getms());
+				}
+				uuz::println("");
+				{
+					uuz::block_time a{ "libcxx " };
+					int j = 100;
+					while (j--)
+					test1(beg, mid, end, std::forward_iterator_tag());
+					//libcxx_forward[kk].push_back(a.getms());
+				}
 			}
+			uuz::println("");
+			uuz::println("-------------------------------");
 		}
 		
-		uuz::println("");
-		uuz::println("-------------------------------");
+		
+		
 	}
-	std::vector<int> a = { 1,2,3,4,5,6,7,8,9 };
-	std::rotate(a.begin(), a.begin() + 5, a.end());
-	for (auto i : a)
-		std::cout << i << " ";
+	//uuz::println("msvc_random");
+	//for(auto i: msvc_random)
+	//{
+	//	for (auto j : i)
+	//		std::cout << j << " ";
+	//	std::cout << std::endl;
+	//}
+	//uuz::println("libcxx_random");
+	//for (auto i : libcxx_random)
+	//{
+	//	for (auto j : i)
+	//		std::cout << j << " ";
+	//	std::cout << std::endl;
+	//}
+	//uuz::println("msvc_bidirectional");
+	//for (auto i : msvc_bidirectional)
+	//{
+	//	for (auto j : i)
+	//		std::cout << j << " ";
+	//	std::cout << std::endl;
+	//}
+	//uuz::println("libcxx_bidirectional");
+	//for (auto i : libcxx_bidirectional)
+	//{
+	//	for (auto j : i)
+	//		std::cout << j << " ";
+	//	std::cout << std::endl;
+	//}
+	//uuz::println("msvc_forward");
+	//for (auto i : msvc_forward)
+	//{
+	//	for (auto j : i)
+	//		std::cout << j << " ";
+	//	std::cout << std::endl;
+	//}
+	//uuz::println("libcxx_forward");
+	//for (auto i : libcxx_forward)
+	//{
+	//	for (auto j : i)
+	//		std::cout << j << " ";
+	//	std::cout << std::endl;
+	//}
 	system("pause");
 	
 }
