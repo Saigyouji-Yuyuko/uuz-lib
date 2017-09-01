@@ -115,8 +115,8 @@ namespace uuz
 
 		//~vector_iterator(){}
 	private:
-		explicit self(T* t) :dat{ t }{}
-		explicit self(const T* t) :dat{ const_cast<T*>(t) } {}
+		vector_iterator(T* t) :dat{ t }{}
+		vector_iterator(const T* t) :dat{ const_cast<T*>(t) } {}
 		T* dat = nullptr;
 	};
 

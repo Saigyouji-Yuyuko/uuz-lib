@@ -97,12 +97,278 @@ namespace uuz
 		}
 	};
 
+	template<typename CharT, typename Traits>
+	class basic_string_view;
+
+	template<typename CharT, typename Traits, typename Allocator>
+	class basic_string;
+
 	template<typename CharT, typename Traits = char_traits<CharT>>
 	class basic_string_iterator
 	{
-		
+	public:
+		using difference_type =typename  Traits::difference_type;
+		using value_type = CharT;
+		using pointer = CharT*;
+		using reference = CharT&;
+		using iterator_category = uuz::random_access_iterator_tag;
+
+		template<typename CarT, typename Trits, typename Allocator>
+		friend class basic_string;
+
+		template<typename CarT, typename Taits>
+		friend class basic_string_view;
+	private:
+		using self = basic_string_iterator;
+
+		explicit basic_string_iterator(CharT* t) :dat{ t } {}
+		explicit basic_string_iterator(const CharT* t) :dat{ const_cast<CharT*>(t) } {}
+		pointer dat;
+	public:
+		self& operator+=(const int t)noexcept
+		{
+			dat += t;
+			return *this;
+		}
+		self& operator-=(const int t)noexcept
+		{
+			dat -= t;
+			return *this;
+
+		}
+		self& operator++() noexcept
+		{
+			*this += 1;
+			return *this;
+		}
+		self operator++(int)noexcept
+		{
+			auto p{ *this };
+			*this += 1;
+			return p;
+		}
+		self& operator--()noexcept
+		{
+			*this -= 1;
+			return *this;
+		}
+		self operator--(int) noexcept
+		{
+			auto p{ *this };
+			*this -= 1;
+			return p;
+		}
+
+		reference operator*()noexcept
+		{
+			return *dat;
+		}
+		const reference operator*()const noexcept
+		{
+			return *dat;
+		}
+		pointer operator->()noexcept
+		{
+			return dat;
+		}
+		const pointer operator->()const noexcept
+		{
+			return dat;
+		}
+
+		friend bool operator==(const self& a, const self& b)noexcept
+		{
+			return a.dat == b.dat;
+		}
+		friend bool operator!=(const self& a, const self& b)noexcept
+		{
+			return !(a == b);
+		}
+		friend bool operator<(const self& a, const self& b)noexcept
+		{
+			return a.dat < b.dat;
+		}
+		friend bool operator>(const self& a, const self& b)noexcept
+		{
+			return b < a;
+		}
+		friend bool operator<=(const self& a, const self& b)noexcept
+		{
+			return a < b || a == b;
+		}
+		friend bool operator>=(const self& a, const self& b)noexcept
+		{
+			return a > b || a == b;
+		}
+
+		friend self operator+(const self& a, const size_t b)noexcept
+		{
+			self c{ a };
+			c += b;
+			return c;
+		}
+		friend int operator-(const self& a, const self& b)noexcept
+		{
+			return a.dat - b.dat;
+		}
+		friend self operator-(const self& a, const difference_type b)noexcept
+		{
+			self c{ a };
+			c -= b;
+			return c;
+		}
+
 	};
 
+	template<typename CharT,typename Traits = std::char_traits<CharT>>
+	class basic_string_view
+	{
+	public:
+		using traits_type = Traits;
+		using value_type = CharT;
+		using pointer = CharT*;
+		using const_pointer = const CharT*;
+		using reference = CharT&;
+		using const_reference = const CharT&;
+		using iterator = const basic_string_iterator<CharT>;
+		using const_iterator = iterator;
+		//using reverse_iterator = std::reverse_iterator<const_iterator>;
+		using size_type = size_t;
+		using difference_type =typename Traits::difference_type;
+
+		static constexpr size_type npos{ static_cast<size_type>(-1) };
+	private:
+		const CharT* dat = nullptr;
+		size_type ssize = 0;
+	public:
+		constexpr basic_string_view() noexcept = default;
+		constexpr basic_string_view(const basic_string_view& other) noexcept = default;
+		constexpr basic_string_view(const CharT* s, size_type count) noexcept:dat(s),ssize{count}{}
+		constexpr basic_string_view(const CharT* s):dat(s),ssize(::strlen(dat)){}
+
+		constexpr basic_string_view& operator=(const basic_string_view& view) noexcept = default;
+
+		constexpr const_iterator begin() const noexcept
+		{
+			return iterator(dat);
+		}
+		constexpr const_iterator cbegin() const noexcept
+		{
+			return iterator(dat);
+		}
+
+		constexpr const_iterator end() const noexcept
+		{
+			return iterator(dat + ssize);
+		}
+		constexpr const_iterator cend() const noexcept
+		{
+			return iterator(dat + ssize);
+		}
+
+		constexpr const_reference operator[](size_type pos) const
+		{
+			return iterator(dat + pos);
+		}
+
+		constexpr const_reference at(size_type pos) const
+		{
+			if (pos >= ssize)
+				throw(out_of_range(""));
+			return this->operator[](pos);
+		}
+		
+		constexpr const_reference front() const noexcept
+		{
+#ifdef DEBUG
+			assert(dat == nullptr);
+#endif // DEBUG
+			return *dat;
+		}
+
+		constexpr const_reference back() const noexcept
+		{
+#ifdef DEBUG
+			assert(dat == nullptr);
+#endif // DEBUG
+			return *dat;
+		}
+
+		constexpr const_pointer data() const noexcept
+		{
+			return dat;
+		}
+
+		constexpr size_type size() const noexcept
+		{
+			return ssize;
+		}
+		constexpr size_type length() const noexcept
+		{
+			return ssize;
+		}
+
+		constexpr size_type max_size() const noexcept
+		{
+			return std::numeric_limits<size_type>::max();
+		}
+
+		constexpr bool empty() const noexcept
+		{
+			return ssize == 0;
+		}
+
+		constexpr void remove_prefix(size_type n);
+
+		constexpr void remove_suffix(size_type n);
+
+		constexpr void swap(basic_string_view& v) noexcept;
+
+		size_type copy(CharT* dest,size_type count,size_type pos = 0) const;
+
+		constexpr basic_string_view substr(size_type pos = 0, size_type count = npos) const;
+
+		constexpr int compare(basic_string_view v) const noexcept;
+		constexpr int compare(size_type pos1, size_type count1,
+			basic_string_view v) const;
+		constexpr int compare(size_type pos1, size_type count1, basic_string_view v,
+			size_type pos2, size_type count2) const;
+		constexpr int compare(const CharT* s) const;
+		constexpr int compare(size_type pos1, size_type count1,
+			const CharT* s) const;
+		constexpr int compare(size_type pos1, size_type count1,
+			const CharT* s, size_type count2) const;
+
+		constexpr size_type find(basic_string_view v, size_type pos = 0) const noexcept;
+		constexpr size_type find(CharT c, size_type pos = 0) const noexcept;
+		constexpr size_type find(const CharT* s, size_type pos, size_type count) const;
+		constexpr size_type find(const CharT* s, size_type pos = 0) const;
+
+		constexpr size_type rfind(basic_string_view v, size_type pos = npos) const noexcept;
+		constexpr size_type rfind(CharT c, size_type pos = npos) const noexcept;
+		constexpr size_type rfind(const CharT* s, size_type pos, size_type count) const;
+		constexpr size_type rfind(const CharT* s, size_type pos = npos) const;
+
+		constexpr size_type find_first_of(basic_string_view v, size_type pos = 0) const noexcept;
+		constexpr size_type find_first_of(CharT c, size_type pos = 0) const noexcept;
+		constexpr size_type find_first_of(const CharT* s, size_type pos, size_type count) const;
+		constexpr size_type find_first_of(const CharT* s, size_type pos = 0) const;
+
+		constexpr size_type find_last_of(basic_string_view v, size_type pos = npos) const noexcept;
+		constexpr size_type find_last_of(CharT c, size_type pos = npos) const noexcept;
+		constexpr size_type find_last_of(const CharT* s, size_type pos, size_type count) const;
+		constexpr size_type find_last_of(const CharT* s, size_type pos = npos) const;
+
+		constexpr size_type find_first_not_of(basic_string_view v, size_type pos = 0) const noexcept;
+		constexpr size_type find_first_not_of(CharT c, size_type pos = 0) const noexcept;
+		constexpr size_type find_first_not_of(const CharT* s, size_type pos, size_type count) const;
+		constexpr size_type find_first_not_of(const CharT* s, size_type pos = 0) const;
+
+		constexpr size_type find_last_not_of(basic_string_view v, size_type pos = npos) const noexcept;
+		constexpr size_type find_last_not_of(CharT c, size_type pos = npos) const noexcept;
+		constexpr size_type find_last_not_of(const CharT* s, size_type pos, size_type count) const;
+		constexpr size_type find_last_not_of(const CharT* s, size_type pos = npos) const;
+	};
 
 
 	template<typename CharT, typename Traits = char_traits<CharT>, typename Allocator = uuz::allocator<CharT>>
@@ -364,5 +630,6 @@ namespace uuz
 
 
 	};
-
+	using string = basic_string<char>;
+	using string_view = basic_string_view<char>;
 }
