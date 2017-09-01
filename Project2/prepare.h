@@ -3,8 +3,113 @@
 #include<cassert>
 #include<exception>
 #include<stdexcept>
+namespace
+{
+	template<typename D, typename Void, template<typename...>class Op, typename... T>
+	struct is_detected_impl
+	{
+		using value_t = std::false_type;
+		using type = D;
+	};
+	template<template<typename...>class op, typename... T>
+	struct is_detected_impl<void, std::void_t<op<T...>>, op, T>
+	{
+		using value_t = std::true_type;
+		using type = op<T...>;
+	};
+
+
+}
 namespace uuz
 {
+#ifdef _MSC_VER 
+#define INLINE __forceinline
+#elif __GNUC__ or __clang__
+#define INLINE  __inline __attribute__((always_inline))
+#else
+#define INLINE inline
+#endif 
+
+
+
+	
+	using size_t = uint32_t;
+	using ptrdiff_t = int;
+
+	namespace experimental
+	{
+		struct nonesuch {
+			nonesuch() = delete;
+			~nonesuch() = delete;
+			nonesuch(nonesuch const&) = delete;
+			void operator=(nonesuch const&) = delete;
+		};
+
+		template <template<class...> class Op, class... Args>
+		using is_detected = typename is_detected_impl<nonesuch, void, Op, Args...>::value_t;
+
+		template <template<class...> class Op, class... Args>
+		using detected_t = typename is_detected_impl<nonesuch, void, Op, Args...>::type;
+
+		template <class Default, template<class...> class Op, class... Args>
+		using detected_or = is_detected_impl<Default, void, Op, Args...>;
+
+		template< template<class...> class Op, class... Args >
+		constexpr bool is_detected_v = is_detected<Op, Args...>::value;
+
+		template< class Default, template<class...> class Op, class... Args >
+		using detected_or_t = typename detected_or<Default, Op, Args...>::type;
+
+		template <class Expected, template<class...> class Op, class... Args>
+		using is_detected_exact = std::is_same<Expected, detected_t<Op, Args...>>;
+		
+		template <class Expected, template<class...> class Op, class... Args>
+		constexpr bool is_detected_exact_v = is_detected_exact<Expected, Op, Args...>::value;
+	
+		template <class To, template<class...> class Op, class... Args>
+		using is_detected_convertible = std::is_convertible<detected_t<Op, Args...>, To>;
+		
+		template <class To, template<class...> class Op, class... Args>
+		constexpr bool is_detected_convertible_v = is_detected_convertible<To, Op, Args...>::value;
+		
+}
+	
+	//老子不写了！！！
+	template< class Ptr > 
+	struct pointer_traits
+	{
+		
+		using element_type = Ptr;
+		using pointer = typename std::pointer_traits<Ptr>::pointer;
+		using difference_type = ptrdiff_t;
+
+		template<class Other>
+		using rebind = typename std::pointer_traits<Ptr>::template rebind<Other>;
+
+		static pointer pointer_to(element_type& r)
+		{
+			return std::pointer_traits<Ptr>::pointer_to(r);
+		}
+
+	};
+	
+	template<class T>
+	struct pointer_traits<T*>
+	{
+		using element_type = T;
+		using pointer = T*;
+		using difference_type = ptrdiff_t;
+
+		template<class _Other>
+		using rebind = _Other *;
+
+		static pointer pointer_to(element_type& p)noexcept
+		{	
+			return std::addressof(p);
+		}
+	};
+
+
 	//默认less仿函数
 	template<typename T>
 	struct less

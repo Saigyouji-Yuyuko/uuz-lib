@@ -286,6 +286,7 @@ int main()
 	std::vector<std::vector<double>> libcxx_bidirectional{ 8 };
 	std::vector<std::vector<double>> libcxx_forward{ 8 };*/
 	auto kk = 0;
+	std::allocator_traits
 	for(auto i =10;i<=1e4;i*=10,++kk)
 	{
 		std::vector<int> vec(i);
