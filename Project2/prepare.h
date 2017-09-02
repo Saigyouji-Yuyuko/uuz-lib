@@ -34,7 +34,7 @@ namespace uuz
 
 	
 	using size_t = uint32_t;
-	using ptrdiff_t = int;
+	using ptrdiff_t = int32_t;
 
 	namespace experimental
 	{
@@ -492,4 +492,5 @@ namespace uuz
 	using std::bad_alloc;
 	using std::out_of_range;
 	using std::runtime_error;
+	using std::length_error;
 }

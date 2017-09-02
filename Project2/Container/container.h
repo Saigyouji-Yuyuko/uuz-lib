@@ -1,6 +1,7 @@
 #pragma once
 #include"../prepare.h"
 #include"iterator.h"
+#include"algorithm.h"
 #include"allocator.h"
 #include<initializer_list>
 namespace uuz

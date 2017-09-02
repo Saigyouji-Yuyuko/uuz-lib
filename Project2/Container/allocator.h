@@ -135,18 +135,6 @@ namespace uuz
 		return false;
 	}
 
-	template<typename T, typename F = void>
-	struct is_nothrow_swap_alloc
-	{
-		static const bool value = false;
-	};
-
-	template<typename T>
-	struct is_nothrow_swap_alloc<T, typename std::enable_if_t<T::is_always_equal::value || T::propagate_on_container_move_assignment::value>>
-	{
-		static const bool value = true;
-	};
-
 	template< typename Alloc >
 	struct allocator_traits
 	{
@@ -243,4 +231,16 @@ namespace uuz
 		}
 	};
 
+	template<typename T, typename F = void>
+	struct is_nothrow_swap_alloc
+	{
+		static const bool value = false;
+	};
+
+	template<typename T>
+	struct is_nothrow_swap_alloc<T, typename std::enable_if_t<allocator_traits<T>::propagate_on_container_move_assignment::value
+														|| allocator_traits<T>::is_always_equal::value>>
+	{
+		static const bool value = true;
+	};
 }
