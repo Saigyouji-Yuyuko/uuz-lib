@@ -1234,9 +1234,8 @@ namespace uuz
 		{
 			
 		}
-		int compare(size_type pos1, size_type count1,
-			const basic_string& str,
-			size_type pos2, size_type count2 = npos) const;
+		int compare(size_type pos1, size_type count1,const basic_string& str,
+												size_type pos2, size_type count2 = npos) const;
 		int compare(const CharT* s) const;
 		int compare(size_type pos1, size_type count1,
 				const CharT* s) const;
