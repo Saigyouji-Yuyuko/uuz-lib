@@ -28,8 +28,7 @@ namespace uuz
 		}
 		static char_type* assign(char_type* p, std::size_t count, char_type a)noexcept
 		{
-			while (count--)
-				*(p + count) = a;
+			::memset(p, a, count);
 			return p;
 		}
 
@@ -44,7 +43,7 @@ namespace uuz
 
 		static char_type* move(char_type* dest, const char_type* src, std::size_t count)noexcept
 		{
-			return static_cast<char_type*>(memmove(dest, src, count));
+			return static_cast<char_type*>(::memmove(dest, src, count));
 		}
 
 		static char_type* copy(char_type* dest, const char_type* src, std::size_t count)noexcept
@@ -54,12 +53,12 @@ namespace uuz
 
 		static constexpr int compare(const char_type* s1, const char_type* s2, std::size_t count)noexcept
 		{
-			return strcmp(s1, s2);
+			return ::strncmp(s1, s2, count);
 		}
 
 		static constexpr size_t length(const char_type* s)noexcept
 		{
-			return strlen(s);
+			return ::strlen(s);
 		}
 
 		static constexpr const char_type* find(const char_type* p, std::size_t count, const char_type& ch)
@@ -675,7 +674,7 @@ namespace uuz
 			if(s == nullptr)
 				clear();
 			else
-				assign_str(s);
+				assign_str(s,Traits::length(s));
 			return *this;
 		}
 		basic_string& operator=(CharT ch)
@@ -711,10 +710,9 @@ namespace uuz
 			// Replaces the contents with count copies of character ch.
 			if (capacity() > count)
 			{
-				Traits::assign(*(data() + count), Traits::eof());
 				ssize = count;
-				for(;--count>=0;)
-					Traits::assign(*(data() + count), ch);
+				Traits::assign(data(), ch, count);
+				Traits::assign(*(data() + count), Traits::eof());
 			}
 			else
 			{
@@ -722,10 +720,10 @@ namespace uuz
 					throw(length_error(""));
 				auto p = allocator_traits<Allocator>::allocator(alloc, count + 1);
 				
-				Traits::assign(*(data() + count), Traits::eof());
 				ssize = count;
-				for (; --count >= 0;)
-					Traits::assign(*(data() + count), ch);
+				Traits::assign(data(), ch, count);
+				Traits::assign(*(data() + count), Traits::eof());
+				
 
 				if (!sso_flag)
 					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
@@ -1006,26 +1004,108 @@ namespace uuz
 
 		basic_string& insert(size_type index, size_type count, CharT ch)
 		{
-			
+			if(size()+count < capacity())
+			{
+				Traits::move(data() + index + count, data() + index, size() - index);
+				Traits::assign(data()+index, ch, count);
+				Traits::assign(*(data() + size()), Traits::eof);
+				ssize += count;
+			}
+			else
+			{
+				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
+				Traits::move(temp, data(), index);
+				Traits::assign(data() + index, ch, count);
+				Traits::move(temp + index + count, data()+index, size() - index);
+				ssize += count;
+				Traits::assign(*(temp + size()), Traits::eof);
+				if (!sso_flag)
+					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
+				else
+					sso_flag = false;
+				dat.data.begin = temp;
+				dat.data.max_size = ssize + 1;
+			}
+			return *this;
 		}
-		basic_string& insert(size_type index, const CharT* s);
-		basic_string& insert(size_type index, const CharT* s, size_type count);
-		basic_string& insert(size_type index, const basic_string& str);
-		basic_string& insert(size_type index, const basic_string& str,
-			size_type index_str, size_type count = npos);
-		iterator insert(const_iterator pos, CharT ch);
-		iterator insert(const_iterator pos, size_type count, CharT ch);
-		template< class InputIt >
-		iterator insert(const_iterator pos, InputIt first, InputIt last);
-		iterator insert(const_iterator pos, std::initializer_list<CharT> ilist);
-		basic_string& insert(size_type pos, basic_string_view<CharT, Traits> sv);
-		template < class T >
-		basic_string& insert(size_type index, const T& t,
-			size_type index_str, size_type count = npos);
+		basic_string& insert(size_type index, const CharT* s)
+		{
+			if(s)
+				insert_str(index, s, Traits::length(s));
+			return *this;
+		}
+		basic_string& insert(size_type index, const CharT* s, size_type count)
+		{
+			if(s)
+				insert_str(index, s, count);
+			return *this;
+		}
+		basic_string& insert(size_type index, const basic_string& str)
+		{
+			return insert(index, str.data(), str.size());
+		}
+		basic_string& insert(size_type index, const basic_string& str,size_type index_str, size_type count = npos)
+		{
+			if (index_str >= str.size())
+				throw(out_of_range(""));
+			return insert(index, str.data() + index_str, count < str.size() - index ? count : str.size() - index);
+		}
+		iterator insert(const_iterator pos, CharT ch)
+		{
+			insert(pos - begin(), 1, ch);
+			return pos;
+		}
+		iterator insert(const_iterator pos, size_type count, CharT ch)
+		{
+			insert(pos - begin(), count, ch);
+			return pos;
+		}
+		template< typename InputIt, typename = is_input<value_type, InputIt>>
+		iterator insert(const_iterator pos, InputIt first, InputIt last)
+		{
+			insert_iterator(pos - begin(), first, last, distance(first, last));
+			return pos;
+		}
+		iterator insert(const_iterator pos, std::initializer_list<CharT> ilist)
+		{
+			insert_iterator(pos - begin(), ilist.begin(), ilist.end(), ilist.size());
+			return pos;
+		}
+		basic_string& insert(size_type pos, basic_string_view<CharT, Traits> sv)
+		{
+			return insert(pos, sv.data());
+		}
+		template < typename T,
+			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
+			&& !std::is_convertible_v<const T&, const CharT*>>>
+		basic_string& insert(size_type index, const T& t,size_type index_str, size_type count = npos)
+		{
+			auto str = basic_string_view<CharT, Traits>(t);
+			if (index_str >= str.size())
+				throw(out_of_range(""));
+			insert_str(str.data() + index_str, str.size() - index_str > count ? count : str.size() - index_str);
+			return *this;
+		}
 
-		basic_string& erase(size_type index = 0, size_type count = npos);
-		iterator erase(const_iterator position);
-		iterator erase(const_iterator first, const_iterator last);
+		basic_string& erase(size_type index = 0, size_type count = npos)
+		{
+			if (index > size())
+				throw(out_of_range(""));
+			erase(iterator(begin() + index), iterator(begin() + (count < size() - index ? count : size() - index)));
+			return *this;
+		}
+		iterator erase(const_iterator position)noexcept
+		{
+			Traits::move(position.dat, position.dat + 1, end() - position);
+			--ssize;
+			return position;
+		}
+		iterator erase(const_iterator first, const_iterator last)noexcept
+		{
+			Traits::move(first.dat, last.dat, end() - last);
+			ssize -= distance(first, last);
+			return first;
+		}
 
 		void push_back(CharT ch)
 		{
@@ -1041,33 +1121,134 @@ namespace uuz
 			--ssize;
 		}
 
-		basic_string& append(size_type count, CharT ch);
-		basic_string& append(const basic_string& str);
-		basic_string& append(const basic_string& str,
-			size_type pos,
-			size_type count = npos);
-		basic_string& append(const CharT* s, size_type count);
-		basic_string& append(const CharT* s);
-		template< class InputIt >
-		basic_string& append(InputIt first, InputIt last);
-		basic_string& append(std::initializer_list<CharT> ilist);
-		basic_string& append(std::basic_string_view<CharT, Traits> sv);
-		template < class T >
-		basic_string& append(const T& t, size_type pos,
-			size_type count = npos);
+		basic_string& append(size_type count, CharT ch)
+		{
+			if(size()+count < capacity())
+			{
+				Traits::assign(data() + size(), ch, count);
+				Traits::assign(data() + size() + count, Traits::eof());
+			}
+			else
+			{
+				if (size() + count + 1 >= max_size())
+					throw(length_error(""));
+				
+				auto p = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
+				Traits::copy(p, data(), size());
+				Traits::assign(p + size(), ch, count);
+				Traits::assign(p + size() + count, Traits::eof());
 
-		basic_string& operator+=(const basic_string& str);
-		basic_string& operator+=(CharT ch);		
-		basic_string& operator+=(const CharT* s);	
-		basic_string& operator+=(std::initializer_list<CharT> ilist);		
-		basic_string& operator+=(std::basic_string_view<CharT, Traits> sv);
+				if (!sso_flag)
+					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
+				else
+					sso_flag = false;
+
+				dat.data.begin = p;
+				dat.data.max_size = size() + count + 1;
+			}
+			ssize += count;
+			return *this;
+		}
+		basic_string& append(const basic_string& str)
+		{
+			append_str(str.data(), str.size());
+			return *this;
+		}
+		basic_string& append(const basic_string& str,size_type pos,size_type count = npos)
+		{
+			if (pos >= str.size())
+				throw(out_of_range(""));
+			return append( str.data() + pos, count < str.size() - pos ? count : str.size() - pos);
+		}
+		basic_string& append(const CharT* s, size_type count)
+		{
+			if(s)
+				append_str(s, count);
+			return *this;
+		}
+		basic_string& append(const CharT* s)
+		{
+			if(s)
+				append_str(s, Traits::length(s));
+			return *this;
+		}
+		template< typename InputIt, typename = is_input<value_type, InputIt>>
+		basic_string& append(InputIt first, InputIt last)
+		{
+			append_iterator(first, last, distance(first, last));
+			return *this;
+		}
+		basic_string& append(std::initializer_list<CharT> ilist)
+		{
+			append_iterator(ilist.begin(), ilist.end(), ilist.size());
+			return *this;
+		}
+		basic_string& append(basic_string_view<CharT, Traits> sv)
+		{
+			append_str(sv.data(), sv.size());
+			return *this;
+		}
+		template < typename T,
+			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
+			&& !std::is_convertible_v<const T&, const CharT*>>>
+		basic_string& append(const T& t, size_type pos,size_type count = npos)
+		{
+			auto str = basic_string_view<CharT, Traits>(t);
+			if (pos > str.size())
+				throw(out_of_range(""));
+			append_str(str.data() + pos, str.size() - pos > count ? count : str.size() - pos);
+			return *this;
+		}
+
+		basic_string& operator+=(const basic_string& str)
+		{
+			return append(str);
+		}
+		basic_string& operator+=(CharT ch)
+		{
+			push_back(ch);
+			return *this;
+		}
+		basic_string& operator+=(const CharT* s)
+		{
+			return append(s);
+		}
+		basic_string& operator+=(std::initializer_list<CharT> ilist)
+		{
+			return append(ilist);
+		}
+		basic_string& operator+=(basic_string_view<CharT, Traits> sv)
+		{
+			return append(sv);
+		}
 
 		int compare(const basic_string& str) const
 		{
-			return Traits::compare(data(), str.data());
+			auto p = size() - str.size();
+			auto k = Traits::compare(data(), str.data(), p > 0 ? size() : str.size());
+			if (k == 0)
+				return p;
+			return k;
+		}
+		int compare(size_type pos1, size_type count1,const basic_string& str) const
+		{
+			
 		}
 		int compare(size_type pos1, size_type count1,
-			const basic_string& str) const;
+			const basic_string& str,
+			size_type pos2, size_type count2 = npos) const;
+		int compare(const CharT* s) const;
+		int compare(size_type pos1, size_type count1,
+				const CharT* s) const;
+		int compare(size_type pos1, size_type count1,
+			const CharT* s, size_type count2) const;
+		int compare(std::basic_string_view<CharT, Traits> sv) const;
+			int compare(size_type pos1, size_type count1,
+				std::basic_string_view<CharT, Traits> sv) const;
+			template < class T >
+		int compare(size_type pos1, size_type count1,
+			const T& t,
+			size_type pos2, size_type count2 = npos) const;
 
 		basic_string& replace(size_type pos, size_type count,
 			const basic_string& str);
@@ -1109,8 +1290,10 @@ namespace uuz
 		basic_string& replace(size_type pos, size_type count, const T& t,
 				size_type pos2, size_type count2 = npos);
 
-		basic_string substr(size_type pos = 0,
-			size_type count = npos) const;
+		basic_string substr(size_type pos = 0,size_type count = npos) const
+		{
+			return basic_string(data(), pos, count);
+		}
 
 		size_type copy(CharT* dest,size_type count,size_type pos = 0) const
 		{
@@ -1123,7 +1306,14 @@ namespace uuz
 		{
 			return resize(count, Traits::eof());
 		}
-		void resize(size_type count, CharT ch);
+		void resize(size_type count, CharT ch)
+		{
+			if(count < size())
+				Traits::assign(at(ssize()), Traits::eof());
+			else if(count > size())
+				append(count - size(), ch);
+			ssize = count;
+		}
 
 		void swap(basic_string& other) noexcept(is_nothrow_swap_alloc < Allocator >::value )
 		{
@@ -1194,21 +1384,18 @@ namespace uuz
 			clear();
 		}
 	private:
-		void assign_str(const_pointer p,size_t t = npos)
+
+		void assign_str(const_pointer p,size_t t)
 		{
-			if (t == npos)
-				t = Traits::length(p);
 			if (capacity() > t)//空间够了
 			{
 				Traits::copy(p, data(), t);
 				Traits::assign(*(data() + t), Traits::eof());
-				ssize = t;
 			}
 			else//空间不够
 			{
 				if (t >= max_size())
 					throw(length_error(""));
-
 				//先申请并复制，出错也安全
 				auto pp = allocator_traits<Allocator>::allocator(alloc, t + 1);
 				Traits::copy(pp, p, t);
@@ -1221,9 +1408,9 @@ namespace uuz
 					sso_flag = false;
 
 				dat.data.begin = pp;
-				dat.data.max_size = t + 1;
-				ssize = t;
+				dat.data.max_size = t + 1;	
 			}
+			ssize = t;
 		}
 		template<typename It,typename = is_input<value_type,It>>
 		void assign_iterator(It first,It end,size_t t)
@@ -1231,8 +1418,7 @@ namespace uuz
 			if (capacity() > t)//空间够了
 			{
 				uuz::copy(first, end, data());
-				Traits::assign(*(data() + t), Traits::eof());
-				ssize = t;
+				Traits::assign(*(data() + t), Traits::eof());	
 			}
 			else//空间不够
 			{
@@ -1252,8 +1438,117 @@ namespace uuz
 
 				dat.data.begin = p;
 				dat.data.max_size = t + 1;
-				ssize = t;
 			}
+			ssize = t;
+		}
+
+		void insert_str(size_t index,const_pointer s ,size_t count)
+		{
+			if (size() + count < capacity())
+			{
+				Traits::move(data() + index + count, data() + index, size() - index);
+				Traits::copy(data() + index, s, count);
+				Traits::assign(*(data() + size()), Traits::eof);
+			}
+			else
+			{
+				if (size() + count + 1 >= max_size())
+					throw(length_error(""));
+				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
+				Traits::move(temp, data(), index);
+				Traits::copy(data() + index, s, count);
+				Traits::move(temp + index + count, data() + index, size() - index);
+				
+				Traits::assign(*(temp + size()), Traits::eof);
+				if (!sso_flag)
+					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
+				else
+					sso_flag = false;
+				dat.data.begin = temp;
+				dat.data.max_size = size() + count + 1;
+			}
+			ssize += count;
+		}
+		template<typename It, typename = is_input<value_type, It>>
+		void insert_iterator(size_t index,It first, It end, size_t count)
+		{
+			if (size() + count < capacity())
+			{
+				Traits::move(data() + index + count, data() + index, size() - index);
+				uuz::copy(first,end,data() + index);
+				Traits::assign(*(data() + size()), Traits::eof);
+			}
+			else
+			{
+				if (size() + count + 1 >= max_size())
+					throw(length_error(""));
+
+				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
+				Traits::move(temp, data(), index);
+				uuz::copy(first, end, data() + index);
+				Traits::move(temp + index + count, data() + index, size() - index);	
+				Traits::assign(*(temp + size()), Traits::eof);
+				if (!sso_flag)
+					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
+				else
+					sso_flag = false;
+				dat.data.begin = temp;
+				dat.data.max_size = size() + count + 1;
+			}
+			ssize += count;
+		}
+
+		void append_str(const_pointer s, size_t count)
+		{
+			if (size() + count < capacity())
+			{
+				Traits::copy(data() + size(), s, count);
+				Traits::assign(data() + size() + count, Traits::eof());
+			}
+			else
+			{
+				if (size() + count + 1 >= max_size())
+					throw(length_error(""));
+
+				auto p = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
+				Traits::copy(p, data(), size());
+				Traits::copy(p + size(), s, count);
+				Traits::assign(p + size() + count, Traits::eof());
+				if (!sso_flag)
+					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
+				else
+					sso_flag = false;
+
+				dat.data.begin = p;
+				dat.data.max_size = size() + count + 1;
+			}
+			ssize += count;
+		}
+		template<typename It, typename = is_input<value_type, It>>
+		void append_iterator(size_t index, It first, It end, size_t count)
+		{
+			if (size() + count < capacity())
+			{
+				uuz::copy(first, end, data()+size());
+				Traits::assign(data() + size() + count, Traits::eof());
+			}
+			else
+			{
+				if (size() + count + 1 >= max_size())
+					throw(length_error(""));
+
+				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
+				Traits::copy(temp, data(), size());
+				uuz::copy(first, end, temp + size());
+				Traits::assign(temp + size() + count, Traits::eof());
+				if (!sso_flag)
+					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
+				else
+					sso_flag = false;
+				dat.data.begin = temp;
+				dat.data.max_size = size() + count + 1;
+			}
+			ssize += count;
 		}
 	};
 	using string = basic_string<char>;
