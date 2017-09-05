@@ -161,16 +161,26 @@ ll:				++begin;
 			return nullptr;
 		}
 		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find_last_of(CharT* begin, CharT* s2, size_type count)noexcept
+		CharT* _find_last_of(CharT* begin, CharT* end, CharT* s2, size_type count)noexcept
 		{
-
-			while (*begin)
+			while (begin  < --end)
 			{
 				for (auto i = 0; i != count; ++i)
-					if (char_traits<CharT>::eq(*(s2 + i), *begin))
+					if (char_traits<CharT>::eq(*(end), *begin))
+						return end;
+			}
+			return nullptr;
+		}
+			template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		CharT* _find_last_not_of(CharT* begin, CharT* end, CharT* s2, size_type count)noexcept
+		{
+			while (begin  < --end)
+			{
+				for (auto i = 0; i != count; ++i)
+					if (char_traits<CharT>::eq(*(end), *begin))
 						goto ll;
-				return begin;
-			ll:				++begin;
+				return end;
+			ll:;
 			}
 			return nullptr;
 		}
@@ -1751,15 +1761,7 @@ ll:				++begin;
 
 		size_type find(const basic_string& str, size_type pos = 0) const
 		{
-			if (pos > size())
-				throw(out_of_range(""));
-			if (str.size() > size())
-				return npos;
-
-			auto k = _find(data() + pos, str.data(), str.size());
-			if (k)
-				return k - data();
-			return npos;
+			return find(str.data(), pos, str.size());
 		}
 		size_type find(const CharT* s, size_type pos, size_type count) const
 		{
@@ -1788,19 +1790,7 @@ ll:				++begin;
 
 		size_type rfind(const basic_string& str, size_type pos = npos) const
 		{
-			if (pos == npos)
-				pos = size();
-
-			if (pos > size())
-				throw(out_of_range(""));
-			if (str.size() > size())
-				return npos;
-
-			auto k = _rfind(data() + pos, data() + size(), str.data(), str.size());
-			if (k)
-				return k - data();
-			return npos;
-
+			return rfind(str.data(), pos, str.size());
 		}
 		size_type rfind(const CharT* s, size_type pos, size_type count) const
 		{
@@ -1812,7 +1802,7 @@ ll:				++begin;
 			if (count > size())
 				return npos;
 
-			auto k = _rfind(data() + pos, data() + size(), s, count);
+			auto k = _rfind(data(), data() + pos, s, count);
 			if (k)
 				return k - data();
 			return npos;
@@ -1835,13 +1825,7 @@ ll:				++begin;
 
 		size_type find_first_of(const basic_string& str, size_type pos = 0) const
 		{
-			if (pos > size())
-				throw(out_of_range(""));
-
-			auto k = _find_first_of(data() + pos, str.data(),str.size());
-			if (k)
-				return k - data();
-			return npos;
+			return find_first_of(str.data()), pos, str.size());
 		}
 		size_type find_first_of(const CharT* s, size_type pos, size_type count) const
 		{
@@ -1869,13 +1853,7 @@ ll:				++begin;
 
 		size_type find_first_not_of(const basic_string& str, size_type pos = 0) const
 		{
-			if (pos > size())
-				throw(out_of_range(""));
-
-			auto k = _find_first_not_of(data() + pos, str.data(), str.size());
-			if (k)
-				return k - data();
-			return npos;
+			return find_first_not_of(str, pos, str.size());
 		}
 		size_type find_first_not_of(const CharT* s, size_type pos, size_type count) const
 		{
@@ -1905,22 +1883,84 @@ ll:				;
 		}
 		size_type find_first_not_of(std::basic_string_view<CharT, Traits> sv,size_type pos = 0) const
 		{
-			return find_first_not_of(sv, pos, sv.size()));
+			return find_first_not_of(sv, pos, sv.size());
 		}
 
-		size_type find_last_of(const basic_string& str, size_type pos = npos) const;
-		size_type find_last_of(const CharT* s, size_type pos, size_type count) const;
-		size_type find_last_of(const CharT* s, size_type pos = npos) const;
-		size_type find_last_of(CharT ch, size_type pos = npos) const;
-		size_type find_last_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = npos) const;
+		size_type find_last_of(const basic_string& str, size_type pos = npos) const
+		{
+			return find_last_of(str.data(), pos, str.size());
+		}
+		size_type find_last_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos == npos)
+				pos = size();
 
-		size_type find_last_not_of(const basic_string& str, size_type pos = npos) const;
-		size_type find_last_not_of(const CharT* s, size_type pos, size_type count) const;
-		size_type find_last_not_of(const CharT* s, size_type pos = npos) const;
-		size_type find_last_not_of(CharT ch, size_type pos = npos) const;
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
+
+			auto k = _find_last_of(data(), data() +pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find_last_of(const CharT* s, size_type pos = npos) const
+		{
+			return find_last_of(s, pos, Traits::length(s));
+		}
+		size_type find_last_of(CharT ch, size_type pos = npos) const
+		{
+			for (auto i = size() - 1; i > 0; --i)
+				if (Traits::eq(at(i), ch))
+					return i;
+			return npos;
+		}
+		size_type find_last_of(std::basic_string_view<CharT, Traits> sv,
+			size_type pos = npos) const
+		{
+			return find_last_of(sv.data(), pos, sv.size());
+		}
+
+		size_type find_last_not_of(const basic_string& str, size_type pos = npos) const
+		{
+			return find_last_not_of(str.data(), pos, str.size());
+		}
+		size_type find_last_not_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
+
+			auto k = _find_last_not_of(data(), data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find_last_not_of(const CharT* s, size_type pos = npos) const
+		{
+			return find_last_not_of(s, pos, Traits::length(s));
+		}
+		size_type find_last_not_of(CharT ch, size_type pos = npos) const
+		{
+			for (auto i = size() - 1; i > 0; --i)
+			{
+				if (Traits::eq(at(i), ch))
+					goto ll;
+				return i;
+			ll:;
+			}
+			return npos;
+		}
 		size_type find_last_not_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = npos) const;
+			size_type pos = npos) const
+		{
+			return find_last_not_of(sv.data(), pos, sv.size());
+		}
 		
 		~basic_string()
 		{
