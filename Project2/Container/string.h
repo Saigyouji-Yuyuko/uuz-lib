@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 #define _CRT_SECURE_NO_WARNINGS
 #include"container.h"
 #include<cstring>
@@ -100,6 +100,81 @@ namespace uuz
 
 	template<typename CharT, typename Traits, typename Allocator>
 	class basic_string;
+
+	namespace
+	{
+		template<typename CharT,typename size_type,typename = typename char_traits<CharT>::char_type>
+		int _compare(CharT* s1,size_type count1,
+			CharT* s2, size_type count2)noexcept
+		{
+			int k = count1 - count2;
+			auto p = char_traits<CharT>::compare(s1, s2, k > 0 ? count1 : count2);
+			if (p == 0)
+				return k;
+			return p;
+		}
+		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		CharT* _find(CharT* s1,CharT* s2, size_type count2)noexcept
+		{
+			while (*(s1 + count2))
+				if (*s1 == *s2 && char_traits<CharT>::compare(s1, s2, count2) == 0)
+					return s1;
+				else
+					++s1;
+			return nullptr;
+		}
+		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		CharT* _find(CharT* begin, CharT* end, CharT* s2, size_type count2)noexcept
+		{
+			while((end - count2) != begin)
+				if (*(end - count2) == *s2 && char_traits<CharT>::compare(end - count2, s2, count2) == 0)
+					return end - count2;
+				else
+					--end;
+			return char_traits<CharT>::compare(begin, s2, count2) == 0 ? begin : nullptr;
+		}
+		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		CharT* _find_first_of(CharT* begin, CharT* s2, size_type count)noexcept
+		{
+
+			while(*begin)
+			{
+				for (auto i = 0; i != count; ++i)
+					if (char_traits<CharT>::eq(*(s2 + i), *begin))
+						return begin;
+				++begin;
+			}
+			return nullptr;
+		}
+		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		CharT* _find_first_not_of(CharT* begin, CharT* s2, size_type count)noexcept
+		{
+
+			while (*begin)
+			{
+				for (auto i = 0; i != count; ++i)
+					if (char_traits<CharT>::eq(*(s2 + i), *begin))
+						goto ll;
+				return begin;
+ll:				++begin;
+			}
+			return nullptr;
+		}
+		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		CharT* _find_last_of(CharT* begin, CharT* s2, size_type count)noexcept
+		{
+
+			while (*begin)
+			{
+				for (auto i = 0; i != count; ++i)
+					if (char_traits<CharT>::eq(*(s2 + i), *begin))
+						goto ll;
+				return begin;
+			ll:				++begin;
+			}
+			return nullptr;
+		}
+	}
 
 	template<typename CharT, typename Traits = char_traits<CharT>>
 	class basic_string_iterator
@@ -421,35 +496,41 @@ namespace uuz
 		
 
 		constexpr static size_t npos{ static_cast<size_t>(-1) };
-		constexpr static size_t sso_size = 32;
+		constexpr static size_t sso_size = 20;
 	private:
+		using view = basic_string_view<CharT, Traits>;
+
+
 		union
 		{
 			CharT sso_data[sso_size];
-			struct
-			{
-				CharT* begin = nullptr;
-				size_t max_size = 0;
-			}data;
-		}dat;
-		bool sso_flag = true;
+			CharT* no_sso_data = nullptr;	
+		};
+		size_t maxsize = sso_size - 1;
 		size_t ssize = 0;
 		Allocator alloc;
 	public:
 		
+		//C++17
+		//Constructs new string from a variety of data sources and optionally using user supplied allocator alloc.
+		//Calls to Allocator::allocate may throw.
 		basic_string() noexcept(noexcept(Allocator())) : basic_string(Allocator())
 		{
 			//C++17
 			//Default constructor. Constructs empty string (zero size and unspecified capacity).
+			//constant
 		}
 		explicit basic_string(const Allocator& alloc) noexcept:alloc(alloc)
 		{
 			//C++17
-			//Constructs the string with count copies of character ch. The behavior is undefined if count >= npos.
-
+			//Default constructor. Constructs empty string (zero size and unspecified capacity).
+			//constant
 		}
 		basic_string(size_t count,CharT ch,const Allocator& alloc = Allocator()):basic_string(alloc)
 		{
+			//C++17
+			//Constructs the string with count copies of character ch. The behavior is undefined if count >= npos.
+			// linear in count
 			try
 			{
 				assign(count, ch);
@@ -462,6 +543,12 @@ namespace uuz
 		}
 		basic_string(const basic_string& other,size_t pos,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			//Constructs the string with a substring [pos, pos+count) of other. If count == npos,
+			//if count is not specified, or if the requested substring lasts past the end of the string, 
+			//the resulting substring is [pos, size()).
+			//linear in count
+			//std::out_of_range if pos > other.size()
 			try
 			{
 				assign(other, pos);
@@ -474,6 +561,12 @@ namespace uuz
 		}
 		basic_string(const basic_string& other,size_t pos,size_t count,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			//Constructs the string with a substring [pos, pos+count) of other. If count == npos,
+			//if count is not specified, or if the requested substring lasts past the end of the string, 
+			//the resulting substring is [pos, size()).
+			//linear in count
+			//std::out_of_range if pos > other.size()
 			try
 			{
 				assign(other, pos,count);
@@ -486,6 +579,13 @@ namespace uuz
 		}
 		basic_string(const CharT* s,size_t count,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			//Constructs the string with the first count characters of character string pointed to by s.
+			//s can contain null characters.
+			//The length of the string is count.
+			//The behavior is undefined if s does not point at an array of at least count elements of CharT,
+			//including the case when s is a null pointer.
+			//linear in count
 			try
 			{
 				assign(s, count);
@@ -498,6 +598,12 @@ namespace uuz
 		}
 		basic_string(const CharT* s,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			//Constructs the string with the contents initialized with a copy of the null-terminated character string pointed to by s. 
+			//The length of the string is determined by the first null character. 
+			//The behavior is undefined if s does not point at an array of at least Traits::length(s)+1 elements of CharT, 
+			//including the case when s is a null pointer.
+			//linear in length of s
 			try
 			{
 				assign(s);
@@ -511,6 +617,10 @@ namespace uuz
 		template< typename InputIt, typename = is_input<value_type, InputIt>>
 		basic_string(InputIt first, InputIt last,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			//Constructs the string with the contents of the range [first, last). 
+			//If InputIt is an integral type, equivalent to basic_string(static_cast<size_type>(first), static_cast<value_type>(last), a).
+			//linear in distance between first and last
 			try
 			{
 				assign(first,last);
@@ -521,8 +631,11 @@ namespace uuz
 				throw;
 			}
 		}
-		basic_string(const basic_string& other) :basic_string()
+		basic_string(const basic_string& other) :basic_string(other.alloc)
 		{
+			//C++17
+			//Copy constructor. Constructs the string with the copy of the contents of other.
+			//linear in size of other
 			try
 			{
 				assign(other);
@@ -535,6 +648,10 @@ namespace uuz
 		}
 		basic_string(const basic_string& other, const Allocator& alloc) :basic_string(alloc)
 		{
+			//C++17
+			//Copy constructor.
+			//Constructs the string with the copy of the contents of other.
+			//linear in size of other
 			try
 			{
 				assign(other);
@@ -545,15 +662,26 @@ namespace uuz
 				throw;
 			}
 		}
-		basic_string(basic_string&& other) noexcept
+		basic_string(basic_string&& other) noexcept : basic_string(other.alloc)
 		{
+			//C++17
+			//Move constructor. 
+			//Constructs the string with the contents of other using move semantics.
+			//other is left in valid, but unspecified state.
+			//constant. If alloc is given and alloc != other.get_allocator(), then linear
+			//Throws nothing if alloc == str.get_allocator()
 			::memcpy(reinterpret_cast<char*>(this), reinterpret_cast<char*>(&other), sizeof(basic_string));
-			alloc = std::move(other.alloc);
-			other.sso_flag = true;
+			other.maxsize = sso_size - 1;
 			other.clear();
 		}
 		basic_string(basic_string&& other, const Allocator& alloc)noexcept(allocator_traits<Allocator>::is_always_equal::value) :basic_string(alloc)
 		{
+			//C++17
+			//Move constructor. 
+			//Constructs the string with the contents of other using move semantics.
+			//other is left in valid, but unspecified state.
+			//constant. If alloc is given and alloc != other.get_allocator(), then linear
+			//Throws nothing if alloc == str.get_allocator()
 			try
 			{
 				assign(std::move(other));
@@ -566,6 +694,9 @@ namespace uuz
 		}
 		basic_string(std::initializer_list<CharT> init,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			// Constructs the string with the contents of the initializer list init.
+			// linear in size of init
 			try
 			{
 				assign(init);
@@ -579,6 +710,10 @@ namespace uuz
 		explicit basic_string(std::basic_string_view<CharT, Traits> sv,
 								const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			// Constructs the string with the contents of the string view sv,
+			//as if by basic_string(sv.data(), sv.size(), alloc)
+			//linear in size of sv
 			try
 			{
 				assign(sv);
@@ -590,13 +725,18 @@ namespace uuz
 			}
 		}
 		template < typename T,
-			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
-			&& !std::is_convertible_v<const T&, const CharT*>>>
+			typename = std::enable_if_t<std::is_convertible_v<const T&, basic_string_view<CharT, Traits>>>>
 		basic_string(const T& t, size_t pos, size_t n,const Allocator& alloc = Allocator()) :basic_string(alloc)
 		{
+			//C++17
+			//Implicitly converts t to a string view sv as if by std::basic_string_view<CharT, Traits> sv = t;, 
+			//then initializes the string with the subrange [pos, pos + n) of sv as if by basic_string(sv.substr(pos, n), a).
+			//This overload only participates in overload resolution if
+			//std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true.
+			//n
 			try
 			{
-				assign(t);
+				assign(view(t), pos, n);
 			}
 			catch (...)
 			{
@@ -606,64 +746,66 @@ namespace uuz
 		}
 		
 		//C++17
+		//Replaces the contents of the string.
+		//If the operation would result in size() > max_size(), throws std::length_error.
 		//If an exception is thrown for any reason, this function has no effect (strong exception guarantee).
-		//«ø“Ï≥£±£÷§
 		basic_string& operator=(const basic_string& str)
 		{
 			//C++17
 			//Replaces the contents with a copy of str.
 			//If *this and str are the same object, this function has no effect.
-			if (this == &str) //œ‡µ»πˆµ∞
+			// linear in size of str
+			if (this == &str) //Áõ∏Á≠âÊªöËõã
 				return *this;
 			assign_str(str.data(), str.size());
 			return *this;
 		}
 		basic_string& operator=(basic_string&& str)noexcept(is_nothrow_swap_alloc<Allocator>::value)
 		{
-			//Œ“≤ª÷™µ¿’‚ « ≤√¥…µ±∆±Í◊º£¨∑¥’˝C++17’‚√¥Àµµƒ
-			//Replaces the contents with those of str using move semantics.str is in a valid but unspecified state afterwards.
-			//If std::allocator_traits<Allocator>::propagate_on_container_move_assignment() is true, 
+			//Êàë‰∏çÁü•ÈÅìËøôÊòØ‰ªÄ‰πàÂÇªÈÄºÊ†áÂáÜÔºåÂèçÊ≠£C++17Ëøô‰πàËØ¥ÁöÑ
+			//Replaces the contents with those of str using move semantics.
+			//str is in a valid but unspecified state afterwards.
+			//If std::allocator_traits<Allocator>::propagate_on_container_move_assignment()(std::allocator_traitsÊ≤°ÊúâËøô‰∏™ÂáΩÊï∞ÔºåÂè™ÊúâËøô‰∏™Á±ªÂûã) is true, 
 			//the target allocator is replaced by a copy of the source allocator.
 			//If it is false and the source and the target allocators do not compare equal,
 			//the target cannot take ownership of the source memory and must assign each character individually,
 			//allocating additional memory using its own allocator as needed.Unlike other container move assignments, 
 			//references, pointers, and iterators to str may be invalidated.
+			//linear in the size of this (formally, each CharT has to be destroyed). 
+			//If allocators do not compare equal and do not propagate, then also linear in the size of str (copy must be made)
 			if (this == &str)
 				return *this;
-			if(str.sso_flag) //»Áπ˚sso ˝æ›µƒª∞÷±Ω”øΩ±¥
+			if(str.sso()) //Â¶ÇÊûússoÊï∞ÊçÆÁöÑËØùÁõ¥Êé•Êã∑Ë¥ù
 			{
-				Traits::copy(str.data(), data(), str.size() + 1);
+				Traits::copy(str.data(), data(), str.size());
+				Traits::assign(str.data() + str.size(), Traits::eof());
 				ssize = str.size();
-				str.clear();
 				if constexpr(allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
-					alloc = std::move(str.alloc);
+					alloc = str.alloc;
 				return *this;
 			}
 			if constexpr(allocator_traits<Allocator>::propagate_on_container_move_assignment::value)
-			{ //÷±Ω”øΩ±¥allocator
+			{ //Áõ¥Êé•Êã∑Ë¥ùallocator
 				clear();
-				alloc = std::move(str.alloc);
-				this->dat.data.begin = str.dat.data.begin;
-				this->dat.data.max_size = str.dat.data.max_size;
-				sso_flag = false;
-				str.sso_flag = true;
+				alloc = str.alloc;
+				this->no_sso_data = str.no_sso_data;
+				this->maxsize = str.maxsize;
+				str.maxsize = sso_size - 1;
 			}
 			else
 			{
 				if (alloc == str.alloc)
 				{
 					clear();
-					this->dat.data.begin = str.dat.data.begin;
-					this->dat.data.max_size = str.dat.data.max_size;
-					sso_flag = false;
-					str.sso_flag = true;
+					this->no_sso_data = str.no_sso_data;
+					this->maxsize = str.maxsize;
+					str.maxsize = sso_size - 1;
 				}
 				else
-					//allocator≤ªÕ¨◊™∏¥÷∆
+					//allocator‰∏çÂêåËΩ¨Â§çÂà∂
 					return this->operator=(str);
 			}
 			ssize = str.size();
-			str.clear();
 			return *this;		
 		}
 		basic_string& operator=(const CharT* s)
@@ -671,6 +813,7 @@ namespace uuz
 			//C++17
 			//Replaces the contents with those of null - terminated character string pointed to by s as if by *this = basic_string(s), 
 			//which involves a call to Traits::length(s).
+			// linear in size of s
 			if(s == nullptr)
 				clear();
 			else
@@ -681,6 +824,7 @@ namespace uuz
 		{
 			//C++ 17
 			//Replaces the contents with character ch as if by *this = basic_string(1,c)
+			//constant.
 			Traits::assign(*data(), ch);
 			Traits::assign(*(data() + 1), Traits::eof());
 			ssize = 1;
@@ -690,6 +834,7 @@ namespace uuz
 		{
 			//C++17
 			//Replaces the contents with those of the initializer list ilist as if by *this = basic_string(ilist)
+			//linear in size of init
 			assign_iterator(str.begin(), str.end(), str.size());
 			return *this;
 		}
@@ -697,47 +842,53 @@ namespace uuz
 		{
 			//C++17
 			//Replaces the contents with those of the string view sv as if by assign(sv)
+			//linear in size of sv
 			assign_str(sv.data(), sv.size());
 			return *this;
 		}
 
 		//C++17
+		//Replaces the contents of the string.
 		//If an exception is thrown for any reason, this function has no effect (strong exception guarantee).
-		//«ø“Ï≥£±£÷§
+		//If the operation would result in size() > max_size(), throws std::length_error.
 		basic_string& assign(size_t count, CharT ch)
 		{
 			//C++17
 			// Replaces the contents with count copies of character ch.
-			if (capacity() > count)
+			//linear in count
+			if (capacity() >= count)
 			{
-				ssize = count;
 				Traits::assign(data(), ch, count);
 				Traits::assign(*(data() + count), Traits::eof());
 			}
 			else
 			{
-				if (count >= max_size())
-					throw(length_error(""));
-				auto p = allocator_traits<Allocator>::allocator(alloc, count + 1);
+				auto p = make_no_sso(count);
 				
-				ssize = count;
-				Traits::assign(data(), ch, count);
-				Traits::assign(*(data() + count), Traits::eof());
+				try
+				{
+					Traits::assign(p, ch, count);
+					Traits::assign(*(p + count), Traits::eof());
+				}
+				catch (...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, p, count + 1);
+					throw;
+				}
 				
+				deal_no_sso();
 
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
-				dat.data.begin = p;
-				dat.data.max_size = ssize + 1;
+				no_sso_data = p;
+				maxsize = count;
 			}
+			ssize = count;
 			return *this;
 		}
 		basic_string& assign(const basic_string& str)
 		{
 			//C++17
 			//Replaces the contents with a copy of str
+			//linear in size of str
 			return operator=(str);
 		}
 		basic_string& assign(const basic_string& str,size_t pos,size_t count = npos)
@@ -746,6 +897,7 @@ namespace uuz
 			//Replaces the contents with a substring [pos, pos+count) of str. 
 			//If the requested substring lasts past the end of the string, or if count == npos, 
 			//the resulting substring is [pos, str.size()). If pos > str.size(), std::out_of_range is thrown.
+			//linear in count
 			if (pos > str.size())
 				throw(out_of_range(""));
 			assign_str(str.data() + pos, str.size() - pos > count ? count : str.size() - pos);
@@ -756,6 +908,7 @@ namespace uuz
 			//C++17
 			//Replaces the contents with those of str using move semantics. 
 			//Equivalent to *this = std::move(str).
+			//constant. If alloc is given and alloc != other.get_allocator(), then linear.
 			return this->operator=(std::move(str));
 		}
 		basic_string& assign(const CharT* s,size_t count)
@@ -763,6 +916,7 @@ namespace uuz
 			//C++17
 			//Replaces the contents with the first count characters of character string pointed to by s.
 			//s can contain null characters.
+			// linear in count
 			if (s == nullptr)
 				clear();
 			else
@@ -774,6 +928,7 @@ namespace uuz
 			//C++17
 			//Replaces the contents with those of null-terminated character string pointed to by s. 
 			//The length of the string is determined by the first null character.
+			// linear in size of s
 			return this->operator=(s);
 		}
 		template< typename InputIt,typename  = is_input<value_type,InputIt>>
@@ -782,6 +937,7 @@ namespace uuz
 			//C++17
 			//Replaces the contents with copies of the characters in the range [first, last). 
 			//This overload does not participate in overload resolution if InputIt does not satisfy InputIterator. 
+			// linear in distance between first and last
 			assign_iterator(first, last, distance(first, last));
 			return *this;
 		}
@@ -789,6 +945,7 @@ namespace uuz
 		{
 			//C++17
 			//Replaces the contents with those of the initializer list ilist.
+			//inear in size of init
 			return this->operator=(ilist);
 		}
 		basic_string& assign(basic_string_view<CharT, Traits> sv)
@@ -796,6 +953,7 @@ namespace uuz
 			//C++17
 			//Replaces the contents with those of the string view sv, 
 			//as if by assign(sv.data(), sv.size())
+			//linear in size of sv
 			return this->operator=(sv);
 		}
 		template < typename T ,
@@ -803,7 +961,7 @@ namespace uuz
 								&& !std::is_convertible_v<const T&, const CharT*>>>
 		basic_string& assign(const T& t,size_t pos,size_t count = npos)
 		{
-			//”÷ «∏ˆ…µ±∆C++17“™«Û
+			//ÂèàÊòØ‰∏™ÂÇªÈÄºC++17Ë¶ÅÊ±Ç
 			//Converts t to a string view sv as if by std::basic_string_view<CharT, Traits> sv = t; ,
 			//then replaces the contents with the characters from the subview[pos, pos + count) of sv.
 			//If the requested subview lasts past the end of sv, or if count == npos, 
@@ -818,7 +976,10 @@ namespace uuz
 			return *this;
 
 		}
-
+		
+		//C++17
+		//Returns the allocator associated with the string.
+		//Constant
 		allocator_type get_allocator() const noexcept(noexcept(std::is_nothrow_copy_constructible_v<Allocator>))
 		{
 			//C++17
@@ -826,6 +987,11 @@ namespace uuz
 			return alloc;
 		}
 
+		//C++17
+		//Returns a reference to the character at specified location pos. Bounds checking is performed, 
+		//exception of type std::out_of_range will be thrown on invalid access.
+		//Constant
+		//Throws std::out_of_range if pos >= size().
 		reference       at(size_type pos)
 		{
 			if (pos >= size())
@@ -834,14 +1000,16 @@ namespace uuz
 		}
 		const_reference at(size_type pos) const
 		{
-			{
-				if (pos >= size())
-					throw(out_of_range(""));
-				return this->operator[](pos);
-			}
+			if (pos >= size())
+				throw(out_of_range(""));
+			return this->operator[](pos);
 		}
 
-		reference       operator[](size_type pos)noexcept
+		//C++17
+		//If pos == size(), a reference to the character with value CharT() (the null character) is returned.
+		//For the first(non - const) version, the behavior is undefined if this character is modified to any value other than charT()
+		//Constant
+		reference  operator[](size_type pos)noexcept
 		{
 			return *(data() + pos);
 		}
@@ -850,88 +1018,119 @@ namespace uuz
 			return *(data() + pos);
 		}
 
-		CharT& front()
+		//C++17
+		//Returns reference to the first character in the string. The behavior is undefined if empty() == true.
+		//Constant
+		CharT& front()noexcept
 		{
-			if (size() == 0)
-				throw(out_of_range(""));
 			return *data();
 		}
-		const CharT& front() const
+		const CharT& front() const noexcept
 		{
-			if (size() == 0)
-				throw(out_of_range(""));
 			return *data();
 		}
 
-		CharT& back()
+		//C++17
+		//Returns reference to the last character in the string. The behavior is undefined if empty() == true.
+		//Constant
+		CharT& back()noexcept
 		{
-			if (size() == 0)
-				throw(out_of_range(""));
 			return *(data()+(size()-1));
 		}
-		const CharT& back() const
+		const CharT& back() const noexcept
 		{
-			if (size() == 0)
-				throw(out_of_range(""));
 			return *(data() + (size() - 1));
 		}
 
+		//C++17
+		//Returns a pointer to the underlying array serving as character storage.
+		//The pointer is such that the range [data(); data() + size()) is valid and the values in it correspond to the values stored in the string.
+		//The returned array is null-terminated, that is, data() and c_str() perform the same function.
+		//If empty() returns true, the pointer points to a single null character.
+		//The pointer obtained from data() may be invalidated by:
+		//Passing a non - const reference to the string to any standard library function, or
+		//	Calling non - const member functions on the string, excluding operator[](), at(), front(), back(), begin(), end(), rbegin(), rend().
+		//	1) Modifying the character array accessed through the const overload of data has undefined behavior.
+		//	2) Modifying the past - the - end null terminator stored at data() + size() has undefined behavior.
+		//Constant
 		const CharT* data() const noexcept
 		{
 			return c_str();
 		}
 		CharT* data()noexcept
 		{
-			if (sso_flag)
-				return data.sso_data;
+			if (sso())
+				return sso_data;
 			else
-				return data.data.begin;
+				return no_sso_data;
 		}
 
+		//C++17
+		//c_str() and data() perform the same function.
+		//Constant
 		const CharT* c_str() const noexcept
 		{
-			if (sso_flag)
-				return data.sso_data;
+			if (sso())
+				return sso_data;
 			else
-				return data.data.begin;
+				return no_sso_data;
 		}
 
+		//C++17
+		//Returns a std::basic_string_view, constructed as if by std::basic_string_view<CharT, Traits>(data(), size())
 		operator basic_string_view<CharT, Traits>() const noexcept
 		{
-			return basic_string_view<CharT, Traits>(data(), size());
+			return view(data(), size());
 		}
 
+		//C++17
+		//Returns an iterator to the first character of the string.
+		//begin() returns a mutable or constant iterator, depending on the constness of *this.
+		//cbegin() always returns a constant iterator.It is equivalent to const_cast<const basic_string&>(*this).begin().
+		//Constant
 		iterator begin()noexcept
 		{
 			return iterator(data());
 		}
 		const_iterator begin() const noexcept
 		{
-			return iterator(data());
+			return const_cast<const basic_string&>(*this).begin();
 		}
 		const_iterator cbegin() const noexcept
 		{
-			return iterator(data());
+			return const_cast<const basic_string&>(*this).begin();
 		}
 
+		//C++17
+		//Returns an iterator to the character following the last character of the string.
+		//This character acts as a placeholder, attempting to access it results in undefined behavior.
+		//Constant
 		iterator end() noexcept
 		{
 			return iterator(data()+size());
 		}
 		const_iterator end() const noexcept
 		{
-			return iterator(data() + size());
+			return const_cast<const basic_string&>(*this).end();
 		}
 		const_iterator cend() const noexcept
 		{
-			return iterator(data() + size());
+			return const_cast<const basic_string&>(*this).end();
 		}
 
+		//C++17
+		//Checks if the string has no characters, i.e. whether begin() == end().
+		//Constant
 		bool empty() const noexcept
 		{
 			return size() == 0;
 		}
 
+		//C++17
+		//Returns the number of CharT elements in the string, i.e. std::distance(begin(), end()).
+		//For std::string, the elements are bytes (objects of type char), which are not the same as characters if a multibyte encoding such as UTF-8 is used.
+		//‰∏äÈù¢ÈÇ£‰∏™ÂäüËÉΩÊ≤°ÊúâÂÆûÁé∞
+		//Constant
 		size_type size() const noexcept
 		{
 			return ssize;
@@ -941,172 +1140,269 @@ namespace uuz
 			return ssize;
 		}
 
-		size_type max_size() const
+		//C++17
+		//Returns the maximum number of elements the string is able to hold due to system or library implementation limitations, i.e. ‚Äãstd::distance(begin(), end())‚Äã for the largest string.
+		//Constant
+		size_type max_size() const noexcept
 		{
 			return allocator_traits<Allocator>::max_size();
 		}
 
-		void reserve(size_type new_cap = 0)
+		//C++17
+		//Informs a std::basic_string object of a planned change in size, so that it can manage the storage allocation appropriately.
+		//If new_cap is greater than the current capacity(), new storage is allocated, and capacity() is made equal or greater than new_cap.
+		//	If new_cap is less than the current capacity(), this is a non - binding shrink request.
+		//	If new_cap is less than the current size(), this is a non - binding shrink - to - fit request equivalent to shrink_to_fit() (since C++11).
+		//	If a capacity change takes place, all iterators and references, including the past - the - end iterator, are invalidated.
+		//At most linear in the size() of the string
+		//Throws std::length_error if new_cap is greater than max_size()
+		//May throw any exceptions thrown by std::allocator_traits<Allocator>::allocate(), such as std::bad_alloc.
+		void reserve(size_type _new = 0)
 		{
-			if (new_cap < capacity())
+			if (_new <= capacity())
 				return;
-			if (new_cap >= max_size())
-				throw(length_error(""));
-			auto t = allocator_traits<Allocator>::allocate(alloc, new_cap + 1);
-			Traits::move(t, data(), size() + 1);
-			if(!sso_flag)
-				allocator_traits<Allocator>::deallocate(alloc, dat.data.begin,dat.data.max_size);
-			dat.data.begin = t;
-			dat.data.max_size = new_cap + 1;
-			sso_flag = true;
-		}
-
-		size_type capacity() const noexcept
-		{
-			if (sso_flag)
-				return sso_size;
 			else
-				return dat.data.max_size;
-		}
-
-		void shrink_to_fit()
-		{
-			if(!sso_flag)
 			{
-				if (size() < sso_size)
+				auto k = new_cap(_new);
+				auto temp = make_no_sso(k);
+
+				try
 				{
-					auto k = dat.data.begin;
-					auto old_size = dat.data.max_size;
-					Traits::copy(data.sso_data, k, size() + 1);
-					allocator_traits<Allocator>::deallocate(alloc, k, old_size);
-					sso_flag = true;
+					Traits::move(temp, data(), size());
+					Traits::assign(*(temp + size()), Traits::eof());
 				}
-				else if (size() + 1< dat.data.max_size)
+				catch(...)
 				{
-					auto k = dat.data.begin;
-					auto old_size = dat.data.max_size;
-					auto new_c = allocator_traits<Allocator>::allocate(alloc, size() + 1);
-					Traits::copy(new_c, k, size() + 1);
-					allocator_traits<Allocator>::deallocate(alloc, k, old_size);
-					dat.data.begin = new_c;
-					dat.data.max_size = size() + 1;
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
 				}
+
+				deal_no_sso();
+
+				no_sso_data = temp;
+				maxsize = k;
 			}
 		}
 
-		void clear()noexcept
+		//C++17
+		//Returns the number of characters that the string has currently allocated space for.
+		//Constant
+		size_type capacity() const noexcept
 		{
-			if(!sso_flag)
-				allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-			ssize = 0;
-			sso_flag = true;
+			return maxsize;
 		}
 
+		//C++17
+		//Requests the removal of unused capacity.
+		//It is a non - binding request to reduce capacity() to size().It depends on the implementation if the request is fulfilled.
+		//If reallocation takes place, all pointers, references, and iterators are invalidated.
+		//Constant
+		//ÊúâÊØõÁóÖÂêßÔºåshrink_to_fit()Â§çÊùÇÂ∫¶Á´üÁÑ∂Ë¶ÅÊ±ÇÊòØConstantÔºåÊ†áÂáÜÂßîÂëò‰ºöÈ£üÂ±é‰∫ÜÔºÅ
+		void shrink_to_fit()
+		{
+			//ÂÖ∂‰ªñÈÉΩÂÅö‰∏ç‰∫Ü‰∫ÜÔºåÂêÉÂ±éÁöÑÂ∏∏Êï∞Â§çÊùÇÂ∫¶
+			//ÂÖ∂ÂÆûÊàëÊòØËßâÂæóËøô‰∏™‰∏çÊòØÂæàÈáçË¶Å233333
+			if(!sso() && size()==0)
+			{
+				allocator_traits<Allocator>::deallocate(alloc, data(), maxsize + 1);
+				maxsize = sso_size - 1;
+				Traits::assign(*data(), Traits::eof());
+			}
+		}
+
+		//C++17
+		//Removes all characters from the string as if by executing erase(begin(), end()).
+		//All pointers, references, and iterators are invalidated.
+		//Unlike for std::vector::clear, the C++ standard does not explicitly require that capacity is unchanged by this function, but existing implementations do not change capacity.
+		//Linear in the size of the string.
+		void clear()noexcept
+		{
+			Traits::assign(*data(), Traits::eof());
+			ssize = 0;
+		}
+
+		//C++17
+		//Inserts characters into the string.
+		//In any case, if an exception is thrown for any reason, this function has no effect (strong exception guarantee).
 		basic_string& insert(size_type index, size_type count, CharT ch)
 		{
-			if(size()+count < capacity())
+			//C++17
+			//Inserts count copies of character ch at the position index
+			//std::out_of_range if index > size() and std::length_error if size() + count > max_size().
+			if (index > size())
+				throw(out_of_range(""));
+
+			if(size()+count <= capacity())
 			{
 				Traits::move(data() + index + count, data() + index, size() - index);
 				Traits::assign(data()+index, ch, count);
 				Traits::assign(*(data() + size()), Traits::eof);
-				ssize += count;
 			}
 			else
 			{
-				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
-				Traits::move(temp, data(), index);
-				Traits::assign(data() + index, ch, count);
-				Traits::move(temp + index + count, data()+index, size() - index);
-				ssize += count;
-				Traits::assign(*(temp + size()), Traits::eof);
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
-				dat.data.begin = temp;
-				dat.data.max_size = ssize + 1;
+				auto k = new_cap(size() + count);
+				auto temp = make_no_sso(k);
+
+				try
+				{
+					Traits::move(temp, data(), index);
+					Traits::assign(data() + index, ch, count);
+					Traits::move(temp + index + count, data() + index, size() - index);
+					Traits::assign(*(temp + size()), Traits::eof);
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+
+				deal_no_sso();
+
+				no_sso_data = temp;
+				maxsize = k;
 			}
+			ssize += count;
 			return *this;
 		}
 		basic_string& insert(size_type index, const CharT* s)
 		{
+			//C++17
+			//Inserts null-terminated character string pointed to by s at the position index. 
+			//The length of the string is determined by the first null character (effectively calls Traits::length(s).
+			//std::out_of_range if index > size() and std::length_error if size() + Traits::length(s) > max_size().
 			if(s)
 				insert_str(index, s, Traits::length(s));
 			return *this;
 		}
 		basic_string& insert(size_type index, const CharT* s, size_type count)
 		{
+			//C++17
+			//  Inserts string str at the position index
+			//std::out_of_range if index > size() and std::length_error if size() + str.size() > max_size().
 			if(s)
 				insert_str(index, s, count);
 			return *this;
 		}
 		basic_string& insert(size_type index, const basic_string& str)
 		{
+			//C++17
+			//  Inserts string str at the position index
+			//std::out_of_range if index > size() and std::length_error if size() + str.size() > max_size().
 			return insert(index, str.data(), str.size());
 		}
 		basic_string& insert(size_type index, const basic_string& str,size_type index_str, size_type count = npos)
 		{
-			if (index_str >= str.size())
-				throw(out_of_range(""));
+			//C++17
+			//Inserts a string, obtained by str.substr(index_str, count) at the position index
+			// Throws exceptions on the following conditions:
+			//  a) std::out_of_range if index > size().
+			//	b) std::out_of_range if index_str > str.size().
+			//	c) std::length_error if size() + ins_count > max_size() where ins_count is the number of characters that will be inserted.
 			return insert(index, str.data() + index_str, count < str.size() - index ? count : str.size() - index);
 		}
 		iterator insert(const_iterator pos, CharT ch)
 		{
+			//C++17
+			//Inserts character ch before the character pointed by pos
 			insert(pos - begin(), 1, ch);
 			return pos;
 		}
 		iterator insert(const_iterator pos, size_type count, CharT ch)
 		{
+			//C++17
+			//Inserts count copies of character ch before the element pointed by pos
 			insert(pos - begin(), count, ch);
 			return pos;
 		}
 		template< typename InputIt, typename = is_input<value_type, InputIt>>
 		iterator insert(const_iterator pos, InputIt first, InputIt last)
 		{
+			//C++17
+			//Inserts count copies of character ch before the element pointed by pos
+			//Inserts characters from the range [first, last) before the element pointed by pos. 
+			//This overload does not participate in overload resolution if InputIt does not satisfy InputIterator. (since C++11)
 			insert_iterator(pos - begin(), first, last, distance(first, last));
 			return pos;
 		}
 		iterator insert(const_iterator pos, std::initializer_list<CharT> ilist)
 		{
+			//C++17
+			//Inserts elements from initializer list ilist before the element pointed by pos
 			insert_iterator(pos - begin(), ilist.begin(), ilist.end(), ilist.size());
 			return pos;
 		}
 		basic_string& insert(size_type pos, basic_string_view<CharT, Traits> sv)
 		{
+			//C++17
+			// Inserts the elements from the string view sv before the element pointed by pos, as if by insert(pos, sv.data(), sv.size())
+			// std::out_of_range if index > size() and std::length_error if size() + sv.size() > max_size().
 			return insert(pos, sv.data());
 		}
 		template < typename T,
-			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
+			typename = std::enable_if_t<std::is_convertible_v<const T&, basic_string_view<CharT, Traits>>
 			&& !std::is_convertible_v<const T&, const CharT*>>>
 		basic_string& insert(size_type index, const T& t,size_type index_str, size_type count = npos)
 		{
-			auto str = basic_string_view<CharT, Traits>(t);
-			if (index_str >= str.size())
+			//C++17
+			//Converts t to a string view sv as if by std::basic_string_view<CharT, Traits> sv = t; ,
+			//then inserts, before the element pointed by pos, the characters from the subview[index_str, index_str + count) of sv.
+			//If the requested subview lasts past the end of sv, or if count == npos, the resulting subview is[index_str, sv.size()).
+			//If index_str > sv.size(), or if index > size(), 
+			//std::out_of_range is thrown.This overload only participates in overload resolution if 
+			//std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true and 
+			//std::is_convertible_v<const T&, const CharT*> is false.
+			//Throws exceptions on the following conditions:
+			//a) std::out_of_range if index > size().
+			//b) std::out_of_range if index_str > sv.size().
+			//c) std::length_error if size() + ins_count > max_size() where ins_count is the number of characters that will be inserted.
+			auto str = view(t);
+			if (index_str > str.size())
 				throw(out_of_range(""));
 			insert_str(str.data() + index_str, str.size() - index_str > count ? count : str.size() - index_str);
 			return *this;
 		}
 
+		//C++17
+		//Removes specified characters from the string.
+		//In any case, if an exception is thrown for any reason, this function has no effect (strong exception guarantee)
 		basic_string& erase(size_type index = 0, size_type count = npos)
 		{
+			//C++17
+			// Removes min(count, size() - index) characters starting at index.
+			//std::out_of_range if index > size().
 			if (index > size())
 				throw(out_of_range(""));
-			erase(iterator(begin() + index), iterator(begin() + (count < size() - index ? count : size() - index)));
+			count = count < size() - index ? count : size() - index;
+			Traits::move(data() + index, data() + count, size() - index - count);
+			Traits(*(data() + size() - count), Traits::eof());
+			ssize -= count;
 			return *this;
 		}
 		iterator erase(const_iterator position)noexcept
 		{
+			// C++17
+			// Removes the character at position.
 			Traits::move(position.dat, position.dat + 1, end() - position);
+			Traits(*(data() + size() - 1), Traits::eof());
 			--ssize;
 			return position;
 		}
 		iterator erase(const_iterator first, const_iterator last)noexcept
 		{
+			// C++17
+			// Removes the characters in the range [first, last).
+			auto k = last - first;
 			Traits::move(first.dat, last.dat, end() - last);
-			ssize -= distance(first, last);
+			Traits(*(data() + size() - k), Traits::eof());
+			ssize -= k;
 			return first;
 		}
 
+		//C++17
+		//Appends the given character ch to the end of the string.
+		//Amortized constant.
+		//If an exception is thrown for any reason, this function has no effect (strong exception guarantee). (since C++11)
+		//If the operation would result in size() > max_size(), throws std::length_error.
 		void push_back(CharT ch)
 		{
 			reserve(size() + 1);
@@ -1115,59 +1411,88 @@ namespace uuz
 			++ssize;
 		}
 
-		void pop_back()
+		//C++17
+		//Removes the last character from the string.
+		//Equivalent to erase(size() - 1, 1), except the behavior is undefined if the string is empty.
+		//ÊâÄ‰ª•‰∏Ä‰∏™Á©∫ÁöÑpop_backÔºå‰∏çË¶ÅÊÄ™ÊàëÁÇ∏
+		//Constant
+		void pop_back()noexcept
 		{
 			Traits::assign(at(size()), Traits::eof());
 			--ssize;
 		}
 
+		// C++17
+		//Appends additional characters to the string.
+		//There are no standard complexity guarantees, typical implementations behave similar to std::vector::insert.
+		//If an exception is thrown for any reason, this function has no effect (strong exception guarantee). (since C++11)
+		//If the operation would result in size() > max_size(), throws std::length_error.
 		basic_string& append(size_type count, CharT ch)
 		{
-			if(size()+count < capacity())
+			// C++17
+			//Appends count copies of character ch
+			if(size()+count <= capacity())
 			{
 				Traits::assign(data() + size(), ch, count);
 				Traits::assign(data() + size() + count, Traits::eof());
 			}
 			else
 			{
-				if (size() + count + 1 >= max_size())
-					throw(length_error(""));
 				
-				auto p = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
-				Traits::copy(p, data(), size());
-				Traits::assign(p + size(), ch, count);
-				Traits::assign(p + size() + count, Traits::eof());
+				auto k = new_cap(size() + count);
+				auto temp = make_no_sso(k);
 
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
+				try
+				{
+					Traits::copy(temp, data(), size());
+					Traits::assign(temp + size(), ch, count);
+					Traits::assign(temp + size() + count, Traits::eof());
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
 
-				dat.data.begin = p;
-				dat.data.max_size = size() + count + 1;
+				deal_no_sso();
+
+				no_sso_data = temp;
+				maxsize = k;
 			}
 			ssize += count;
 			return *this;
 		}
 		basic_string& append(const basic_string& str)
 		{
+			// C++17
+			//Appends string str
 			append_str(str.data(), str.size());
 			return *this;
 		}
 		basic_string& append(const basic_string& str,size_type pos,size_type count = npos)
 		{
+			// C++17
+			//Appends a substring [pos, pos+count) of str. 
+			//If the requested substring lasts past the end of the string, or if count == npos, the appended substring is [pos, size()). 
+			//If pos >= str.size(), std::out_of_range is thrown.
 			if (pos >= str.size())
 				throw(out_of_range(""));
 			return append( str.data() + pos, count < str.size() - pos ? count : str.size() - pos);
 		}
 		basic_string& append(const CharT* s, size_type count)
 		{
+			// C++17
+			//Appends the first count characters of character string pointed to by s. 
+			//s can contain null characters.
 			if(s)
 				append_str(s, count);
 			return *this;
 		}
 		basic_string& append(const CharT* s)
 		{
+			// C++17
+			//Appends the null-terminated character string pointed to by s. 
+			//The length of the string is determined by the first null character.
 			if(s)
 				append_str(s, Traits::length(s));
 			return *this;
@@ -1175,24 +1500,39 @@ namespace uuz
 		template< typename InputIt, typename = is_input<value_type, InputIt>>
 		basic_string& append(InputIt first, InputIt last)
 		{
+			// C++17
+			// Appends characters in the range [first, last). 
+			//This overload has the same effect as overload (1) if InputIt is an integral type.
 			append_iterator(first, last, distance(first, last));
 			return *this;
 		}
 		basic_string& append(std::initializer_list<CharT> ilist)
 		{
+			//C++17
+			//Appends characters from the initializer list ilist.
 			append_iterator(ilist.begin(), ilist.end(), ilist.size());
 			return *this;
 		}
 		basic_string& append(basic_string_view<CharT, Traits> sv)
 		{
+			//C++17
+			//Appends all characters from the string view sv as if by append(sv.data(), sv.size())
 			append_str(sv.data(), sv.size());
 			return *this;
 		}
 		template < typename T,
-			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
+			typename = std::enable_if_t<std::is_convertible_v<const T&, basic_string_view<CharT, Traits>>
 			&& !std::is_convertible_v<const T&, const CharT*>>>
 		basic_string& append(const T& t, size_type pos,size_type count = npos)
 		{
+			//C++17
+			//Converts t to a string view sv as if by std::basic_string_view<charT, traits> sv = t;,
+			//then appends the characters from the subview [pos, pos+count) of sv. 
+			//If the requested subview extends past the end of sv, or if count == npos, the appended subview is [pos, sv.size()). 
+			//If pos >= sv.size(), std::out_of_range is thrown. 
+			//This overload only participates in overload resolution if 
+			//std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true and 
+			//std::is_convertible_v<const T&, const CharT*> is false.
 			auto str = basic_string_view<CharT, Traits>(t);
 			if (pos > str.size())
 				throw(out_of_range(""));
@@ -1200,6 +1540,8 @@ namespace uuz
 			return *this;
 		}
 
+		//C++17
+		//same as append()
 		basic_string& operator+=(const basic_string& str)
 		{
 			return append(str);
@@ -1222,35 +1564,100 @@ namespace uuz
 			return append(sv);
 		}
 
-		int compare(const basic_string& str) const
+		//C++17
+		//Compares two character sequences.
+		int compare(const basic_string& str) const noexcept
 		{
-			auto p = size() - str.size();
-			auto k = Traits::compare(data(), str.data(), p > 0 ? size() : str.size());
-			if (k == 0)
-				return p;
-			return k;
+			//C++17
+			// Compares this string to str. 
+			//First, calculates the number of characters to compare, as if by size_type rlen = std::min(size(), str.size()). 
+			//Then compares by calling Traits::compare(data(), str.data(), rlen). 
+			//For standard strings this function performs character-by-character lexicographical comparison. 
+			//If the result is zero (the strings are equal so far), then their sizes are compared as follows:
+			return _compare(data(), size(), str.data(), str.size());
 		}
 		int compare(size_type pos1, size_type count1,const basic_string& str) const
 		{
-			
+			//C++17
+			//Compares a[pos1, pos1 + count1) substring of this string to str as if by 
+			//compare(pos1, count1, std::basic_string_view<CharT, Traits>(str)) 
+
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, str.data(), str.size());
+
 		}
 		int compare(size_type pos1, size_type count1,const basic_string& str,
-												size_type pos2, size_type count2 = npos) const;
-		int compare(const CharT* s) const;
-		int compare(size_type pos1, size_type count1,
-				const CharT* s) const;
-		int compare(size_type pos1, size_type count1,
-			const CharT* s, size_type count2) const;
-		int compare(std::basic_string_view<CharT, Traits> sv) const;
-			int compare(size_type pos1, size_type count1,
-				std::basic_string_view<CharT, Traits> sv) const;
-			template < class T >
-		int compare(size_type pos1, size_type count1,
-			const T& t,
-			size_type pos2, size_type count2 = npos) const;
+												size_type pos2, size_type count2 = npos) const noexcept
+		{
+			//C++17
+			//Compares a [pos1, pos1+count1) substring of this string to a substring [pos2, pos2+count2) of str as if by
+			//compare(pos1, count1, std::basic_string_view<CharT, Traits>(str), pos2, count2)
 
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1,
+							str.data() + pos2, str.size() - pos2 > count2 ? count2 : str.size() - pos2);
+
+		}
+		int compare(const CharT* s) const noexcept
+		{
+			//C++17
+			//Compares a [pos1, pos1+count1) substring of this string to a substring [pos2, pos2+count2) of str as if by
+			//compare(basic_string(s))
+			return _compare(data(), size(), s, Traits::length(s));
+		}
+		int compare(size_type pos1, size_type count1,const CharT* s) const noexcept
+		{
+			//C++17
+			//Compares a [pos1, pos1+count1) substring of this string to the null-terminated character sequence beginning at the character pointed to by s, 
+			//as if by basic_string(*this, pos, count1).compare(basic_string(s))
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, s, Traits::length(s));
+		}
+		int compare(size_type pos1, size_type count1,const CharT* s, size_type count2) const noexcept
+		{
+			//C++17
+			//Compares a [pos1, pos1+count1) substring of this string to the first count2 characters of the character array whose first character is pointed to by s,
+			//as if by basic_string(*this, pos, count1).compare(basic_string(s, count2)). 
+			//(Note: the characters from s to s+count2 may include null characters))
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, s, count2);
+		}
+		int compare(std::basic_string_view<CharT, Traits> sv) const
+		{
+			//C++17
+			// Compares this string to sv, similar to (1) except for using sv.size() and sv.data() instead of str.size() and str.data()
+			return _compare(data(), size(), sv.data(), sv.size());
+		}
+		int compare(size_type pos1, size_type count1,basic_string_view<CharT, Traits> sv) const noexcept
+		{
+			//C++17
+			// Compares a [pos1, pos1+count1) substring of this string to sv, as if by 
+			//std::basic_string_view<CharT, Traits>(data(), size()).substr(pos1, count1).compare(sv)
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, sv, sv.size());
+		}
+		template < typename T,
+			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
+			&& !std::is_convertible_v<const T&, const CharT*>>>
+		int compare(size_type pos1, size_type count1,const T& t,
+				size_type pos2, size_type count2 = npos) const
+		{
+			//C++17
+			// Converts t to a string view sv as if by std::basic_string_view<CharT, Traits> sv = t;, 
+			//then compares a [pos1, pos1+count1) substring of this string to a substring [pos2, pos2+count2) of sv as if by 
+			//std::basic_string_view<CharT, Traits>(data(), size()).substr(pos1, count1).compare(sv.substr(pos2, count2));. 
+			//This overload only participates in overload resolution if 
+			//std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>> is true and 
+			//std::is_convertible_v<const T&, const CharT*> is false.
+			auto str = view(t);
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1,
+				str.data() + pos2, str.size() - pos2 > count2 ? count2 : str.size() - pos2);
+		}
+
+		//C++17
+		//Replaces the part of the string indicated by either [pos, pos + count) or [first, last) with a new string.
+		//The new string can be one of :
+		//In any case, if an exception is thrown for any reason, this function has no effect (strong exception guarantee). 
 		basic_string& replace(size_type pos, size_type count,
-			const basic_string& str);
+			const basic_string& str)
+		{
+			
+		}
 		basic_string& replace(const_iterator first, const_iterator last,
 				const basic_string& str);
 		basic_string& replace(size_type pos, size_type count,
@@ -1291,13 +1698,19 @@ namespace uuz
 
 		basic_string substr(size_type pos = 0,size_type count = npos) const
 		{
-			return basic_string(data(), pos, count);
+			if (pos > size())
+				throw(out_of_range(""));
+
+			return basic_string(data() + pos, count < size() - pos ? count : size() - pos);
 		}
 
 		size_type copy(CharT* dest,size_type count,size_type pos = 0) const
 		{
+			if (pos > size())
+				throw(out_of_range(""));
+
 			count = count < size() - pos ? count : size() - pos;
-			Traits::copy(dest, data(), count);
+			Traits::copy(dest, data() + pos, count);
 			return count;
 		}
 
@@ -1336,33 +1749,164 @@ namespace uuz
 			}
 		}
 
-		size_type find(const basic_string& str, size_type pos = 0) const;
-		size_type find(const CharT* s, size_type pos, size_type count) const;
-		size_type find(const CharT* s, size_type pos = 0) const;
-		size_type find(CharT ch, size_type pos = 0) const;
-		size_type find(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = 0) const;
+		size_type find(const basic_string& str, size_type pos = 0) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+			if (str.size() > size())
+				return npos;
 
-		size_type rfind(const basic_string& str, size_type pos = npos) const;
-		size_type rfind(const CharT* s, size_type pos, size_type count) const;
-		size_type rfind(const CharT* s, size_type pos = npos) const;	
-		size_type rfind(CharT ch, size_type pos = npos) const;	
-		size_type rfind(std::basic_string_view<CharT, Traits> sv,
-					size_type pos = npos) const;
+			auto k = _find(data() + pos, str.data(), str.size());
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
 
-		size_type find_first_of(const basic_string& str, size_type pos = 0) const;
-		size_type find_first_of(const CharT* s, size_type pos, size_type count) const;
-		size_type find_first_of(const CharT* s, size_type pos = 0) const;
-		size_type find_first_of(CharT ch, size_type pos = 0) const;
+			auto k = _find(data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find(const CharT* s, size_type pos = 0) const
+		{
+			return find(s, pos, Traits::length(s));
+		}
+		size_type find(CharT ch, size_type pos = 0) const
+		{
+			return Traits::find(data() + pos, size() - pos, ch) - data();
+		}
+		size_type find(basic_string_view<CharT, Traits> sv,size_type pos = 0) const
+		{
+			return find(sv.data(), pos, sv.size());
+		}
+
+		size_type rfind(const basic_string& str, size_type pos = npos) const
+		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+			if (str.size() > size())
+				return npos;
+
+			auto k = _rfind(data() + pos, data() + size(), str.data(), str.size());
+			if (k)
+				return k - data();
+			return npos;
+
+		}
+		size_type rfind(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
+
+			auto k = _rfind(data() + pos, data() + size(), s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type rfind(const CharT* s, size_type pos = npos) const
+		{
+			return rfind(s, pos, Traits::length(s));
+		}
+		size_type rfind(CharT ch, size_type pos = npos) const
+		{
+			for (auto i = data() + size() - 1; i != data(); --i)
+				if (Traits::eq(*i, ch))
+					return i - data();
+			return Traits::eq(*data(), ch) ? 0 : npos;
+		}
+		size_type rfind(basic_string_view<CharT, Traits> sv,size_type pos = npos) const
+		{
+			return rfind(sv.data(), pos, sv.size());
+		}
+
+		size_type find_first_of(const basic_string& str, size_type pos = 0) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_first_of(data() + pos, str.data(),str.size());
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find_first_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_first_of(data() + pos, s,count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find_first_of(const CharT* s, size_type pos = 0) const
+		{
+			return find_first_of(s, pos, Traits::length(s));
+		}
+		size_type find_first_of(CharT ch, size_type pos = 0) const
+		{
+			return find(ch, pos);
+		}
 		size_type find_first_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = 0) const;
+			size_type pos = 0) const
+		{
+			return find_first_of(sv, pos, sv.size());
+		}
 
-		size_type find_first_not_of(const basic_string& str, size_type pos = 0) const;
-		size_type find_first_not_of(const CharT* s, size_type pos, size_type count) const;
-		size_type find_first_not_of(const CharT* s, size_type pos = 0) const;
-		size_type find_first_not_of(CharT ch, size_type pos = 0) const;
-		size_type find_first_not_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = 0) const;
+		size_type find_first_not_of(const basic_string& str, size_type pos = 0) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_first_not_of(data() + pos, str.data(), str.size());
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find_first_not_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_first_not_of(data() + pos, str.data(), str.size());
+			if (k)
+				return k - data();
+			return npos;
+		}
+		size_type find_first_not_of(const CharT* s, size_type pos = 0) const
+		{
+			return find_first_not_of(s, pos, Traits::length(s));
+		}
+		size_type find_first_not_of(CharT ch, size_type pos = 0) const
+		{
+			for(auto i =0;i!=size();++i)
+			{
+				if (Traits::eq(at(i), ch))
+					goto ll;
+				return i;
+ll:				;
+			}
+			return npos;
+				
+		}
+		size_type find_first_not_of(std::basic_string_view<CharT, Traits> sv,size_type pos = 0) const
+		{
+			return find_first_not_of(sv, pos, sv.size()));
+		}
 
 		size_type find_last_of(const basic_string& str, size_type pos = npos) const;
 		size_type find_last_of(const CharT* s, size_type pos, size_type count) const;
@@ -1380,70 +1924,107 @@ namespace uuz
 		
 		~basic_string()
 		{
-			clear();
+			if (!sso())
+				deal_no_sso();
 		}
 	private:
+		bool sso()const noexcept
+		{
+			return maxsize < sso_size;
+		}
+
+		size_t new_cap(size_t p)const noexcept
+		{
+			auto k = maxsize << 1;
+			if (k < p)
+				return p;
+			if (k >= max_size())
+				return p;
+			return k;
+		}
+
+		CharT* make_no_sso(size_t p)
+		{
+			if (p >= max_size())
+				throw(length_error(""));
+			return allocator_traits<Allocator>::allocate(alloc, p + 1);
+		}
+
+		void deal_no_sso()
+		{
+			if (!sso())
+				allocator_traits<Allocator>::deallocate(alloc, data(), maxsize + 1);
+		}
 
 		void assign_str(const_pointer p,size_t t)
 		{
-			if (capacity() > t)//ø’º‰πª¡À
+			if (capacity() >= t)//Á©∫Èó¥Â§ü‰∫Ü
 			{
 				Traits::copy(p, data(), t);
 				Traits::assign(*(data() + t), Traits::eof());
 			}
-			else//ø’º‰≤ªπª
+			else//Á©∫Èó¥‰∏çÂ§ü
 			{
-				if (t >= max_size())
-					throw(length_error(""));
-				//œ»…Í«Î≤¢∏¥÷∆£¨≥ˆ¥Ì“≤∞≤»´
-				auto pp = allocator_traits<Allocator>::allocator(alloc, t + 1);
-				Traits::copy(pp, p, t);
-				Traits::assign(*(pp + t), Traits::eof());
+				//ÂÖàÁî≥ËØ∑Âπ∂Â§çÂà∂ÔºåÂá∫Èîô‰πüÂÆâÂÖ®
+				auto pp = make_no_sso(t);
+				try
+				{
+					Traits::copy(pp, p, t);
+					Traits::assign(*(pp + t), Traits::eof());
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, pp, t + 1);
+					throw;
+				}
 
-				//»Áπ˚‘≠¿¥”–ƒ⁄¥Ê◊ ‘¥æÕ Õ∑≈£¨∑Ò‘Ú÷√sso_flagŒ™false
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
+				//Â¶ÇÊûúÂéüÊù•ÊúâÂÜÖÂ≠òËµÑÊ∫êÂ∞±ÈáäÊîæ
+				deal_no_sso();
 
-				dat.data.begin = pp;
-				dat.data.max_size = t + 1;	
+				no_sso_data = pp;
+				maxsize = t;
 			}
 			ssize = t;
 		}
 		template<typename It,typename = is_input<value_type,It>>
 		void assign_iterator(It first,It end,size_t t)
 		{
-			if (capacity() > t)//ø’º‰πª¡À
+			if (capacity() >= t)//Á©∫Èó¥Â§ü‰∫Ü
 			{
 				uuz::copy(first, end, data());
 				Traits::assign(*(data() + t), Traits::eof());	
 			}
-			else//ø’º‰≤ªπª
+			else//Á©∫Èó¥‰∏çÂ§ü
 			{
-				if (t >= max_size())
-					throw(length_error(""));
 
-				//œ»…Í«Î≤¢∏¥÷∆£¨≥ˆ¥Ì“≤∞≤»´
-				auto p = allocator_traits<Allocator>::allocator(alloc, t + 1);
-				uuz::copy(first, end, p);
-				Traits::assign(*(p + t), Traits::eof());
+				//ÂÖàÁî≥ËØ∑Âπ∂Â§çÂà∂ÔºåÂá∫Èîô‰πüÂÆâÂÖ®
+				auto p = make_no_sso(t);
+				try
+				{
+					uuz::copy(first, end, p);
+					Traits::assign(*(p + t), Traits::eof());
+				}
+				catch (...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, p, t + 1);
+					throw;
+				}
 
-				//»Áπ˚‘≠¿¥”–ƒ⁄¥Ê◊ ‘¥æÕ Õ∑≈£¨∑Ò‘Ú÷√sso_flagŒ™false
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
+				//Â¶ÇÊûúÂéüÊù•ÊúâÂÜÖÂ≠òËµÑÊ∫êÂ∞±ÈáäÊîæ
+				deal_no_sso();
 
-				dat.data.begin = p;
-				dat.data.max_size = t + 1;
+				no_sso_data = p;
+				maxsize = t;
 			}
 			ssize = t;
 		}
 
 		void insert_str(size_t index,const_pointer s ,size_t count)
 		{
-			if (size() + count < capacity())
+			if (index > size())
+				throw(out_of_range(""));
+
+			if (size() + count <= capacity())
 			{
 				Traits::move(data() + index + count, data() + index, size() - index);
 				Traits::copy(data() + index, s, count);
@@ -1451,27 +2032,36 @@ namespace uuz
 			}
 			else
 			{
-				if (size() + count + 1 >= max_size())
-					throw(length_error(""));
-				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
-				Traits::move(temp, data(), index);
-				Traits::copy(data() + index, s, count);
-				Traits::move(temp + index + count, data() + index, size() - index);
-				
-				Traits::assign(*(temp + size()), Traits::eof);
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
-				dat.data.begin = temp;
-				dat.data.max_size = size() + count + 1;
+				auto k = new_cap(size() + count);
+				auto temp = make_no_sso(k);
+
+				try
+				{
+					Traits::move(temp, data(), index);
+					Traits::copy(temp + index, s, count);
+					Traits::move(temp + index + count, data() + index, size() - index);
+					Traits::assign(*(temp + size()), Traits::eof);
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+
+				deal_no_sso();
+
+				no_sso_data = temp;
+				maxsize = k;
 			}
 			ssize += count;
 		}
 		template<typename It, typename = is_input<value_type, It>>
 		void insert_iterator(size_t index,It first, It end, size_t count)
 		{
-			if (size() + count < capacity())
+			if (index > size())
+				throw(out_of_range(""));
+
+			if (size() + count <= capacity())
 			{
 				Traits::move(data() + index + count, data() + index, size() - index);
 				uuz::copy(first,end,data() + index);
@@ -1479,73 +2069,90 @@ namespace uuz
 			}
 			else
 			{
-				if (size() + count + 1 >= max_size())
-					throw(length_error(""));
+				auto k = new_cap(size() + count);
+				auto temp = make_no_sso(k);
 
-				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
-				Traits::move(temp, data(), index);
-				uuz::copy(first, end, data() + index);
-				Traits::move(temp + index + count, data() + index, size() - index);	
-				Traits::assign(*(temp + size()), Traits::eof);
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
-				dat.data.begin = temp;
-				dat.data.max_size = size() + count + 1;
+				try
+				{
+					Traits::move(temp, data(), index);
+					uuz::copy(first, end, temp + index);
+					Traits::move(temp + index + count, data() + index, size() - index);
+					Traits::assign(*(temp + size()), Traits::eof);
+				}
+				catch (...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+				
+				deal_no_sso();
+				
+				no_sso_data = temp;
+				maxsize = k;
 			}
 			ssize += count;
 		}
 
 		void append_str(const_pointer s, size_t count)
 		{
-			if (size() + count < capacity())
+			if (size() + count <= capacity())
 			{
 				Traits::copy(data() + size(), s, count);
 				Traits::assign(data() + size() + count, Traits::eof());
 			}
 			else
 			{
-				if (size() + count + 1 >= max_size())
-					throw(length_error(""));
+				auto k = new_cap(size() + count);
+				auto temp = make_no_sso(k);
 
-				auto p = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
-				Traits::copy(p, data(), size());
-				Traits::copy(p + size(), s, count);
-				Traits::assign(p + size() + count, Traits::eof());
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
+				try
+				{
+					Traits::move(temp, data(), size());
+					Traits::copy(temp + size(), s, count);
+					Traits::assign(temp + size() + count, Traits::eof());
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
 
-				dat.data.begin = p;
-				dat.data.max_size = size() + count + 1;
+				deal_no_sso();
+
+				no_sso_data = temp;
+				maxsize = k;
 			}
 			ssize += count;
 		}
 		template<typename It, typename = is_input<value_type, It>>
-		void append_iterator(size_t index, It first, It end, size_t count)
+		void append_iterator(It first, It end, size_t count)
 		{
-			if (size() + count < capacity())
+			if (size() + count <= capacity())
 			{
-				uuz::copy(first, end, data()+size());
+				uuz::copy(first, end, data() + size());
 				Traits::assign(data() + size() + count, Traits::eof());
 			}
 			else
 			{
-				if (size() + count + 1 >= max_size())
-					throw(length_error(""));
+				auto k = new_cap(size() + count);
+				auto temp = make_no_sso(k);
 
-				auto temp = allocator_traits<Allocator>::allocate(alloc, size() + count + 1);
-				Traits::copy(temp, data(), size());
-				uuz::copy(first, end, temp + size());
-				Traits::assign(temp + size() + count, Traits::eof());
-				if (!sso_flag)
-					allocator_traits<Allocator>::deallocate(alloc, dat.data.begin, dat.data.max_size);
-				else
-					sso_flag = false;
-				dat.data.begin = temp;
-				dat.data.max_size = size() + count + 1;
+				try
+				{
+					Traits::copy(temp, data(), size());
+					uuz::copy(first, end, temp + size());
+					Traits::assign(temp + size() + count, Traits::eof());
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+
+				deal_no_sso();
+
+				no_sso_data = temp;
+				maxsize = k;
 			}
 			ssize += count;
 		}

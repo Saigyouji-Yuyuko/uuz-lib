@@ -55,7 +55,7 @@
 #include <algorithm>
 #include <iterator>
 #include <ctime>
-
+std::is_base_of
 template <class _ForwardIterator>
 __forceinline
 _ForwardIterator
