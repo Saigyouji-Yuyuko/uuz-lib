@@ -104,7 +104,7 @@ namespace uuz
 	namespace
 	{
 		template<typename CharT,typename size_type,typename = typename char_traits<CharT>::char_type>
-		int _compare(CharT* s1,size_type count1,
+		constexpr int _compare(CharT* s1,size_type count1,
 			CharT* s2, size_type count2)noexcept
 		{
 			int k = count1 - count2;
@@ -114,7 +114,7 @@ namespace uuz
 			return p;
 		}
 		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find(CharT* s1,CharT* s2, size_type count2)noexcept
+		constexpr CharT* _find(CharT* s1,CharT* s2, size_type count2)noexcept
 		{
 			while (*(s1 + count2))
 				if (*s1 == *s2 && char_traits<CharT>::compare(s1, s2, count2) == 0)
@@ -124,7 +124,7 @@ namespace uuz
 			return nullptr;
 		}
 		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find(CharT* begin, CharT* end, CharT* s2, size_type count2)noexcept
+		constexpr CharT* _find(CharT* begin, CharT* end, CharT* s2, size_type count2)noexcept
 		{
 			while((end - count2) != begin)
 				if (*(end - count2) == *s2 && char_traits<CharT>::compare(end - count2, s2, count2) == 0)
@@ -134,7 +134,7 @@ namespace uuz
 			return char_traits<CharT>::compare(begin, s2, count2) == 0 ? begin : nullptr;
 		}
 		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find_first_of(CharT* begin, CharT* s2, size_type count)noexcept
+		constexpr CharT* _find_first_of(CharT* begin, CharT* s2, size_type count)noexcept
 		{
 
 			while(*begin)
@@ -147,7 +147,7 @@ namespace uuz
 			return nullptr;
 		}
 		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find_first_not_of(CharT* begin, CharT* s2, size_type count)noexcept
+		constexpr CharT* _find_first_not_of(CharT* begin, CharT* s2, size_type count)noexcept
 		{
 
 			while (*begin)
@@ -161,7 +161,7 @@ ll:				++begin;
 			return nullptr;
 		}
 		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find_last_of(CharT* begin, CharT* end, CharT* s2, size_type count)noexcept
+		constexpr CharT* _find_last_of(CharT* begin, CharT* end, CharT* s2, size_type count)noexcept
 		{
 			while (begin  < --end)
 			{
@@ -171,8 +171,9 @@ ll:				++begin;
 			}
 			return nullptr;
 		}
-			template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
-		CharT* _find_last_not_of(CharT* begin, CharT* end, CharT* s2, size_type count)noexcept
+			
+		template<typename CharT, typename size_type, typename = typename char_traits<CharT>::char_type>
+		constexpr CharT* _find_last_not_of(CharT* begin, CharT* end, CharT* s2, size_type count)noexcept
 		{
 			while (begin  < --end)
 			{
@@ -438,50 +439,220 @@ ll:				++begin;
 
 		constexpr int compare(basic_string_view v) const noexcept
 		{
-
+			return _compare(data(), size(), v.data(), v.size());
 		}
-		constexpr int compare(size_type pos1, size_type count1,basic_string_view v) const;
-		constexpr int compare(size_type pos1, size_type count1, basic_string_view v,size_type pos2, size_type count2) const;
+		constexpr int compare(size_type pos1, size_type count1,basic_string_view v) const
+		{
+			if (pos1 > size())
+				throw(out_of_range(""));
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, v.data(), v.size());
+		}
+		constexpr int compare(size_type pos1, size_type count1, basic_string_view v,size_type pos2, size_type count2) const
+		{
+			if (pos1 > size() || pos2 > v.size())
+				throw(out_of_range(""));
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1,
+						v.data()+pos2, v.size() - pos2 > count2 ? count2 : v.size() - pos2);
+		}
 		constexpr int compare(const CharT* s) const
 		{
-			
+			return _compare(data(), size(), s, Traits::length(s));
 		}
 		constexpr int compare(size_type pos1, size_type count1,const CharT* s) const
 		{
-			
+			if (pos1 > size())
+				throw(out_of_range(""));
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, s, Traits::length(s));
 		}
-		constexpr int compare(size_type pos1, size_type count1,
-			const CharT* s, size_type count2) const;
+		constexpr int compare(size_type pos1, size_type count1,const CharT* s, size_type count2) const
+		{
+			if (pos1 > size())
+				throw(out_of_range(""));
+			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, s, count2);
+		}
 
-		constexpr size_type find(basic_string_view v, size_type pos = 0) const noexcept;
-		constexpr size_type find(CharT c, size_type pos = 0) const noexcept;
-		constexpr size_type find(const CharT* s, size_type pos, size_type count) const;
-		constexpr size_type find(const CharT* s, size_type pos = 0) const;
+		constexpr size_type find(basic_string_view v, size_type pos = 0) const noexcept
+		{
+			return find(v.data(), pos, v.size());
+		}
+		constexpr size_type find(CharT c, size_type pos = 0) const noexcept
+		{
+			return Traits::find(data() + pos, size() - pos, c) - data();
+		}
+		constexpr size_type find(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
+			auto k = _find(data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		constexpr size_type find(const CharT* s, size_type pos = 0) const
+		{
+			return find(s, pos, Traits::length(s));
+		}
 
-		constexpr size_type rfind(basic_string_view v, size_type pos = npos) const noexcept;
-		constexpr size_type rfind(CharT c, size_type pos = npos) const noexcept;
-		constexpr size_type rfind(const CharT* s, size_type pos, size_type count) const;
-		constexpr size_type rfind(const CharT* s, size_type pos = npos) const;
+		constexpr size_type rfind(basic_string_view v, size_type pos = npos) const noexcept
+		{
+			return rfind(v.data(), pos, v.size());
+		}
+		constexpr size_type rfind(CharT c, size_type pos = npos) const noexcept
+		{
+			if (pos == npos)
+				pos = size();
 
-		constexpr size_type find_first_of(basic_string_view v, size_type pos = 0) const noexcept;
-		constexpr size_type find_first_of(CharT c, size_type pos = 0) const noexcept;
-		constexpr size_type find_first_of(const CharT* s, size_type pos, size_type count) const;
-		constexpr size_type find_first_of(const CharT* s, size_type pos = 0) const;
+			for (auto i = data() + pos - 1; i != data(); --i)
+				if (Traits::eq(*i, c))
+					return i - data();
+			return Traits::eq(*data(), c) ? 0 : npos;
+		}
+		constexpr size_type rfind(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos == npos)
+				pos = size();
 
-		constexpr size_type find_last_of(basic_string_view v, size_type pos = npos) const noexcept;
-		constexpr size_type find_last_of(CharT c, size_type pos = npos) const noexcept;
-		constexpr size_type find_last_of(const CharT* s, size_type pos, size_type count) const;
-		constexpr size_type find_last_of(const CharT* s, size_type pos = npos) const;
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
 
-		constexpr size_type find_first_not_of(basic_string_view v, size_type pos = 0) const noexcept;
-		constexpr size_type find_first_not_of(CharT c, size_type pos = 0) const noexcept;
-		constexpr size_type find_first_not_of(const CharT* s, size_type pos, size_type count) const;
-		constexpr size_type find_first_not_of(const CharT* s, size_type pos = 0) const;
+			auto k = _rfind(data(), data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		constexpr size_type rfind(const CharT* s, size_type pos = npos) const
+		{
+			return rfind(s, pos, Traits::length(s));
+		}
 
-		constexpr size_type find_last_not_of(basic_string_view v, size_type pos = npos) const noexcept;
-		constexpr size_type find_last_not_of(CharT c, size_type pos = npos) const noexcept;
-		constexpr size_type find_last_not_of(const CharT* s, size_type pos, size_type count) const;
-		constexpr size_type find_last_not_of(const CharT* s, size_type pos = npos) const;
+		constexpr size_type find_first_of(basic_string_view v, size_type pos = 0) const noexcept
+		{
+			return find_first_of(v.data(), pos, v.size());
+		}
+		constexpr size_type find_first_of(CharT c, size_type pos = 0) const noexcept
+		{
+			return find(c, pos);
+		}
+		constexpr size_type find_first_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_first_of(data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		constexpr size_type find_first_of(const CharT* s, size_type pos = 0) const
+		{
+			return find_first_of(s, pos, Traits::length(s));
+		}
+
+		constexpr size_type find_last_of(basic_string_view v, size_type pos = npos) const noexcept
+		{
+			return find_last_of(v.data(), pos, v.size());
+		}
+		constexpr size_type find_last_of(CharT c, size_type pos = npos) const noexcept
+		{
+			return rfind(c, pos);
+		}
+		constexpr size_type find_last_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_last_of(data(), data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		constexpr size_type find_last_of(const CharT* s, size_type pos = npos) const
+		{
+			return find_last_of(s, pos,Traits::length(s));
+		}
+
+		constexpr size_type find_first_not_of(basic_string_view sv, size_type pos = 0) const noexcept
+		{
+			return find_first_not_of(sv, pos, sv.size());
+		}
+		constexpr size_type find_first_not_of(CharT c, size_type pos = 0) const noexcept
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			for (auto i = 0; i != size(); ++i)
+			{
+				if (Traits::eq(at(i), c))
+					goto ll;
+				return i;
+			ll:;
+			}
+			return npos;
+		}
+		constexpr size_type find_first_not_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos > size())
+				throw(out_of_range(""));
+
+			auto k = _find_first_not_of(data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		constexpr size_type find_first_not_of(const CharT* s, size_type pos = 0) const
+		{
+			return find_first_not_of(s, pos, Traits::length(s));
+		}
+
+		constexpr size_type find_last_not_of(basic_string_view sv,size_type pos = npos) const noexcept
+		{
+			return find_last_not_of(sv.data(), pos, sv.size());
+		}
+		constexpr size_type find_last_not_of(CharT ch, size_type pos = npos) const
+		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+
+			for (auto i = pos - 1; i > 0; --i)
+			{
+				if (Traits::eq(at(i), ch))
+					goto ll;
+				return i;
+			ll:;
+			}
+			return npos;
+		}
+		constexpr size_type find_last_not_of(const CharT* s, size_type pos, size_type count) const
+		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+			if (count > size())
+				return npos;
+
+			auto k = _find_last_not_of(data(), data() + pos, s, count);
+			if (k)
+				return k - data();
+			return npos;
+		}
+		constexpr size_type find_last_not_of(const CharT* s, size_type pos = npos) const
+		{
+			return find_last_not_of(s, pos, Traits::length(s));
+		}
+		
+		
 	};
 
 
@@ -1642,7 +1813,7 @@ ll:				++begin;
 			return _compare(data() + pos1, size() - pos1 > count1 ? count1 : size() - pos1, sv, sv.size());
 		}
 		template < typename T,
-			typename = std::enable_if_t<std::is_convertible_v<const T&, std::basic_string_view<CharT, Traits>>
+			typename = std::enable_if_t<std::is_convertible_v<const T&, basic_string_view<CharT, Traits>>
 			&& !std::is_convertible_v<const T&, const CharT*>>>
 		int compare(size_type pos1, size_type count1,const T& t,
 				size_type pos2, size_type count2 = npos) const
@@ -1663,48 +1834,143 @@ ll:				++begin;
 		//Replaces the part of the string indicated by either [pos, pos + count) or [first, last) with a new string.
 		//The new string can be one of :
 		//In any case, if an exception is thrown for any reason, this function has no effect (strong exception guarantee). 
-		basic_string& replace(size_type pos, size_type count,
-			const basic_string& str)
+		basic_string& replace(size_type pos, size_type count,const basic_string& str)
 		{
-			
+			return replace(pos, count, str.data(), str.size());
 		}
-		basic_string& replace(const_iterator first, const_iterator last,
-				const basic_string& str);
-		basic_string& replace(size_type pos, size_type count,
-			const basic_string& str,
-			size_type pos2, size_type count2 = npos);
-		template< class InputIt >
-		basic_string& replace(const_iterator first, const_iterator last,
-			InputIt first2, InputIt last2);
-		
-		basic_string& replace(size_type pos, size_type count,
-				const CharT* cstr, size_type count2);
-		
-		basic_string& replace(const_iterator first, const_iterator last,
-				const CharT* cstr, size_type count2);
-		
-		basic_string& replace(size_type pos, size_type count,
-				const CharT* cstr);
-	
-		basic_string& replace(const_iterator first, const_iterator last,
-				const CharT* cstr);
-		
-		basic_string& replace(size_type pos, size_type count,
-				size_type count2, CharT ch);
-		
-		basic_string& replace(const_iterator first, const_iterator last,
-				size_type count2, CharT ch);
-	
-		basic_string& replace(const_iterator first, const_iterator last,
-				std::initializer_list<CharT> ilist);
+		basic_string& replace(const_iterator first, const_iterator last,const basic_string& str)
+		{
+			return replace(first - begin(), distance(last - first), str.data(), str.size());
+		}
+		basic_string& replace(size_type pos, size_type count,const basic_string& str,size_type pos2, size_type count2 = npos)
+		{
+			if (pos2 > str.size())
+				throw(out_of_range(""));
 
-		basic_string& replace(size_type pos, size_type count,
-			std::basic_string_view<CharT, Traits> sv);
-		basic_string& replace(const_iterator first, const_iterator last,
-				std::basic_string_view<CharT, Traits> sv);
-		template < class T >
-		basic_string& replace(size_type pos, size_type count, const T& t,
-				size_type pos2, size_type count2 = npos);
+			if (count2 == npos)
+				count2 = str.size() - pos2;
+			else if (count2 >str.size() - pos2)
+				count2 = size() - pos2;
+
+			return replace(pos, count, str.data() + pos2, count2);
+		}
+		template< typename InputIt, typename = is_input<value_type, InputIt>>
+		basic_string& replace(const_iterator first, const_iterator last,InputIt first2, InputIt last2)
+		{
+
+		}
+		basic_string& replace(size_type pos, size_type count,const CharT* cstr, size_type count2)
+		{
+			if(size()-count+count2 <= capacity())
+			{
+				Traits::move(data() + pos + count2, data() + pos + count, size() - pos - count);
+				Traits::copy(data() + pos, cstr, count2);
+				Traits::assign(at(size() - count + count2), Traits::eof());
+			}
+			else
+			{
+				auto k = new_cap(size() - count + count2);
+				auto temp = make_no_sso(k);
+
+				try
+				{
+					Traits::move(temp, data(), pos);
+					Traits::copy(temp + pos, cstr, count2);
+					Traits::copy(temp + pos + count2, data() + pos + count, size() - pos - count);
+					Traits::assign(*(temp + size() - count + count2), Traits::eof());
+				}
+				catch(...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+				allocator_traits<Allocator>::deallocate(alloc, no_sso_data, maxsize + 1);
+
+				no_sso_data = temp;
+				maxsize = k;
+			}
+			ssize = ssize - count + count2;
+			return *this;
+		}
+		basic_string& replace(const_iterator first, const_iterator last,const CharT* cstr, size_type count2)
+		{
+			return replace(first - begin(), distance(last - first), cstr, count2);
+		}
+		basic_string& replace(size_type pos, size_type count,const CharT* cstr)
+		{
+			return replace(pos, count, cstr, Traits::length(cstr));
+		}
+		basic_string& replace(const_iterator first, const_iterator last,const CharT* cstr)
+		{
+			return replace(first - begin(), distance(last - first), cstr, Traits::length(cstr));
+		}
+		basic_string& replace(size_type pos, size_type count,size_type count2, CharT ch)
+		{
+			if (size() - count + count2 <= capacity())
+			{
+				Traits::move(data() + pos + count2, data() + pos + count, size() - pos - count);
+				Traits::assign(data() + pos, ch, count2);
+				Traits::assign(at(size() - count + count2), Traits::eof());
+			}
+			else
+			{
+				auto k = new_cap(size() - count + count2);
+				auto temp = make_no_sso(k);
+
+				try
+				{
+					Traits::move(temp, data(), pos);
+					Traits::assign(data() + pos, ch, count2);
+					Traits::copy(temp + pos + count2, data() + pos + count, size() - pos - count);
+					Traits::assign(*(temp + size() - count + count2), Traits::eof());
+				}
+				catch (...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+				allocator_traits<Allocator>::deallocate(alloc, no_sso_data, maxsize + 1);
+
+				no_sso_data = temp;
+				maxsize = k;
+			}
+			ssize = ssize - count + count2;
+			return *this;
+		}
+		basic_string& replace(const_iterator first, const_iterator last,size_type count2, CharT ch)
+		{
+			return replace(first - begin(), distance(last - first), count2, ch);
+		}
+		basic_string& replace(const_iterator first, const_iterator last,std::initializer_list<CharT> ilist)
+		{
+			return repalce(first, last, ilist.begin(), ilist.end());
+		}
+		basic_string& replace(size_type pos, size_type count,view sv)
+		{
+			return replace(pos, count, sv, sv.data());
+		}
+		basic_string& replace(const_iterator first, const_iterator last,view sv)
+		{
+			return replace(first - begin(), distance(last - first), sv.data(), sv.size());
+		}
+		template < typename T,
+			typename = std::enable_if_t<std::is_convertible_v<const T&, view>
+			&& !std::is_convertible_v<const T&, const CharT*>>>
+		basic_string& replace(size_type pos, size_type count, const T& t,size_type pos2, size_type count2 = npos)
+		{
+			auto k = view(t);
+
+			if (pos2 > k.data())
+				throw(out_of_range(""));
+
+			if (count2 == npos)
+				count2 = k.size() - pos2;
+			else if (count2 > k.size() - pos2)
+				count2 = k.size() - pos2;
+
+			return replace(pos, count, k.data() + pos2, count2);
+		}
+
 
 		basic_string substr(size_type pos = 0,size_type count = npos) const
 		{
@@ -1783,7 +2049,7 @@ ll:				++begin;
 		{
 			return Traits::find(data() + pos, size() - pos, ch) - data();
 		}
-		size_type find(basic_string_view<CharT, Traits> sv,size_type pos = 0) const
+		size_type find(view sv,size_type pos = 0) const
 		{
 			return find(sv.data(), pos, sv.size());
 		}
@@ -1813,19 +2079,22 @@ ll:				++begin;
 		}
 		size_type rfind(CharT ch, size_type pos = npos) const
 		{
-			for (auto i = data() + size() - 1; i != data(); --i)
+			if (pos == npos)
+				pos = size();
+
+			for (auto i = data() + pos - 1; i != data(); --i)
 				if (Traits::eq(*i, ch))
 					return i - data();
 			return Traits::eq(*data(), ch) ? 0 : npos;
 		}
-		size_type rfind(basic_string_view<CharT, Traits> sv,size_type pos = npos) const
+		size_type rfind(view sv,size_type pos = npos) const
 		{
 			return rfind(sv.data(), pos, sv.size());
 		}
 
 		size_type find_first_of(const basic_string& str, size_type pos = 0) const
 		{
-			return find_first_of(str.data()), pos, str.size());
+			return find_first_of(str.data(), pos, str.size());
 		}
 		size_type find_first_of(const CharT* s, size_type pos, size_type count) const
 		{
@@ -1845,8 +2114,7 @@ ll:				++begin;
 		{
 			return find(ch, pos);
 		}
-		size_type find_first_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = 0) const
+		size_type find_first_of(view sv,size_type pos = 0) const
 		{
 			return find_first_of(sv, pos, sv.size());
 		}
@@ -1860,7 +2128,7 @@ ll:				++begin;
 			if (pos > size())
 				throw(out_of_range(""));
 
-			auto k = _find_first_not_of(data() + pos, str.data(), str.size());
+			auto k = _find_first_not_of(data() + pos, s,count);
 			if (k)
 				return k - data();
 			return npos;
@@ -1871,6 +2139,9 @@ ll:				++begin;
 		}
 		size_type find_first_not_of(CharT ch, size_type pos = 0) const
 		{
+			if (pos > size())
+				throw(out_of_range(""));
+
 			for(auto i =0;i!=size();++i)
 			{
 				if (Traits::eq(at(i), ch))
@@ -1881,7 +2152,7 @@ ll:				;
 			return npos;
 				
 		}
-		size_type find_first_not_of(std::basic_string_view<CharT, Traits> sv,size_type pos = 0) const
+		size_type find_first_not_of(view sv,size_type pos = 0) const
 		{
 			return find_first_not_of(sv, pos, sv.size());
 		}
@@ -1897,8 +2168,6 @@ ll:				;
 
 			if (pos > size())
 				throw(out_of_range(""));
-			if (count > size())
-				return npos;
 
 			auto k = _find_last_of(data(), data() +pos, s, count);
 			if (k)
@@ -1911,13 +2180,9 @@ ll:				;
 		}
 		size_type find_last_of(CharT ch, size_type pos = npos) const
 		{
-			for (auto i = size() - 1; i > 0; --i)
-				if (Traits::eq(at(i), ch))
-					return i;
-			return npos;
+			return rfind(ch, pos);
 		}
-		size_type find_last_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = npos) const
+		size_type find_last_of(view sv,size_type pos = npos) const
 		{
 			return find_last_of(sv.data(), pos, sv.size());
 		}
@@ -1933,8 +2198,6 @@ ll:				;
 
 			if (pos > size())
 				throw(out_of_range(""));
-			if (count > size())
-				return npos;
 
 			auto k = _find_last_not_of(data(), data() + pos, s, count);
 			if (k)
@@ -1947,6 +2210,12 @@ ll:				;
 		}
 		size_type find_last_not_of(CharT ch, size_type pos = npos) const
 		{
+			if (pos == npos)
+				pos = size();
+
+			if (pos > size())
+				throw(out_of_range(""));
+
 			for (auto i = size() - 1; i > 0; --i)
 			{
 				if (Traits::eq(at(i), ch))
@@ -1956,8 +2225,7 @@ ll:				;
 			}
 			return npos;
 		}
-		size_type find_last_not_of(std::basic_string_view<CharT, Traits> sv,
-			size_type pos = npos) const
+		size_type find_last_not_of(view sv,size_type pos = npos) const
 		{
 			return find_last_not_of(sv.data(), pos, sv.size());
 		}
