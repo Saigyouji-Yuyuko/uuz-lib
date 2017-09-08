@@ -49,36 +49,43 @@
 #include<cstdio>
 #include<sstream>
 using namespace std;
+bool whatfind(int* t,int f,int l,int n)
+{
+	if (n == 0)
+		return true;
+	if (n < 0)
+		return false;
+	for (auto i = f; i != l - 1; ++i)
+		if (whatfind(t, i + 1, l, n - t[i]))
+			return true;
+	return false;
+}
+bool iswanmei(int k)
+{
+	int t[10],sum=0;
+	while(k)
+	{
+		t[sum++] = k % 10;
+		k /= 10;
+	}
+
+	for (auto i = 0; i != sum; ++i)
+		k += t[i];
+	if (k & 1 == 1)
+		return false;
+
+	 return whatfind(t, 0, sum, k>>1);
+			
+}
 int main()
 {
-	string s,t;
-	while (cin >> t)
-		s += t;
-	int begin = -1;
-	int maxx = 0;
-	int k = 0;
-	for (int i = 0; i != s.size(); ++i)
-	{
-		if (s[i] >= '0' && s[i] <= '9')
-			++k;
-		else
-		{
-			if (k >= maxx)
-			{
-				maxx = k;
-				begin = i - k;
-			}
-			k = 0;
-		}
-	}
-	if (k >= maxx)
-	{
-		maxx = k;
-		begin = s.size() - k;
-	}
-
-	if (maxx)
-		cout << s.substr(begin, maxx) << endl << maxx;
+	int a, b;
+	cin >> a >> b;
+	int sum = 0;
+	for(auto i = max(a,11);i<=b;++i)
+		if (iswanmei(i))
+			++sum;		
+	cout << sum;
+	system("pause");
 	return 0;
-
 }

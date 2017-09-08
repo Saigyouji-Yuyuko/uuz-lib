@@ -1310,7 +1310,6 @@ ll:				++begin;
 		//C++17
 		//Returns the number of CharT elements in the string, i.e. std::distance(begin(), end()).
 		//For std::string, the elements are bytes (objects of type char), which are not the same as characters if a multibyte encoding such as UTF-8 is used.
-		//上面那个功能没有实现
 		//Constant
 		size_type size() const noexcept
 		{
@@ -1857,7 +1856,8 @@ ll:				++begin;
 		template< typename InputIt, typename = is_input<value_type, InputIt>>
 		basic_string& replace(const_iterator first, const_iterator last,InputIt first2, InputIt last2)
 		{
-
+			_repalce(first, last, first2, last2, distance(first2, last2));
+			return *this;
 		}
 		basic_string& replace(size_type pos, size_type count,const CharT* cstr, size_type count2)
 		{
@@ -1943,7 +1943,7 @@ ll:				++begin;
 		}
 		basic_string& replace(const_iterator first, const_iterator last,std::initializer_list<CharT> ilist)
 		{
-			return repalce(first, last, ilist.begin(), ilist.end());
+			return _repalce(first, last, ilist.begin(), ilist.end(),ilist.size());
 		}
 		basic_string& replace(size_type pos, size_type count,view sv)
 		{
@@ -2464,6 +2464,44 @@ ll:				;
 			}
 			ssize += count;
 		}
+		
+		template<typename It, typename = is_input<value_type, It>>
+		void _replace(const_iterator first, const_iterator last, It first2, It last2,size_type count2)
+		{
+			auto count = last - first;
+			auto pos = first - begin();
+			if (size() - count + count2 <= capacity())
+			{
+				Traits::move(data() + pos + count2, data() + pos + count, size() - pos - count);
+				uuz::copy(first2, last2, data() + pos);
+				Traits::assign(at(size() - count + count2), Traits::eof());
+			}
+			else
+			{
+				auto k = new_cap(size() - count + count2);
+				auto temp = make_no_sso(k);
+
+				try
+				{
+					Traits::move(temp, data(), pos);
+					uuz::copy(first2, last2,temp + pos);
+					Traits::copy(temp + pos + count2, data() + pos + count, size() - pos - count);
+					Traits::assign(*(temp + size() - count + count2), Traits::eof());
+				}
+				catch (...)
+				{
+					allocator_traits<Allocator>::deallocate(alloc, temp, k + 1);
+					throw;
+				}
+				allocator_traits<Allocator>::deallocate(alloc, no_sso_data, maxsize + 1);
+
+				no_sso_data = temp;
+				maxsize = k;
+			}
+			ssize = ssize - count + count2;
+			return *this;
+		}
+
 	};
 	using string = basic_string<char>;
 	using string_view = basic_string_view<char>;

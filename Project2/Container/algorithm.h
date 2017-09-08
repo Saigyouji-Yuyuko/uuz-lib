@@ -1285,14 +1285,7 @@ namespace uuz
 	}
 
 
-	//until C++17
-	/*template<typename RandomAccessIterator>
-	void random_shuffle(RandomAccessIterator first,
-		RandomAccessIterator last);
-	template<typename RandomAccessIterator, typename RandomNumberGenerator>
-	void random_shuffle(RandomAccessIterator first,
-		RandomAccessIterator last,
-		RandomNumberGenerator&& rand);*/
+
 	template<typename RandomAccessIterator, typename UniformRandomNumberGenerator>
 	void shuffle(RandomAccessIterator first,RandomAccessIterator last,
 					UniformRandomNumberGenerator&& rand)
@@ -1304,7 +1297,7 @@ namespace uuz
 		ddp D;
 		using std::swap;
 		for (auto i = (last - first) - 1; i > 0; --i)
-			swap(first[i], first[D(rand, typename ddp::param_t(0, i))]);
+			swap(first[i], first[D(rand, ddp::param_t(0, i))]);
 	}
 
 	// partitions:
@@ -1326,9 +1319,24 @@ namespace uuz
 	{
 		static_assert(!is_forward_iterator<ForwardIterator>, "!!!");
 		
+		using std::swap;
+
 		if constexpr(is_bidirectional_iterator<ForwardIterator>)
 		{
-			
+			for (;;++first)
+			{
+				if (first == last)
+					return last;
+				if (!pred(*first))
+				{
+					do
+					{
+						if (first == --last)
+							return last;
+					} while (!pred(*last));
+					iter_swap(first, last);
+				}
+			}
 		}
 		else
 		{
@@ -1348,65 +1356,114 @@ namespace uuz
 
 	template<typename BidirectionalIterator, typename Predicate>
 	BidirectionalIterator stable_partition(BidirectionalIterator first,BidirectionalIterator last,
-										Predicate pred);
+										Predicate pred)
+	{
+		static_assert(!is_bidirectional_iterator<BidirectionalIterator>, "!!!");
+
+
+
+	}
 
 	template <typename InputIterator, typename OutputIterator1,
-		typename OutputIterator2, typename Predicate>
-		pair<OutputIterator1, OutputIterator2>
-		partition_copy(InputIterator first, InputIterator last,
-			OutputIterator1 out_true, OutputIterator2 out_false,
-			Predicate pred);
+				typename OutputIterator2, typename Predicate>
+	pair<OutputIterator1, OutputIterator2> partition_copy(InputIterator first, InputIterator last,
+														OutputIterator1 out_true, OutputIterator2 out_false,
+														Predicate pred)
+	{
+		for(;first!=last;++first)
+		{
+			if (pred(first))
+				*out_true++ = *first;
+			else
+				*out_false++ = *first;
+		}
+		return pair<OutputIterator1, OutputIterator2>(out_true, out_false);
+	}
 
 	template<typename ForwardIterator, typename Predicate>
-	ForwardIterator partition_point(ForwardIterator first,
-		ForwardIterator last,
-		Predicate pred);
+	ForwardIterator partition_point(ForwardIterator first,ForwardIterator last,Predicate pred)
+	{
+		
+	}
 
 	// sorting and related operations:
 
 	// sorting:
 	template<typename RandomAccessIterator>
-	void sort(RandomAccessIterator first, RandomAccessIterator last);
+	void sort(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return sort(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
 	template<typename RandomAccessIterator, typename Compare>
-	void sort(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
+	void sort(RandomAccessIterator first, RandomAccessIterator last,Compare comp)
+	{
+		
+	}
 
-	template<typename RandomAccessIterator>
-	void stable_sort(RandomAccessIterator first, RandomAccessIterator last);
 	template<typename RandomAccessIterator, typename Compare>
-	void stable_sort(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
+	void stable_sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+	template<typename RandomAccessIterator>
+	void stable_sort(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return stable_sort(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
 
-	template<typename RandomAccessIterator>
-	void partial_sort(RandomAccessIterator first,
-		RandomAccessIterator middle,
-		RandomAccessIterator last);
 	template<typename RandomAccessIterator, typename Compare>
-	void partial_sort(RandomAccessIterator first,
-		RandomAccessIterator middle,
-		RandomAccessIterator last, Compare comp);
-	template<typename InputIterator, typename RandomAccessIterator>
-	RandomAccessIterator partial_sort_copy(
-		InputIterator first, InputIterator last,
-		RandomAccessIterator result_first,
-		RandomAccessIterator result_last);
+	void partial_sort(RandomAccessIterator first,RandomAccessIterator middle,RandomAccessIterator last, Compare comp);
+	template<typename RandomAccessIterator>
+	void partial_sort(RandomAccessIterator first,RandomAccessIterator middle,RandomAccessIterator last)
+	{
+		return partial_sort(first, middle, last, less<typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
 	template<typename InputIterator, typename RandomAccessIterator, typename Compare>
 	RandomAccessIterator partial_sort_copy(
 		InputIterator first, InputIterator last,
 		RandomAccessIterator result_first,
 		RandomAccessIterator result_last,
 		Compare comp);
+	template<typename InputIterator, typename RandomAccessIterator>
+	RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last,RandomAccessIterator result_first,
+											RandomAccessIterator result_last)
+	{
+		return partial_sort(first, last, result_first, result_last, less<typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
 
-	template<typename ForwardIterator>
-	bool is_sorted(ForwardIterator first, ForwardIterator last);
 	template<typename ForwardIterator, typename Compare>
-	bool is_sorted(ForwardIterator first, ForwardIterator last,
-		Compare comp);
+	bool is_sorted(ForwardIterator first, ForwardIterator last,Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
+
+		if(first!=last)
+			for (auto old = first++; first != last; old = first, (void)++first)
+				if (!pred(*old, *first))
+					return false;
+		return true;
+	}
 	template<typename ForwardIterator>
-	ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last);
+	bool is_sorted(ForwardIterator first, ForwardIterator last)
+	{
+		return is_sorted(first, last, less<typename iterator_traits<ForwardIterator>::value_type>());
+	}
 	template<typename ForwardIterator, typename Compare>
-	ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last,
-		Compare comp);
+	ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last,Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
+
+		if (first != last)
+			for (auto old = first++; first != last; old = first, (void)++first)
+				if (!pred(*old, *first))
+					return first;
+		return last;
+	}
+	template<typename ForwardIterator>
+	ForwardIterator is_sorted_until(ForwardIterator first, ForwardIterator last)
+	{
+		return is_sorted_until(first, last, less<typename iterator_traits<ForwardIterator>::value_type>());
+	}
+	
 
 	template<typename RandomAccessIterator>
 	void nth_element(RandomAccessIterator first, RandomAccessIterator nth,
@@ -1415,41 +1472,107 @@ namespace uuz
 	void nth_element(RandomAccessIterator first, RandomAccessIterator nth,
 		RandomAccessIterator last, Compare comp);
 	// binary search:
-	template<typename ForwardIterator, typename T>
-	ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last,
-		const T& value);
 	template<typename ForwardIterator, typename T, typename Compare>
-	ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last,
-		const T& value, Compare comp);
+	ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last,const T& value, Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
 
+		auto k = distance(first, last);
+		while(k)
+		{
+			auto l2 = k >> 1;
+			auto m = first;
+			advance(m, l2);
+			if (comp(*m, value))
+			{
+				first = ++m;
+				k -= l2 + 1;
+			}
+			else
+				k = l2;
+		}
+		return first;
+	}
 	template<typename ForwardIterator, typename T>
-	ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last,
-		const T& value);
-	template<typename ForwardIterator, typename T, typename Compare>
-	ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last,
-		const T& value, Compare comp);
+	ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last, const T& value)
+	{
+		return lower_bound(first, last, value, _equal<typename iterator_traits<ForwardIterator>::value_type, T>());
+	}
 
-	template<typename ForwardIterator, typename T>
-	pair<ForwardIterator, ForwardIterator>
-		equal_range(ForwardIterator first, ForwardIterator last,
-			const T& value);
 	template<typename ForwardIterator, typename T, typename Compare>
-	pair<ForwardIterator, ForwardIterator>
-		equal_range(ForwardIterator first, ForwardIterator last,
-			const T& value, Compare comp);
+	ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last,const T& value, Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
 
+		auto k = distance(first, last);
+		while (k)
+		{
+			auto l2 = k >> 1;
+			auto m = first;
+			advance(m, l2);
+			if (comp(value, *m))
+				k = l2;
+			else
+			{
+				first = m + 1;
+				k -= l2 + 1;
+			}
+		}
+
+		return first;
+	}
 	template<typename ForwardIterator, typename T>
-	bool binary_search(ForwardIterator first, ForwardIterator last,
-		const T& value);
+	ForwardIterator upper_bound(ForwardIterator first, ForwardIterator last,const T& value)
+	{
+		return lower_bound(first, last, value, _equal<typename iterator_traits<ForwardIterator>::value_type, T>());
+	}
+	
 	template<typename ForwardIterator, typename T, typename Compare>
-	bool binary_search(ForwardIterator first, ForwardIterator last,
-		const T& value, Compare comp);
+	pair<ForwardIterator, ForwardIterator> equal_range(ForwardIterator first, ForwardIterator last,
+														const T& value, Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
+		
+		if(first!=last)
+		{
+			auto k = lower_bound(first, last, value, comp);
+			auto t = last;
+			if (k != last && !comp(value, *k))
+				t = upper_bound(k, last, value, comp);
+
+			return pair<ForwardIterator, ForwardIterator>(k, t);
+		}
+		
+		return pair<ForwardIterator, ForwardIterator>(first, first);
+	}
+	template<typename ForwardIterator, typename T>
+	pair<ForwardIterator, ForwardIterator> equal_range(ForwardIterator first, ForwardIterator last,const T& value)
+	{
+		return equal_range(first, last, value, _equal<typename iterator_traits<ForwardIterator>::value_type, T>());
+	}
+	
+
+	template<typename ForwardIterator, typename T, typename Compare>
+	bool binary_search(ForwardIterator first, ForwardIterator last,const T& value, Compare comp)
+	{
+		first = lower_bound(first, last, value, comp);
+		return (!(first == last) && !(comp(value, *first)));
+	}
+	template<typename ForwardIterator, typename T>
+	bool binary_search(ForwardIterator first, ForwardIterator last,const T& value)
+	{
+		return binary_search(first, last, value, _equal<typename iterator_traits<ForwardIterator>::value_type, T>());
+	}
+	
 
 	// merge:
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
 	OutputIterator merge(InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2,
-		OutputIterator result);
+						InputIterator2 first2, InputIterator2 last2,
+						OutputIterator result)
+	{
+		
+	}
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
 		typename Compare>
 		OutputIterator merge(InputIterator1 first1, InputIterator1 last1,
