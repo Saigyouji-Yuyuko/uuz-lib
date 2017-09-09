@@ -111,10 +111,10 @@ namespace uuz
 
 
 	//Ä¬ÈÏless·Âº¯Êý
-	template<typename T>
+	template<typename T1,typename T2 = T1>
 	struct less
 	{
-		constexpr bool operator()(const T& a, const T& b)const noexcept(noexcept(a<b))
+		constexpr bool operator()(const T1& a, const T2& b)const noexcept(noexcept(a<b))
 		{
 			return a < b;
 		}

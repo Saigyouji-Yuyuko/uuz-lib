@@ -1566,89 +1566,216 @@ namespace uuz
 	
 
 	// merge:
+	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,typename Compare>
+	OutputIterator merge(InputIterator1 first1, InputIterator1 last1,
+						InputIterator2 first2, InputIterator2 last2,
+						OutputIterator result, Compare comp)
+	{
+		for(;first1!=last1 && first2!=last2;++result)
+		{
+			if(comp(*first1,*first2))
+			{
+				*result = *first1;
+				++first1;
+			}
+			else
+			{
+				*result = *first2;
+				++first2;
+			}
+		}
+		if (first1 != last1)
+			return copy(first1, last1, result);
+		if (first2 != last2)
+			return copy(first2, last2, result);
+		return result;
+	}
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
 	OutputIterator merge(InputIterator1 first1, InputIterator1 last1,
 						InputIterator2 first2, InputIterator2 last2,
 						OutputIterator result)
 	{
+		return merge(first1, last1, first2, last2, result, less<typename iterator_traits<InputIterator1>::value_type,
+																typename iterator_traits<InputIterator2>::value_type>());
+	}
+	
+	template<typename BidirectionalIterator, typename Compare>
+	void inplace_merge(BidirectionalIterator first,BidirectionalIterator middle,BidirectionalIterator last, Compare comp)
+	{
 		
 	}
-	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
-		typename Compare>
-		OutputIterator merge(InputIterator1 first1, InputIterator1 last1,
-			InputIterator2 first2, InputIterator2 last2,
-			OutputIterator result, Compare comp);
-
 	template<typename BidirectionalIterator>
-	void inplace_merge(BidirectionalIterator first,
-		BidirectionalIterator middle,
-		BidirectionalIterator last);
-	template<typename BidirectionalIterator, typename Compare>
-	void inplace_merge(BidirectionalIterator first,
-		BidirectionalIterator middle,
-		BidirectionalIterator last, Compare comp);
+	void inplace_merge(BidirectionalIterator first,BidirectionalIterator middle,BidirectionalIterator last)
+	{
+		return inplace_merge(first, middle, last, less<typename iterator_traits<BidirectionalIterator>::value_type,
+														typename iterator_traits<BidirectionalIterator>::value_type>());
+	}
+	
 
 	// set operations:
+	template<typename InputIterator1, typename InputIterator2, typename Compare>
+	bool includes(InputIterator1 first1, InputIterator1 last1,
+				InputIterator2 first2, InputIterator2 last2, Compare comp)
+	{
+		for (; first2 != last2; ++first1)
+			if (first1 == last1 || comp(*first1, *first2))
+				return false;
+			else if (!comp(*first2, *first1))
+				++first2;
+		return true;
+	}
 	template<typename InputIterator1, typename InputIterator2>
 	bool includes(InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2);
-	template<typename InputIterator1, typename InputIterator2, typename Compare>
-	bool includes(
-		InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2, Compare comp);
-
+		InputIterator2 first2, InputIterator2 last2)
+	{
+		return includes(first1, last1, first2, last2, less<typename iterator_traits<InputIterator1>::value_type,
+															typename iterator_traits<InputIterator2>::value_type>());
+	}
+	
+	template<typename InputIterator1, typename InputIterator2, typename OutputIterator, typename Compare>
+	OutputIterator set_union(InputIterator1 first1, InputIterator1 last1,
+							InputIterator2 first2, InputIterator2 last2,
+							OutputIterator result, Compare comp)
+	{
+		for(;first1!=last1;++result)
+		{
+			if (first2 == last2)
+				return copy(first1, last1, result);
+			if (comp(*first1, *first2))
+				*result = *first1++;
+			else if(comp(*first2,*first1))
+				*result = *first2++;
+			else
+			{
+				*result = *first1++;
+				++first2;
+			}
+		}
+		return copy(first2, last2.result);
+	}
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
 	OutputIterator set_union(InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2,
-		OutputIterator result);
-	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
-		typename Compare>
-		OutputIterator set_union(InputIterator1 first1, InputIterator1 last1,
-			InputIterator2 first2, InputIterator2 last2,
-			OutputIterator result, Compare comp);
+							InputIterator2 first2, InputIterator2 last2,
+							OutputIterator result)
+	{
+		return set_union(first1, last1, first2, last2, result, less<typename iterator_traits<InputIterator1>::value_type,
+															typename iterator_traits<InputIterator2>::value_type>());
+	}
+	
 
+	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,typename Compare>
+		OutputIterator set_intersection(
+			InputIterator1 first1, InputIterator1 last1,
+			InputIterator2 first2, InputIterator2 last2,
+			OutputIterator result, Compare comp)
+	{
+		for(;first1!=last1 && last2 != first2;++first1)
+		{
+			if (comp(*first1, *first2))
+				++first1;
+			else if (comp(*first2, *first1))
+				++first2;
+			else
+			{
+				*result++ = *first1++;
+				++first2;
+			}
+		}
+		return result;
+	}
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
 	OutputIterator set_intersection(
 		InputIterator1 first1, InputIterator1 last1,
 		InputIterator2 first2, InputIterator2 last2,
-		OutputIterator result);
-	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
-		typename Compare>
-		OutputIterator set_intersection(
-			InputIterator1 first1, InputIterator1 last1,
-			InputIterator2 first2, InputIterator2 last2,
-			OutputIterator result, Compare comp);
+		OutputIterator result)
+	{
+		return set_intersection(first1, last1, first2, last2, result, less<typename iterator_traits<InputIterator1>::value_type,
+																			typename iterator_traits<InputIterator2>::value_type>());
+	}
 
-	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
-	OutputIterator set_difference(
-		InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2,
-		OutputIterator result);
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
 		typename Compare>
 		OutputIterator set_difference(
 			InputIterator1 first1, InputIterator1 last1,
 			InputIterator2 first2, InputIterator2 last2,
-			OutputIterator result, Compare comp);
+			OutputIterator result, Compare comp)
+	{
+		for (; first1 != last1 ;)
+		{
+			if (first2 == last2)
+				return copy(first1, last1, result);
+			if (comp(*first1, *first2))
+				*result++ = *first1++;
+			else if (comp(*first2, *first1))
+				++first2;
+			else
+				++first1, (void)++first2;
+		}
+		return result;
+	}
+	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
+	OutputIterator set_difference(
+		InputIterator1 first1, InputIterator1 last1,
+		InputIterator2 first2, InputIterator2 last2,
+		OutputIterator result)
+	{
+		return set_difference(first1, last1, first2, last2, result, less<typename iterator_traits<InputIterator1>::value_type,
+			typename iterator_traits<InputIterator2>::value_type>());
+	}
+	
 
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator>
 	OutputIterator set_symmetric_difference(
 		InputIterator1 first1, InputIterator1 last1,
 		InputIterator2 first2, InputIterator2 last2,
-		OutputIterator result);
+		OutputIterator result)
+	{
+		for (; first1 != last1;)
+		{
+			if (first2 == last2)
+				return copy(first1, last1, result);
+			if (comp(*first1, *first2))
+				*result++ = *first1++;
+			else if (comp(*first2, *first1))
+				*result++ = *first2++;
+			else
+				++first1, (void)++first2;
+		}
+		return copy(first2, last2, result);
+	}
 	template<typename InputIterator1, typename InputIterator2, typename OutputIterator,
 		typename Compare>
 		OutputIterator set_symmetric_difference(
 			InputIterator1 first1, InputIterator1 last1,
 			InputIterator2 first2, InputIterator2 last2,
-			OutputIterator result, Compare comp);
+			OutputIterator result, Compare comp)
+	{
+		return set_symmetric_difference(first1, last1, first2, last2, result, less<typename iterator_traits<InputIterator1>::value_type,
+																	typename iterator_traits<InputIterator2>::value_type>());
+	}
 
 	// heap operations:
-	template<typename RandomAccessIterator>
-	void push_heap(RandomAccessIterator first, RandomAccessIterator last);
 	template<typename RandomAccessIterator, typename Compare>
-	void push_heap(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
+	void push_heap(RandomAccessIterator first, RandomAccessIterator last,Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		auto l = distance(first, last);
+		if (!l || l == 1)
+			return;
+		l = (l >> 1) - 1;
+		for()
+	}
+	template<typename RandomAccessIterator>
+	void push_heap(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return set_symmetric_difference(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+																		typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
+
+
+
 	template<typename RandomAccessIterator>
 	void pop_heap(RandomAccessIterator first, RandomAccessIterator last);
 	template<typename RandomAccessIterator, typename Compare>

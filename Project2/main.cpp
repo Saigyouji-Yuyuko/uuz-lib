@@ -49,43 +49,30 @@
 #include<cstdio>
 #include<sstream>
 using namespace std;
-bool whatfind(int* t,int f,int l,int n)
-{
-	if (n == 0)
-		return true;
-	if (n < 0)
-		return false;
-	for (auto i = f; i != l - 1; ++i)
-		if (whatfind(t, i + 1, l, n - t[i]))
-			return true;
-	return false;
-}
-bool iswanmei(int k)
-{
-	int t[10],sum=0;
-	while(k)
-	{
-		t[sum++] = k % 10;
-		k /= 10;
-	}
-
-	for (auto i = 0; i != sum; ++i)
-		k += t[i];
-	if (k & 1 == 1)
-		return false;
-
-	 return whatfind(t, 0, sum, k>>1);
-			
-}
+int p[2011][2011];
+int num[2011];
 int main()
 {
-	int a, b;
-	cin >> a >> b;
-	int sum = 0;
-	for(auto i = max(a,11);i<=b;++i)
-		if (iswanmei(i))
-			++sum;		
-	cout << sum;
-	system("pause");
+	int k;
+	push_heap
+	scanf("%d", &k);
+	for (auto i = 1; i <= k; ++i)
+		scanf("%d", &num[i]);
+	if(k<=2)
+	{
+		printf("0");
+		return 0;
+	}
+	p[0][0] = 0;
+	p[1][0] = 0;
+	p[0][1] = 0;
+
+	for(auto i= 1;i<=k;++i)
+		for(auto j = 1;j<=i;++j)
+		{
+			p[i][j] = 
+		}
+		
 	return 0;
+
 }
