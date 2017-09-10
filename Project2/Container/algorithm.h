@@ -778,18 +778,19 @@ namespace uuz
 						break;
 					++first;
 				}
-			}
-			decltype(distance(first, last)) s{ 0 };
-			for (auto kk = first;;)
-			{
-				if (++s == count)
-					return first;
-				if (++kk == last)
-					return last;
-				if (!pred(*kk, value))
+
+				decltype(distance(first, last)) s{ 0 };
+				for (auto kk = first;;)
 				{
-					first = ++kk;
-					break;
+					if (++s == count)
+						return first;
+					if (++kk == last)
+						return last;
+					if (!pred(*kk, value))
+					{
+						first = ++kk;
+						break;
+					}
 				}
 			}
 		}
@@ -1383,7 +1384,16 @@ namespace uuz
 	template<typename ForwardIterator, typename Predicate>
 	ForwardIterator partition_point(ForwardIterator first,ForwardIterator last,Predicate pred)
 	{
-		
+		static_assert(!is_forward_iterator<ForwardIterator>);
+
+		if constexpr(is_random_access_iterator<ForwardIterator>)
+		{
+
+		}
+		else
+		{
+			for()
+		}
 	}
 
 	// sorting and related operations:
@@ -1418,11 +1428,8 @@ namespace uuz
 	}
 	
 	template<typename InputIterator, typename RandomAccessIterator, typename Compare>
-	RandomAccessIterator partial_sort_copy(
-		InputIterator first, InputIterator last,
-		RandomAccessIterator result_first,
-		RandomAccessIterator result_last,
-		Compare comp);
+	RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last,
+											RandomAccessIterator result_first,RandomAccessIterator result_last,Compare comp);
 	template<typename InputIterator, typename RandomAccessIterator>
 	RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last,RandomAccessIterator result_first,
 											RandomAccessIterator result_last)
@@ -1763,112 +1770,446 @@ namespace uuz
 		auto l = distance(first, last);
 		if (!l || l == 1)
 			return;
-		l = (l >> 1) - 1;
-		for()
+		--l;
+		using std::swap;
+		for(;l!=0; l = (l - 1) >> 1)
+			if (comp(first[(l - 1) >> 1], first[l]))
+				swap(first[(l - 1) >> 1], first[l]);
+			else 
+				break;
 	}
 	template<typename RandomAccessIterator>
 	void push_heap(RandomAccessIterator first, RandomAccessIterator last)
 	{
-		return set_symmetric_difference(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
-																		typename iterator_traits<RandomAccessIterator>::value_type>());
+		return push_heap(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+											typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
+	template<typename RandomAccessIterator, typename Compare>
+	void pop_heap(RandomAccessIterator first, RandomAccessIterator last,Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+	
+		auto l = distance(first, last);
+		if (!l || l == 1)
+			return;
+		l -= 1;
+		iter_swap(first, --last);
+		auto k = 0;
+		using std::swap;
+
+		for(;;)
+		{
+			auto t = ((k+1) << 1);
+			if (t > l)
+				return;
+			if (t == l || comp(first[t], first[t - 1]))
+				--t;
+			if (comp(first[k], first[t]))
+			{
+				swap(first[k], first[t]);
+				k = t;
+			}
+			else
+				return;
+		}
+
+	}
+	template<typename RandomAccessIterator>
+	void pop_heap(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return pop_heap(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+											typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+		
+	template<typename RandomAccessIterator, typename Compare>
+	void make_heap(RandomAccessIterator first, RandomAccessIterator last,Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		auto d = distance(first, last);
+
+		if (!d || d == 1)
+			return;
+		--d;
+		for(;d!=0;--d)
+			if (comp(first[(d - 1) >> 1], first[d]))
+				swap(first[(d - 1) >> 1], first[d]);
+		return;
+	}
+	template<typename RandomAccessIterator>
+	void make_heap(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return make_heap(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+											typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+
+	template<typename RandomAccessIterator, typename Compare>
+	void sort_heap(RandomAccessIterator first, RandomAccessIterator last,Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+		using std::swap;
+
+		auto l = distance(first, last);
+		if (!l || l == 1)
+			return;
+		--l;
+
+		for(;l!=0;--l)
+		{
+			iter_swap(first, --last);
+			auto k = 0;
+			for (;;)
+			{
+				auto t = ((k + 1) << 1);
+				if (t > l)
+					break;
+				if (t == l || comp(first[t], first[t - 1]))
+					--t;
+				if (comp(first[k], first[t]))
+				{
+					swap(first[k], first[t]);
+					k = t;
+				}
+				else
+					break;
+			}
+		}
+	}
+	template<typename RandomAccessIterator>
+	void sort_heap(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return sort_heap(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+			typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
+	template<typename RandomAccessIterator, typename Compare>
+	bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		auto l = distance(first, last);
+		if (!l || l == 1)
+			return true;
+
+		--l;
+		for (; l != 0; --l)
+			if (comp(first[(l - 1) >> 1], first[l]))
+				return false;
+		return true;
+	}
+	template<typename RandomAccessIterator>
+	bool is_heap(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return is_heap(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+											typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
+	template<typename RandomAccessIterator, typename Compare>
+	RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last, Compare comp)
+	{
+		auto l = distance(first, last);
+		if (!l || l == 1)
+			return true;
+
+		for (auto i = 1; i != l; ++i)
+			if (comp(first[(l - 1) >> 1], first[l]))
+				return first + i;
+		return last;
+
+	}
+	template<typename RandomAccessIterator>
+	RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last)
+	{
+		return is_heap_until(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type,
+												typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
+	// minimum and maximum:
+	template<typename T>
+	const T& min(const T& a, const T& b)
+	{
+		return a < b ? a : b;
+	}
+	template<typename T, typename Compare>
+	const T& min(const T& a, const T& b, Compare comp)
+	{
+		return comp(a, b) ? a : b;
+	}
+	template<typename T, typename Compare>
+	T min(std::initializer_list<T> t, Compare comp)
+	{
+		return *min_element(t.begin(), t.end(), comp);
+	}
+	template<typename T>
+	T min(std::initializer_list<T> t)
+	{
+		return min(t, less<T, T>());
+	}
+
+	template<typename T, typename Compare>
+	const T& max(const T& a, const T& b, Compare comp)
+	{
+		return comp(a, b) ? b : a;
+	}
+	template<typename T>
+	const T& max(const T& a, const T& b)
+	{
+		return max(a, b, less<T, T>());
+	}
+	
+	template<typename T, typename Compare>
+	T max(std::initializer_list<T> t, Compare comp)
+	{
+		return *max_element(t.begin(), t.end(), comp);
+	}
+	template<typename T>
+	T max(std::initializer_list<T> t)
+	{
+		return max(t, less<T, T>());
 	}
 	
 
-
-
-	template<typename RandomAccessIterator>
-	void pop_heap(RandomAccessIterator first, RandomAccessIterator last);
-	template<typename RandomAccessIterator, typename Compare>
-	void pop_heap(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
-
-	template<typename RandomAccessIterator>
-	void make_heap(RandomAccessIterator first, RandomAccessIterator last);
-	template<typename RandomAccessIterator, typename Compare>
-	void make_heap(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
-
-	template<typename RandomAccessIterator>
-	void sort_heap(RandomAccessIterator first, RandomAccessIterator last);
-	template<typename RandomAccessIterator, typename Compare>
-	void sort_heap(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
-
-	template<typename RandomAccessIterator>
-	bool is_heap(RandomAccessIterator first, RandomAccessIterator last);
-	template<typename RandomAccessIterator, typename Compare>
-	bool is_heap(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
-	template<typename RandomAccessIterator>
-	RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last);
-	template<typename RandomAccessIterator, typename Compare>
-	RandomAccessIterator is_heap_until(RandomAccessIterator first, RandomAccessIterator last,
-		Compare comp);
-	// minimum and maximum:
-	template<typename T> const T& min(const T& a, const T& b);
 	template<typename T, typename Compare>
-	const T& min(const T& a, const T& b, Compare comp);
+	pair<const T&, const T&> minmax(const T& a, const T& b, Compare comp)
+	{
+		return comp(a, b) ? pair<const T&, const T&>(a, b) : pair<const T&, const T&>(b, a);
+	}
 	template<typename T>
-	T min(std::initializer_list<T> t);
-	template<typename T, typename Compare>
-	T min(std::initializer_list<T> t, Compare comp);
+	pair<const T&, const T&> minmax(const T& a, const T& b)
+	{
+		return minmax(a, b, less<T, T>());
+	}
 
-	template<typename T> const T& max(const T& a, const T& b);
 	template<typename T, typename Compare>
-	const T& max(const T& a, const T& b, Compare comp);
+	pair<T, T> minmax(std::initializer_list<T> t, Compare comp)
+	{
+		if (t.size())
+		{
+			auto l = t.begin();
+			auto minn = *l;
+			auto maxx = *l++;
+			for (; l != t.end(); ++l)
+			{
+				if (comp(*l, minn))
+					minn = *l;
+				else if (comp(maxx, *l))
+					maxx = *l;
+			}
+				
+			return pair<T, T>(minn, maxx);
+		}
+		return pair<T, T>();
+	}
 	template<typename T>
-	T max(std::initializer_list<T> t);
-	template<typename T, typename Compare>
-	T max(std::initializer_list<T> t, Compare comp);
+	pair<T, T> minmax(std::initializer_list<T> t)
+	{
+		return minmax(t, less<T, T>());
+	}
 
-	template<typename T> pair<const T&, const T&> minmax(const T& a, const T& b);
-	template<typename T, typename Compare>
-	pair<const T&, const T&> minmax(const T& a, const T& b, Compare comp);
-	template<typename T>
-	pair<T, T> minmax(std::initializer_list<T> t);
-	template<typename T, typename Compare>
-	pair<T, T> minmax(std::initializer_list<T> t, Compare comp);
-
-	template<typename ForwardIterator>
-	ForwardIterator min_element(ForwardIterator first, ForwardIterator last);
 	template<typename ForwardIterator, typename Compare>
-	ForwardIterator min_element(ForwardIterator first, ForwardIterator last,
-		Compare comp);
+	ForwardIterator min_element(ForwardIterator first, ForwardIterator last,Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
 
+		if(first!=last)
+			for (auto i = first; ++i != last;)
+				if (comp(*i, *first))
+					first = i;
+		return first;
+	}
 	template<typename ForwardIterator>
-	ForwardIterator max_element(ForwardIterator first, ForwardIterator last);
-	template<typename ForwardIterator, typename Compare>
-	ForwardIterator max_element(ForwardIterator first, ForwardIterator last,
-		Compare comp);
+	ForwardIterator min_element(ForwardIterator first, ForwardIterator last)
+	{
+		return min_element(first, last, less<typename iterator_traits<ForwardIterator>::value_type,
+											typename iterator_traits<ForwardIterator>::value_type>());
+	}
 
+	template<typename ForwardIterator, typename Compare>
+	ForwardIterator max_element(ForwardIterator first, ForwardIterator last, Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
+
+		if (first != last)
+			for (auto i = first; ++i != last;)
+				if (comp(*first,*i))
+					first = i;
+		return first;
+	}
+	template<typename ForwardIterator>
+	ForwardIterator max_element(ForwardIterator first, ForwardIterator last)
+	{
+		return max_element(first, last, less<typename iterator_traits<ForwardIterator>::value_type,
+												typename iterator_traits<ForwardIterator>::value_type>());
+	}	
+
+	template<typename ForwardIterator, typename Compare>
+	pair<ForwardIterator, ForwardIterator>
+		minmax_element(ForwardIterator first, ForwardIterator last, Compare comp)
+	{
+		static_assert(!is_forward_iterator<ForwardIterator>);
+
+		pair<ForwardIterator, ForwardIterator> result{ first,first };
+
+		if (first != last)
+			for (auto i = first; ++i != last;)
+				if (comp(*i, *result.first))
+					result.first = i;
+				else if (comp(*result.second, *i))
+					result.second = i;
+
+		return result;
+	}
 	template<typename ForwardIterator>
 	pair<ForwardIterator, ForwardIterator>
-		minmax_element(ForwardIterator first, ForwardIterator last);
-	template<typename ForwardIterator, typename Compare>
-	pair<ForwardIterator, ForwardIterator>
-		minmax_element(ForwardIterator first, ForwardIterator last, Compare comp);
-
-	template<typename InputIterator1, typename InputIterator2>
-	bool lexicographical_compare(
-		InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2);
+		minmax_element(ForwardIterator first, ForwardIterator last)
+	{
+		return minmax_element(first, last, less<typename iterator_traits<ForwardIterator>::value_type,
+												typename iterator_traits<ForwardIterator>::value_type>());
+	}
+	
 	template<typename InputIterator1, typename InputIterator2, typename Compare>
-	bool lexicographical_compare(
-		InputIterator1 first1, InputIterator1 last1,
-		InputIterator2 first2, InputIterator2 last2,
-		Compare comp);
+	bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1,
+									InputIterator2 first2, InputIterator2 last2,
+										Compare comp)
+	{
+		for (; first2 != last2; ++first1, (void)++first2)
+			if (first1 == last1 || comp(*first1, *first2))
+				return true;
+			else if (comp(*first2, *first1))
+				return false;
+		return false;
+	}
+	template<typename InputIterator1, typename InputIterator2>
+	bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1,
+									InputIterator2 first2, InputIterator2 last2)
+	{
+		return lexicographical_compare(first1, last1, first2, last2, less<typename iterator_traits<InputIterator1>::value_type,
+																			typename iterator_traits<InputIterator2>::value_type>());
+	}
+	
 
 	// permutations:
-	template<typename BidirectionalIterator>
-	bool next_permutation(BidirectionalIterator first,
-		BidirectionalIterator last);
 	template<typename BidirectionalIterator, typename Compare>
-	bool next_permutation(BidirectionalIterator first,
-		BidirectionalIterator last, Compare comp);
+	bool next_permutation(BidirectionalIterator first,BidirectionalIterator last, Compare comp)
+	{
+		static_assert(!is_bidirectional_iterator<BidirectionalIterator>);
 
+		if (first == last)
+			return false;
+		auto i = last;
+		if (first == --i)
+			return false;
+
+		for(;;)
+		{
+			auto i1 = i;
+			if(comp(*--i,*i1))
+			{
+				auto i2 = last;
+				while (!comp(*i, *--i2))
+					;
+				iter_swap(i, i2);
+				reverse(i1, last);
+				return true;
+			}
+			if(i==first)
+			{
+				reverse(first, last);
+				return false;
+			}
+		}
+	}
+	template<typename BidirectionalIterator>
+	bool next_permutation(BidirectionalIterator first,BidirectionalIterator last)
+	{
+		return next_permutation(first,last,less<typename iterator_traits<BidirectionalIterator>::value_type,
+											typename iterator_traits<BidirectionalIterator>::value_type>());
+	}
+	
+
+	template<typename BidirectionalIterator, typename Compare>
+	bool prev_permutation(BidirectionalIterator first,BidirectionalIterator last, Compare comp)
+	{
+		static_assert(!is_bidirectional_iterator<BidirectionalIterator>);
+
+		if (first == last)
+			return false;
+		auto i = last;
+		if (first == --i)
+			return false;
+
+		for (;;)
+		{
+			auto i1 = i;
+			if (comp(*i1, *--i))
+			{
+				auto i2 = last;
+				while (!comp(*--i2, *i))
+					;
+				iter_swap(i, i2);
+				reverse(i1, last);
+				return true;
+			}
+			if (i == first)
+			{
+				reverse(first, last);
+				return false;
+			}
+		}
+	}
 	template<typename BidirectionalIterator>
 	bool prev_permutation(BidirectionalIterator first,
-		BidirectionalIterator last);
-	template<typename BidirectionalIterator, typename Compare>
-	bool prev_permutation(BidirectionalIterator first,
-		BidirectionalIterator last, Compare comp);
+		BidirectionalIterator last)
+	{
+		return prev_permutation(first, last, less<typename iterator_traits<BidirectionalIterator>::value_type,
+			typename iterator_traits<BidirectionalIterator>::value_type>());
+	}
+
+	template<typename T, typename Compare>
+	constexpr const T& clamp(const T& v, const T& lo, const T& hi, Compare comp)
+	{
+		return  comp(v, lo) ? lo : comp(hi, v) ? hi : v;
+	}
+	template<typename T>
+	constexpr const T& clamp(const T& v, const T& lo, const T& hi)
+	{
+		return clamp(v, lo, hi, less<T, T>());
+	}
+
+
+	template< class PopulationIterator, class SampleIterator, class Distance, class UniformRandomBitGenerator >
+	SampleIterator sample(PopulationIterator first, PopulationIterator last, SampleIterator out, Distance n,
+							UniformRandomBitGenerator&& g)
+	{
+		if constexpr(!is_forward_iterator<PopulationIterator>&& is_random_access_iterator<SampleIterator>)
+		{
+			auto length = distance(first, last);
+			for(n = min(length,n);n!=0;++first)
+			{
+				auto r = std::uniform_int_distribution<Distance>(0, --length)(g);
+				if (r < n)
+					*out++ = *first, --n;
+			}
+			return out;
+		}
+		else
+		{
+			decltype(n) i(0);
+			for (; first != last &&i!=n; ++i)
+				out[i] = *first++;
+			
+			if (first == last)
+				return out + i;
+			
+			auto l = i;
+			for(;first!= last;++l,(void)++first)
+			{
+				auto r = std::uniform_int_distribution<Distance>(0, l)(g);
+				if (r < i)
+					out[r] = *first;
+			}
+			return out + n;
+		}
+	}
 }

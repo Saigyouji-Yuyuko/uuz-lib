@@ -49,30 +49,29 @@
 #include<cstdio>
 #include<sstream>
 using namespace std;
-int p[2011][2011];
-int num[2011];
+
 int main()
 {
-	int k;
-	push_heap
-	scanf("%d", &k);
-	for (auto i = 1; i <= k; ++i)
-		scanf("%d", &num[i]);
-	if(k<=2)
+	
+	string s;
+	cin >> s;
+	int minn = 0;
+	for(auto i = 0; i != s.size(); ++i)
+		if (s[i] == 'R')
+			++minn;
+	for(auto i = 0;i!=s.size();++i)
 	{
-		printf("0");
-		return 0;
+		int temp = 0;
+		for (auto j = 0; j <= i; ++j)
+			if (s[j] == 'G')
+				++temp;
+		for (auto j = i+1; j <= s.size(); ++j)
+			if (s[j] == 'R')
+				++temp;
+		if (temp < minn)
+			minn = temp;
 	}
-	p[0][0] = 0;
-	p[1][0] = 0;
-	p[0][1] = 0;
-
-	for(auto i= 1;i<=k;++i)
-		for(auto j = 1;j<=i;++j)
-		{
-			p[i][j] = 
-		}
-		
+		printf("%d", minn);
+	 //system("pause");
 	return 0;
-
 }
