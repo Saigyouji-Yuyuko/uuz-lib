@@ -2942,7 +2942,7 @@ ll:				;
 	}
 
 	template <class CharT, class Traits>
-	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, Traits>& os,
+	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, std::char_traits<CharT>>& os,
 													basic_string_view <CharT, Traits> v)
 	{
 		for (auto i = 0; i != v.size(); ++i)
@@ -2952,7 +2952,7 @@ ll:				;
 
 	template <class CharT, class Traits, class Allocator>
 	std::basic_ostream<CharT, Traits>&
-		operator<<(std::basic_ostream<CharT, Traits>& os,
+		operator<<(std::basic_ostream<CharT, std::char_traits<CharT>>& os,
 			const std::basic_string<CharT, Traits, Allocator>& str)
 	{
 
