@@ -677,7 +677,7 @@ ll:				++begin;
 		
 
 		constexpr static size_t npos{ static_cast<size_t>(-1) };
-		constexpr static size_t sso_size = 20;
+		constexpr static size_t sso_size = 20 / sizeof(value_type);
 	private:
 		using view = basic_string_view<CharT, Traits>;
 
@@ -2503,6 +2503,140 @@ ll:				;
 		}
 
 	};
+	
+	
 	using string = basic_string<char>;
 	using string_view = basic_string_view<char>;
+
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
+													const basic_string<CharT, Traits, Alloc>& rhs)
+	{
+		basic_string<CharT, Traits, Alloc> temp;
+		temp.reserve(lhs.size() + rhs.size());
+		temp += lhs;
+		temp += rhs;
+		return temp;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(const CharT* lhs,
+												const basic_string<CharT, Traits, Alloc>& rhs)
+	{
+		basic_string<CharT, Traits, Alloc> temp;
+		temp.reserve(Traits::length(lhs) + rhs.size());
+		temp += lhs;
+		temp += rhs;
+		return temp;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(CharT lhs,
+												const basic_string<CharT, Traits, Alloc>& rhs)
+	{
+		basic_string<CharT, Traits, Alloc> temp;
+		temp.reserve(1 + rhs.size());
+		temp += lhs;
+		temp += rhs;
+		return temp;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
+													const CharT* rhs)
+	{
+		basic_string<CharT, Traits, Alloc> temp;
+		temp.reserve(Traits::length(rhs) + lhs.size());
+		temp += lhs;
+		temp += rhs;
+		return temp;
+	}
+	template<class CharT, class Traits, class Alloc>
+	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,CharT rhs)
+	{
+		basic_string<CharT, Traits, Alloc> temp;
+		temp.reserve(Traits::length(lhs) + 1);
+		temp += lhs;
+		temp += rhs;
+		return temp;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
+													const basic_string<CharT, Traits, Alloc>& rhs)
+	{
+		lhs += rhs;
+		return std::move(lhs);
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
+														basic_string<CharT, Traits, Alloc>&& rhs)
+	{
+		auto k = lhs.size() + rhs.size();
+		if (k <= rhs.capacity())
+			rhs.insert(rhs.begin(), lhs);
+		else
+			return lhs + rhs;
+		return std::move(rhs);
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
+													basic_string<CharT, Traits, Alloc>&& rhs)
+	{
+		auto k = lhs.size() + rhs.size();
+		if(k<=lhs.capacity())
+		{
+			lhs += rhs;
+			return std::move(lhs);
+		}
+		else if(k<= rhs.capacity())
+		{
+			rhs.insert(rhs.begin(), lhs);
+			return std::move(rhs);
+		}
+		
+		return lhs + rhs;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(const CharT* lhs,basic_string<CharT, Traits, Alloc>&& rhs)
+	{
+		auto k = Traits::length(lhs) + rhs.size();
+		if (k <= rhs.capacity())
+		{
+			rhs.insert(rhs.begin(), lhs);
+			return std::move(rhs);
+		}
+		basic_string<CharT, Traits, Alloc> temp;
+		temp.reserve(k);
+		temp += lhs;
+		temp += rhs;
+		return temp;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(CharT lhs,
+												basic_string<CharT, Traits, Alloc>&& rhs)
+	{
+		auto k = Traits::length(lhs) + rhs.size();
+		if (k <= rhs.capacity())
+		{
+			rhs.insert(rhs.begin(), lhs);
+			return std::move(rhs);
+		}
+		return lhs + rhs;
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
+													const CharT* rhs)
+	{
+		lhs += rhs;
+		return std::move(lhs);
+	}
+	template< class CharT, class Traits, class Alloc >
+	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
+													CharT rhs)
+	{
+		lhs += rhs;
+		return std::move(lhs);
+	}
+
+
+
+
+
 }

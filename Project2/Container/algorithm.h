@@ -17,6 +17,24 @@ namespace
 			return a == b;
 		}
 	};
+
+	template<typename T>
+	struct temp_buffer
+	{
+		temp_buffer(size_t s):buffer(malloc(s * sizeof(T))),size(s){}
+		~temp_buffer()
+		{
+			if(buffer)
+			{
+				free(buffer);
+				buffer = nullptr;
+				size = 0;
+			}
+		}
+		void* buffer = nullptr;
+		size_t size = 0;
+	};
+
 	template<typename T>
 	constexpr bool is_random_access_iterator = std::is_base_of_v<uuz::random_access_iterator_tag, std::decay_t<T>>;
 	template<typename T>
@@ -1060,7 +1078,7 @@ namespace uuz
 		using T1 = typename iterator_traits<ForwardIterator>::value_type;
 
 		if constexpr(std::is_pointer_v<ForwardIterator> &&
-			is_integral_v<T1> && sizeof(T1) == 1 && !is_same_v<T, bool> &&is_integral_v<T> && sizeof(T) == 1)
+			std::is_integral_v<T1> && sizeof(T1) == 1 && !std::is_same_v<T, bool> &&std::is_integral_v<T> && sizeof(T) == 1)
 		{
 			auto n = last - first;
 			if (n > 0)
@@ -1388,17 +1406,312 @@ namespace uuz
 
 		if constexpr(is_random_access_iterator<ForwardIterator>)
 		{
+			auto k = distance(first, last);
+			
+			if (!k)
+				return last;
+			if (k == 1)
+				return pred(*first) ? last : first;
 
+			while(k)
+			{
+				auto t = k >> 1;
+
+				if(pred(first[t]))
+				{
+					first += t + 1;
+					k -= t + 1;
+				}
+				else
+					k = t;
+			}
 		}
 		else
 		{
-			for()
+			for (; first != last; ++first)
+				if (!pred(*first))
+					return first;
 		}
+		return first;
 	}
 
 	// sorting and related operations:
 
 	// sorting:
+	namespace
+	{
+#ifdef WIN64
+		constexpr static size_t maxsortsize = 256;
+#else
+		constexpr static size_t maxsortsize = 128;
+#endif
+		template<typename RandomAccessIterator, typename Compare>
+		void _sort3(RandomAccessIterator first, Compare comp)
+		{
+			if (comp(first[1], first[0]))
+				iter_swap(first, first + 1);
+			if(comp(first[2],first[1]))
+			{
+				iter_swap(first + 2, first + 1);
+				if (comp(first[1], first[0]))
+					iter_swap(first, first + 1);
+			}
+		}
+
+		template<typename RandomAccessIterator, typename Compare>
+		void _sort4(RandomAccessIterator first, Compare comp)
+		{
+			_sort3(first, comp);
+			if(comp(first[3],first[2]))
+			{
+				iter_swap(first + 2, first + 3);
+				if (comp(first[2], first[1]))
+				{
+					iter_swap(first + 2, first + 1);
+					if (comp(first[1], first[0]))
+						iter_swap(first, first + 1);
+				}
+			}
+
+		}
+		
+		template<typename RandomAccessIterator, typename Compare>
+		void _sort5(RandomAccessIterator first, Compare comp)
+		{
+			_sort4(first, comp);
+			if(comp(first[4],first[3]))
+			{
+				iter_swap(first + 4, first + 3);
+				if (comp(first[3], first[2]))
+				{
+					iter_swap(first + 2, first + 3);
+					if (comp(first[2], first[1]))
+					{
+						iter_swap(first + 2, first + 1);
+						if (comp(first[1], first[0]))
+							iter_swap(first, first + 1);
+					}
+				}
+			}
+		}
+
+		template<typename RandomAccessIterator, typename Compare>
+		RandomAccessIterator guessmiddle(RandomAccessIterator first, RandomAccessIterator last, Compare comp)
+		{
+			auto k = distance(first, last) >> 2;
+
+			auto p1 = first;
+			auto p2 = first + k - 1;
+			auto p3 = p2 +k ;
+			auto p4 = p3 + k;
+			auto p5 = p4 + k;
+
+			using std::swap;
+
+			if (comp(*p2, *p1))
+				swap(p1, p2);
+			if(comp(*p3,*p2))
+			{
+				swap(p3, p2);
+				if (comp(*p2, *p1))
+					swap(p1, p2);
+			}
+			if(comp(*p4,*p3))
+			{
+				swap(p3, p4);
+				if (comp(*p3, *p2))
+				{
+					swap(p3, p2);
+					if (comp(*p2, *p1))
+						swap(p1, p2);
+				}
+			}
+			if(comp(*p5,*p4))
+			{
+				swap(p5, p4);
+				if (comp(*p4, *p3))
+				{
+					swap(p3, p4);
+					if (comp(*p3, *p2))
+					{
+						swap(p3, p2);
+						if (comp(*p2, *p1))
+							swap(p1, p2);
+					}
+				}
+			}
+			return p3;
+		}
+
+		template<typename RandomAccessIterator,typename Compare>
+		pair<RandomAccessIterator, RandomAccessIterator>
+		huafen(RandomAccessIterator first, RandomAccessIterator middle, RandomAccessIterator last,Compare comp)
+		{
+			auto ffirst = middle;
+			auto flast = middle + 1;
+
+			for (; ffirst >= first && !comp(ffirst[-1], *middle) && !comp(*middle, ffirst[-1]);)
+				--ffirst;
+			for (; flast < last && !comp(*flast, *middle) && !comp(*middle, *flast);)
+				++flast; 
+
+			for(auto i = ffirst,j = flast;;)
+			{
+				for(;j<last;++j)
+				{
+					if (comp(*ffirst, *j))
+						continue;
+					else if (comp(*j, *ffirst))
+						break;
+					else if (j + 1 != ++flast)
+						iter_swap(j, flast - 1);
+				}
+				for (; first < i; --i)
+				{
+					if (comp(i[-1], *ffirst))
+						continue;
+					else if (comp(*ffirst, i[-1]))
+						break;
+					else if (i - 1 != --ffirst)
+						iter_swap(ffirst, i - 1);
+				}
+				
+				if (i == first && j == last)
+					return pair<RandomAccessIterator, RandomAccessIterator>(ffirst, flast);
+
+				if (i == first)
+				{
+					if(j!= flast)
+						iter_swap(flast, ffirst);
+					++flast;
+					iter_swap(ffirst++, j++);
+				}
+				else if (j == last)
+				{
+					if (--ffirst != --i)
+						iter_swap(ffirst, i);
+					iter_swap(ffirst, --flast);
+				}
+				else
+					iter_swap(j++, --i);
+			}
+		}
+
+		template<typename RandomAccessIterator, typename Compare>
+		void insert_sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp)
+		{
+			for(auto i =  first;++i!=last;)
+			{
+				auto k = std::move(*i);
+				if(comp(k,*first))
+				{
+					move_backward(first, i, i + 1);
+					*first = std::move(k);
+				}
+				else
+				{
+					auto t = i;
+					for (auto j = t; comp(k, *--j); t = j)
+						*t = std::move(*j);
+					*t = std::move(k);
+				}
+			}
+		}
+
+		template<typename RandomAccessIterator, typename Compare>
+		void _sort(RandomAccessIterator first, RandomAccessIterator last,
+			typename iterator_traits<RandomAccessIterator>::size_type t, Compare comp)
+		{
+			auto p = distance(first, last);
+
+			while(maxsortsize < sizeof(decltype(t)) * p && t > 0 )
+			{
+				auto mid = huafen(first, guessmiddle(first, last, comp), last, comp);
+
+				t >>= 1;
+
+				if(distance(mid.first , first) < distance(last , mid.second))
+				{
+					_sort(first, mid.first, t, comp);
+					first = mid.first;
+				}
+				else
+				{
+					_sort(mid.second, last, t, comp);
+					last = mid.first;
+				}
+				p = distance(first, last);
+			}
+
+			if (t <= 0)
+			{
+				make_heap(first, last, comp); //
+				sort_heap(first, last, comp);
+			}
+			else
+			{
+				switch(p)
+				{
+				case 0:
+				case 1:
+					break;
+				case 2:
+					if (comp(first[0], first[1]))
+						iter_swap(first, first + 1);
+					break;
+				case 3:
+					_sort3(first, comp);
+					break;
+				case 4:
+					_sort4(first, comp);
+					break;
+				case 5:
+					_sort5(first, comp);
+					break;
+				default: 
+					insert_sort(first, last, comp);
+				}
+			}
+		}
+
+		template<typename RandomAccessIterator, typename Compare>
+		void merge_sort(RandomAccessIterator first, RandomAccessIterator last,
+			typename iterator_traits<RandomAccessIterator>::size_type size,
+			temp_buffer<typename iterator_traits<RandomAccessIterator>::value_type>& buffer,
+			Compare& comp)
+		{
+			if (size > maxsortsize)
+			{
+				
+			}
+			else
+			{
+				switch (size)
+				{
+				case 0:
+				case 1:
+					break;
+				case 2:
+					if (comp(first[0], first[1]))
+						iter_swap(first, first + 1);
+					break;
+				case 3:
+					_sort3(first, comp);
+					break;
+				case 4:
+					_sort4(first, comp);
+					break;
+				case 5:
+					_sort5(first, comp);
+					break;
+				default:
+					insert_sort(first, last, comp);
+				}
+			}
+		}
+
+	}
+
 	template<typename RandomAccessIterator>
 	void sort(RandomAccessIterator first, RandomAccessIterator last)
 	{
@@ -1407,11 +1720,48 @@ namespace uuz
 	template<typename RandomAccessIterator, typename Compare>
 	void sort(RandomAccessIterator first, RandomAccessIterator last,Compare comp)
 	{
-		
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		if(first!=last)
+			return _sort(first, last, distance(first, last), comp);
 	}
 
 	template<typename RandomAccessIterator, typename Compare>
-	void stable_sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp);
+	void stable_sort(RandomAccessIterator first, RandomAccessIterator last, Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		auto p = distance(first, last);
+		if(p > maxsortsize)
+		{
+			temp_buffer<typename iterator_traits<RandomAccessIterator>::value_type> t{ (p + 1) / 2 };
+			merge_sort(first, last, p, t, comp);
+		}
+		else
+		{
+			switch (p)
+			{
+			case 0:
+			case 1:
+				break;
+			case 2:
+				if (comp(first[0], first[1]))
+					iter_swap(first, first + 1);
+				break;
+			case 3:
+				_sort3(first, comp);
+				break;
+			case 4:
+				_sort4(first, comp);
+				break;
+			case 5:
+				_sort5(first, comp);
+				break;
+			default:
+				insert_sort(first, last, comp);
+			}
+		}
+	}
 	template<typename RandomAccessIterator>
 	void stable_sort(RandomAccessIterator first, RandomAccessIterator last)
 	{
@@ -1420,7 +1770,26 @@ namespace uuz
 	
 
 	template<typename RandomAccessIterator, typename Compare>
-	void partial_sort(RandomAccessIterator first,RandomAccessIterator middle,RandomAccessIterator last, Compare comp);
+	void partial_sort(RandomAccessIterator first,RandomAccessIterator middle,RandomAccessIterator last, Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		if (first == middle)
+			return;
+		if (middle == last)
+			return sort(first, last, comp);
+
+		make_heap(first, middle, comp);
+
+		for(auto i =middle;i!=last;++i)
+			if(comp(*i,*first))
+			{
+				iter_swap(i, first);
+				pop_heap_adjust(first, middle, comp);
+			}
+
+		sort_heap(first, middle, comp);
+	}
 	template<typename RandomAccessIterator>
 	void partial_sort(RandomAccessIterator first,RandomAccessIterator middle,RandomAccessIterator last)
 	{
@@ -1429,7 +1798,36 @@ namespace uuz
 	
 	template<typename InputIterator, typename RandomAccessIterator, typename Compare>
 	RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last,
-											RandomAccessIterator result_first,RandomAccessIterator result_last,Compare comp);
+											RandomAccessIterator result_first,RandomAccessIterator result_last,Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		auto l1 = distance(first, last);
+		auto l2 = distance(result_first, result_last);
+		auto k = min(l1, l2);
+		
+		copy_n(first, k, result_first);
+
+		if (k == l1)
+			return sort(result_first, result_last, comp);
+		else if (k <= 1)
+			return;
+
+		auto t = first;
+		advance(t, k);
+
+		make_heap(result_first, result_last, comp);
+
+		for(;++t!=last;)
+			if(comp(*t ,*result_first))
+			{
+				*result_first = *t;
+				pop_heap_adjust(result_first, result_first+k, comp);
+			}
+		sort_heap(result_first, result_first + k, comp);
+
+		return result_first + k;
+	}
 	template<typename InputIterator, typename RandomAccessIterator>
 	RandomAccessIterator partial_sort_copy(InputIterator first, InputIterator last,RandomAccessIterator result_first,
 											RandomAccessIterator result_last)
@@ -1472,12 +1870,51 @@ namespace uuz
 	}
 	
 
-	template<typename RandomAccessIterator>
-	void nth_element(RandomAccessIterator first, RandomAccessIterator nth,
-		RandomAccessIterator last);
 	template<typename RandomAccessIterator, typename Compare>
-	void nth_element(RandomAccessIterator first, RandomAccessIterator nth,
-		RandomAccessIterator last, Compare comp);
+	void nth_element(RandomAccessIterator first, RandomAccessIterator nth,RandomAccessIterator last, Compare comp)
+	{
+		static_assert(!is_random_access_iterator<RandomAccessIterator>);
+
+		while(distance(first,last)> 5)
+		{
+			auto t = huafen(first, guessmiddle(first, last, comp), last, comp);
+			if (t.first > nth)
+				last = t.first;
+			else if (t.second <= nth)
+				first = t.second;
+			else
+				return;
+		}
+		
+		switch(distance(first, last))
+		{
+		case 0:
+		case 1:
+			break;
+		case 2:
+			if (comp(first[0], first[1]))
+				iter_swap(first, first + 1);
+			break;
+		case 3:
+			_sort3(first, comp);
+			break;
+		case 4:
+			_sort4(first, comp);
+			break;
+		case 5:
+			_sort5(first, comp);
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	}
+	template<typename RandomAccessIterator>
+	void nth_element(RandomAccessIterator first, RandomAccessIterator nth,RandomAccessIterator last)
+	{
+		nth_element(first, last, less<typename iterator_traits<RandomAccessIterator>::value_type>());
+	}
+	
 	// binary search:
 	template<typename ForwardIterator, typename T, typename Compare>
 	ForwardIterator lower_bound(ForwardIterator first, ForwardIterator last,const T& value, Compare comp)
@@ -1609,7 +2046,13 @@ namespace uuz
 	template<typename BidirectionalIterator, typename Compare>
 	void inplace_merge(BidirectionalIterator first,BidirectionalIterator middle,BidirectionalIterator last, Compare comp)
 	{
-		
+		static_assert(!is_bidirectional_iterator<BidirectionalIterator>);
+
+		if (middle == last || first == middle)
+			return;
+
+			
+
 	}
 	template<typename BidirectionalIterator>
 	void inplace_merge(BidirectionalIterator first,BidirectionalIterator middle,BidirectionalIterator last)
