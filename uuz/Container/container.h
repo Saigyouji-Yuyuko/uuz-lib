@@ -4,6 +4,7 @@
 #include"algorithm.h"
 #include"allocator.h"
 #include<initializer_list>
+#include"pair.h"
 namespace uuz
 {
 	template<typename T>
@@ -44,5 +45,23 @@ namespace uuz
 			get().~T();
 		}
 	};
+
+	template< typename ForwardIt >
+	std::enable_if_t<std::is_trivially_destructible_v<typename iterator_traits<ForwardIt>::value_type>> 
+		destroy(ForwardIt , ForwardIt )noexcept
+	{
+
+	}
+
+	template< typename ForwardIt >
+	std::enable_if_t<!std::is_trivially_destructible_v<typename iterator_traits<ForwardIt>::value_type>>
+		destroy(ForwardIt first, ForwardIt last)noexcept
+	{
+		for (; first != last; ++first)
+			destroy_at(addressof(*first));
+	}
+
+	
+
 
 }

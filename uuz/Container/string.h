@@ -191,7 +191,7 @@ ll:				++begin;
 	class basic_string_iterator
 	{
 	public:
-		using difference_type =typename  Traits::difference_type;
+		using difference_type = ptrdiff_t;
 		using value_type = CharT;
 		using pointer = CharT*;
 		using reference = CharT&;
@@ -209,12 +209,12 @@ ll:				++begin;
 		explicit basic_string_iterator(const CharT* t) :dat{ const_cast<CharT*>(t) } {}
 		pointer dat;
 	public:
-		self& operator+=(const int t)noexcept
+		self& operator+=(const difference_type t)noexcept
 		{
 			dat += t;
 			return *this;
 		}
-		self& operator-=(const int t)noexcept
+		self& operator-=(const difference_type t)noexcept
 		{
 			dat -= t;
 			return *this;
@@ -285,13 +285,13 @@ ll:				++begin;
 			return a > b || a == b;
 		}
 
-		friend self operator+(const self& a, const size_t b)noexcept
+		friend self operator+(const self& a, const difference_type b)noexcept
 		{
 			self c{ a };
 			c += b;
 			return c;
 		}
-		friend int operator-(const self& a, const self& b)noexcept
+		friend difference_type operator-(const self& a, const self& b)noexcept
 		{
 			return a.dat - b.dat;
 		}
@@ -300,6 +300,15 @@ ll:				++begin;
 			self c{ a };
 			c -= b;
 			return c;
+		}
+
+		reference operator[](const difference_type p)noexcept
+		{
+			return *(*this + p);
+		}
+		const reference operator[](const difference_type p)const noexcept
+		{
+			return *(*this + p);
 		}
 
 	};
@@ -2508,7 +2517,7 @@ ll:				;
 	using string = basic_string<char>;
 	using string_view = basic_string_view<char>;
 
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
 													const basic_string<CharT, Traits, Alloc>& rhs)
 	{
@@ -2518,7 +2527,7 @@ ll:				;
 		temp += rhs;
 		return temp;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(const CharT* lhs,
 												const basic_string<CharT, Traits, Alloc>& rhs)
 	{
@@ -2528,7 +2537,7 @@ ll:				;
 		temp += rhs;
 		return temp;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(CharT lhs,
 												const basic_string<CharT, Traits, Alloc>& rhs)
 	{
@@ -2538,7 +2547,7 @@ ll:				;
 		temp += rhs;
 		return temp;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
 													const CharT* rhs)
 	{
@@ -2548,7 +2557,7 @@ ll:				;
 		temp += rhs;
 		return temp;
 	}
-	template<class CharT, class Traits, class Alloc>
+	template<typename CharT, typename Traits, typename Alloc>
 	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,CharT rhs)
 	{
 		basic_string<CharT, Traits, Alloc> temp;
@@ -2557,14 +2566,14 @@ ll:				;
 		temp += rhs;
 		return temp;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
 													const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		lhs += rhs;
 		return std::move(lhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
 														basic_string<CharT, Traits, Alloc>&& rhs)
 	{
@@ -2575,7 +2584,7 @@ ll:				;
 			return lhs + rhs;
 		return std::move(rhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
 													basic_string<CharT, Traits, Alloc>&& rhs)
 	{
@@ -2593,7 +2602,7 @@ ll:				;
 		
 		return lhs + rhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(const CharT* lhs,basic_string<CharT, Traits, Alloc>&& rhs)
 	{
 		auto k = Traits::length(lhs) + rhs.size();
@@ -2608,7 +2617,7 @@ ll:				;
 		temp += rhs;
 		return temp;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(CharT lhs,
 												basic_string<CharT, Traits, Alloc>&& rhs)
 	{
@@ -2620,14 +2629,14 @@ ll:				;
 		}
 		return lhs + rhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
 													const CharT* rhs)
 	{
 		lhs += rhs;
 		return std::move(lhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
 													CharT rhs)
 	{
@@ -2637,7 +2646,7 @@ ll:				;
 
 	//uuz-lib only
 
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(const basic_string<CharT, Traits, Alloc>& lhs,
 												basic_string_view<CharT, Traits> rhs)
 	{
@@ -2646,14 +2655,14 @@ ll:				;
 		temp += lhs;
 		return temp += rhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string<CharT, Traits, Alloc>&& lhs,
 												basic_string_view<CharT, Traits> rhs)
 	{
 		lhs += rhs;
 		return std::move(lhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string_view<CharT, Traits> lhs,
 												const basic_string<CharT, Traits, Alloc>& rhs)
 	{
@@ -2662,7 +2671,7 @@ ll:				;
 		temp += lhs;
 		return temp += rhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	basic_string<CharT, Traits, Alloc> operator+(basic_string_view<CharT, Traits> lhs,
 												basic_string<CharT, Traits, Alloc>&& rhs)
 	{
@@ -2676,272 +2685,272 @@ ll:				;
 	}
 
 
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator==(const basic_string<CharT, Traits, Alloc>& lhs,
 					const basic_string<CharT, Traits, Alloc>& rhs)noexcept
 	{
 		return lhs.compare(rhs) == 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator!=(const basic_string<CharT, Traits, Alloc>& lhs,
 					const basic_string<CharT, Traits, Alloc>& rhs)noexcept
 	{
 		return !(lhs == rhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<(const basic_string<CharT, Traits, Alloc>& lhs,
 					const basic_string<CharT, Traits, Alloc>& rhs)noexcept
 	{
 		return lhs.compare(rhs) < 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<=(const basic_string<CharT, Traits, Alloc>& lhs,
 					const basic_string<CharT, Traits, Alloc>& rhs)noexcept
 	{
 		return lhs.compare(rhs) <= 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>(const basic_string<CharT, Traits, Alloc>& lhs,
 					const basic_string<CharT, Traits, Alloc>& rhs)noexcept
 	{
 		return rhs < lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>=(const basic_string<CharT, Traits, Alloc>& lhs,
 					const basic_string<CharT, Traits, Alloc>& rhs)noexcept
 	{
 		return !(lhs < rhs);
 	}
 
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator==(const CharT* lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs.compare(lhs) == 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator==(const basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs)
 	{
 		return rhs == lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator!=(const CharT* lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return !(lhs == rhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator!=(const basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs)
 	{
 		return rhs != lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<(const basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) < 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>(const basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) > 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>=(const basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) >= 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<=(const basic_string<CharT, Traits, Alloc>& lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) <= 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<(const CharT* lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs > lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<=(const CharT* lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs >= lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>(const CharT* lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs < lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>=(const CharT* lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs <= lhs;
 	}
 	
 	//uuz-lib only
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator==(basic_string_view<CharT,Traits> lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs.compare(lhs) == 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator==(const basic_string<CharT, Traits, Alloc>& lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs == lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator!=(basic_string_view<CharT,Traits> lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return !(lhs == rhs);
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator!=(const basic_string<CharT, Traits, Alloc>& lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs != lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<(const basic_string<CharT, Traits, Alloc>& lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return lhs.compare(rhs) < 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>(const basic_string<CharT, Traits, Alloc>& lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return lhs.compare(rhs) > 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>=(const basic_string<CharT, Traits, Alloc>& lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return lhs.compare(rhs) >= 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<=(const basic_string<CharT, Traits, Alloc>& lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return lhs.compare(rhs) <= 0;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<(basic_string_view<CharT,Traits> lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs > lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator<=(basic_string_view<CharT,Traits> lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs >= lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>(basic_string_view<CharT,Traits> lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs < lhs;
 	}
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	bool operator>=(basic_string_view<CharT,Traits> lhs, const basic_string<CharT, Traits, Alloc>& rhs)
 	{
 		return rhs <= lhs;
 	}
 
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator==(basic_string_view<CharT,Traits> lhs,
 		basic_string_view<CharT,Traits> rhs)noexcept
 	{
 		return lhs.compare(rhs) == 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator!=(basic_string_view<CharT,Traits> lhs,
 		basic_string_view<CharT,Traits> rhs)noexcept
 	{
 		return !(lhs == rhs);
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator<(basic_string_view<CharT,Traits> lhs,
 		basic_string_view<CharT,Traits> rhs)noexcept
 	{
 		return lhs.compare(rhs) < 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator<=(basic_string_view<CharT,Traits> lhs,
 		basic_string_view<CharT,Traits> rhs)noexcept
 	{
 		return lhs.compare(rhs) <= 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator>(basic_string_view<CharT,Traits> lhs,
 		basic_string_view<CharT,Traits> rhs)noexcept
 	{
 		return rhs < lhs;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator>=(basic_string_view<CharT,Traits> lhs,
 		basic_string_view<CharT,Traits> rhs)noexcept
 	{
 		return !(lhs < rhs);
 	}
 
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator==(const CharT* lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs.compare(lhs) == 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator==(basic_string_view<CharT,Traits> lhs, const CharT* rhs)
 	{
 		return rhs == lhs;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator!=(const CharT* lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return !(lhs == rhs);
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator!=(basic_string_view<CharT,Traits> lhs, const CharT* rhs)
 	{
 		return rhs != lhs;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator<(basic_string_view<CharT,Traits> lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) < 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator>(basic_string_view<CharT,Traits> lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) > 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator>=(basic_string_view<CharT,Traits> lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) >= 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator<=(basic_string_view<CharT,Traits> lhs, const CharT* rhs)
 	{
 		return lhs.compare(rhs) <= 0;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator<(const CharT* lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs > lhs;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator<=(const CharT* lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs >= lhs;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator>(const CharT* lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs < lhs;
 	}
-	template< class CharT, class Traits>
+	template< typename CharT, typename Traits>
 	bool operator>=(const CharT* lhs, basic_string_view<CharT,Traits> rhs)
 	{
 		return rhs <= lhs;
 	}
 
-	template< class CharT, class Traits, class Alloc >
+	template< typename CharT, typename Traits, typename Alloc >
 	void swap(basic_string<CharT, Traits, Alloc> &lhs,
 				basic_string<CharT, Traits, Alloc> &rhs) noexcept(is_nothrow_swap_alloc<Alloc>::value)
 	{
 		lhs.swap(rhs);
 	}
 
-	template <class CharT, class Traits>
+	template <typename CharT, typename Traits>
 	std::basic_ostream<CharT, Traits>& operator<<(std::basic_ostream<CharT, std::char_traits<CharT>>& os,
 													basic_string_view <CharT, Traits> v)
 	{
@@ -2950,7 +2959,7 @@ ll:				;
 		return os;
 	}
 
-	template <class CharT, class Traits, class Allocator>
+	template <typename CharT, typename Traits, typename Allocator>
 	std::basic_ostream<CharT, Traits>&
 		operator<<(std::basic_ostream<CharT, std::char_traits<CharT>>& os,
 			const std::basic_string<CharT, Traits, Allocator>& str)

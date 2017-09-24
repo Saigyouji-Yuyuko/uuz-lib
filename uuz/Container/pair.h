@@ -1,5 +1,5 @@
 #pragma once
-#include"container.h"
+#include<type_traits>
 namespace uuz
 {
 	template<typename T1, typename T2>
@@ -129,13 +129,7 @@ namespace uuz
 		};
 		
 		template<typename T>
-		struct make_pair_type
-		{
-			using type = help_type<std::decay_t<T>>;
-		};
-
-		template<typename T>
-		using make_type = typename make_pair_type<T>::type;
+		using make_type = typename help_type<std::decay_t<T>>::type;
 
 		template<typename T,typename U>
 		constexpr int compare(const pair<T, U>& lhs, const pair<T, U>& rhs)noexcept(noexcept(lhs.first < rhs.first) && noexcept(lhs.second < rhs.second) && noexcept(lhs.first > rhs.first) && noexcept(lhs.second > rhs.second))
@@ -158,7 +152,7 @@ namespace uuz
 	template<typename T1, typename T2>
 	constexpr pair<make_type<T1>, make_type<T2>> make_pair(T1&& a, T2&& b)noexcept(noexcept(pair<make_type<T1>, make_type<T2>>(std::forward<T1>(a), std::forward<T1>(b))))
 	{
-		return pair<make_type<T1>, make_type<T2>>(std::forward<T1>(a), std::forward<T1>(b));
+		return pair<make_type<T1>, make_type<T2>>(std::forward<T1>(a), std::forward<T2>(b));
 	}
 
 	template< typename T1, typename T2 >
@@ -198,6 +192,11 @@ namespace uuz
 		lhs.swap(rhs);
 	}
 
+	/*template<typename T1, typename T2, bool = >
+	struct compressed_pair
+	{
+
+	};*/
 
 
 

@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26206.0
+VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uuz", "uuz\uuz-lib.vcxproj", "{48E7E0CF-8429-412D-8BE0-5B99673CC11E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uuz-lib", "uuz\uuz-lib.vcxproj", "{48E7E0CF-8429-412D-8BE0-5B99673CC11E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +24,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C3A5935C-F2E4-455B-BDF7-34B3FE157DFC}
 	EndGlobalSection
 EndGlobal

@@ -1445,6 +1445,29 @@ namespace uuz
 #else
 		constexpr static size_t maxsortsize = 128;
 #endif
+		
+		template<typename RandomAccessIterator, typename Compare,typename Size>
+		void adjust_heap(Size k, RandomAccessIterator first, RandomAccessIterator last, Compare& comp)
+		{
+			auto size = distance(first, last);
+			auto most = (k << 1) + 1;
+			if (most + 1 != size && comp(first[most + 1], first[most]))
+				++most;
+			if (comp(first[k], first[most]))
+			{
+				iter_swap(first + k, first + most);
+				for(k=most,(void)most=(most<<1)+1;most < size; k=most,(void)most =(most<<1)+1)
+				{
+					if (most + 1 != size && comp(first[most + 1], first[most]))
+						++most;
+					if (comp(first[k], first[most]))
+						iter_swap(first + k, first + most);
+					else
+						return;
+				}
+			}
+		}
+
 		template<typename RandomAccessIterator, typename Compare>
 		void _sort3(RandomAccessIterator first, Compare comp)
 		{
@@ -1527,7 +1550,7 @@ namespace uuz
 				}
 			}
 			if(comp(*p5,*p4))
-			{
+			{	
 				swap(p5, p4);
 				if (comp(*p4, *p3))
 				{
@@ -1605,7 +1628,7 @@ namespace uuz
 				auto k = std::move(*i);
 				if(comp(k,*first))
 				{
-					move_backward(first, i, i + 1);
+					move_backward(first, i, i);
 					*first = std::move(k);
 				}
 				else
@@ -1682,7 +1705,29 @@ namespace uuz
 		{
 			if (size > maxsortsize)
 			{
-				
+				merge_sort(first, first + size >> 1, size >> 1, buffer, comp);
+				merge_sort(first + size >> 1, last, size - size >> 1, buffer, comp);
+
+				for (auto i = 0; i != size >> 1; ++i)
+					new(buffer.buffer + i) typename iterator_traits<RandomAccessIterator>::value_type(std::move(*first + i));
+				buffer.size = size >> 1;
+				auto i = 0, j = 0;
+				for (i=0,j=0;i!=size >> 1 && j!= size - size>>1; ++first)
+				{
+					if (comp(*(buffer.buffer + i), *(first + size >> 1 + j)))
+					{
+						*first = std::move(*(buffer.buffer + i));
+						++i;
+					}
+					else
+					{
+						*first = std::move(*(first + size >> 1 + j));
+						++j;
+					}
+				}
+				if (i != size >> 1)
+					move(buffer + i, buffer + size >> 1, first);
+				destroy_n(buffer.buffer, size >> 1);
 			}
 			else
 			{
@@ -2048,11 +2093,28 @@ namespace uuz
 	{
 		static_assert(!is_bidirectional_iterator<BidirectionalIterator>);
 
-		if (middle == last || first == middle)
-			return;
+		temp_buffer<typename iterator_traits<BidirectionalIterator>::value_type> buffer;
 
-			
+		auto j = 0;
+		for (auto i = first; i != mid; ++i, (void)++j)
+			new(buffer.buffer + j) typename iterator_traits<BidirectionalIterator>::value_type(std::move(*i));
 
+		auto k = 0;
+		for (; k != j&& middle != last; ++first)
+		{
+			if (comp(*(buffer.buffer + k), *middle))
+			{
+				*first = std::move(*(buffer.buffer + k));
+				++k;
+			}
+			else
+			{
+				*first = std::move(*middle);
+				++middle;
+			}
+		}
+		if (k != j)
+			move(buffer.buffer + k, buffer.buffer + j, first);
 	}
 	template<typename BidirectionalIterator>
 	void inplace_merge(BidirectionalIterator first,BidirectionalIterator middle,BidirectionalIterator last)
@@ -2217,7 +2279,10 @@ namespace uuz
 		using std::swap;
 		for(;l!=0; l = (l - 1) >> 1)
 			if (comp(first[(l - 1) >> 1], first[l]))
+			{
 				swap(first[(l - 1) >> 1], first[l]);
+				adjust_heap(l, first, last, comp);
+			}
 			else 
 				break;
 	}
@@ -2236,26 +2301,9 @@ namespace uuz
 		auto l = distance(first, last);
 		if (!l || l == 1)
 			return;
-		l -= 1;
 		iter_swap(first, --last);
-		auto k = 0;
-		using std::swap;
 
-		for(;;)
-		{
-			auto t = ((k+1) << 1);
-			if (t > l)
-				return;
-			if (t == l || comp(first[t], first[t - 1]))
-				--t;
-			if (comp(first[k], first[t]))
-			{
-				swap(first[k], first[t]);
-				k = t;
-			}
-			else
-				return;
-		}
+		adjust_heap(0, first, last, comp);
 
 	}
 	template<typename RandomAccessIterator>
@@ -2274,10 +2322,9 @@ namespace uuz
 
 		if (!d || d == 1)
 			return;
-		--d;
-		for(;d!=0;--d)
-			if (comp(first[(d - 1) >> 1], first[d]))
-				swap(first[(d - 1) >> 1], first[d]);
+		for (auto k = (d >> 1) - 1; k >= 0; --k)
+			adjust_heap(k, first, last, comp);
+
 		return;
 	}
 	template<typename RandomAccessIterator>

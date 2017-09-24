@@ -48,30 +48,14 @@
 #include<cmath>
 #include<cstdio>
 #include<sstream>
+#include<algorithm>
+#include"Container\pair.h"
 using namespace std;
-
 int main()
 {
-	
-	string s;
-	cin >> s;
-	int minn = 0;
-	for(auto i = 0; i != s.size(); ++i)
-		if (s[i] == 'R')
-			++minn;
-	for(auto i = 0;i!=s.size();++i)
-	{
-		int temp = 0;
-		for (auto j = 0; j <= i; ++j)
-			if (s[j] == 'G')
-				++temp;
-		for (auto j = i+1; j <= s.size(); ++j)
-			if (s[j] == 'R')
-				++temp;
-		if (temp < minn)
-			minn = temp;
-	}
-		printf("%d", minn);
-	 //system("pause");
+	cout << std::is_trivially_destructible_v<uuz::pair<std::vector<int>, int>> << endl;
+	auto a = uuz::make_pair(1,2) ;
+	cout << a.first;
+	system("pause");
 	return 0;
 }

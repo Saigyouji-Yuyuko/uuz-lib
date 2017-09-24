@@ -30,6 +30,13 @@ namespace uuz
 #define INLINE inline
 #endif 
 
+	template<typename T >
+	constexpr T* addressof(T& arg) noexcept
+	{
+		return reinterpret_cast<T*>(&const_cast<char&>(reinterpret_cast<const volatile char&>(arg)));
+	}
+	template <typename T>
+	const T* addressof(const T&&) = delete;
 
 
 	
@@ -75,7 +82,7 @@ namespace uuz
 }
 	
 	//老子不写了！！！
-	template< class Ptr > 
+	template< typename Ptr >
 	struct pointer_traits
 	{
 		
@@ -93,7 +100,7 @@ namespace uuz
 
 	};
 	
-	template<class T>
+	template<typename T>
 	struct pointer_traits<T*>
 	{
 		using element_type = T;
@@ -119,6 +126,35 @@ namespace uuz
 			return a < b;
 		}
 	};
+
+	template<typename T>
+	std::enable_if_t<std::is_trivially_destructible_v<T>> destroy_at(T*)noexcept
+	{
+
+	}
+
+	template<typename T>
+	std::enable_if_t<!std::is_trivially_destructible_v<T>> destroy_at(T* p)noexcept
+	{
+		return p->~T();
+	}
+
+	template<typename T,typename Size>
+	std::enable_if_t<std::is_trivially_destructible_v<T>> destroy_n(T*,Size)noexcept
+	{
+
+	}
+
+	template<typename T, typename Size>
+	std::enable_if_t<!std::is_trivially_destructible_v<T>> destroy_n(T* first, Size n)noexcept
+	{
+		for (; n > 0;  ++first,(void) --n)
+			destroy_at(addressof(*first));
+		return first;
+	}
+
+
+	
 
 
 	template<typename T,typename InputIt>//测试InputIt是否为T类型的迭代器或指针

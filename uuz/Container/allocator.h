@@ -180,7 +180,7 @@ namespace uuz
 			return a.deallocate(p, n);
 		}
 
-		template< class T, class... Args >
+		template< typename T, typename... Args >
 		static INLINE void construct(Alloc& a, T* p, Args&&... args)
 		{
 			if constexpr(experimental::is_detected_v<has_allocate_construct, Alloc, T, Args...>)
@@ -193,7 +193,7 @@ namespace uuz
 			}
 		}
 
-		template< class T >
+		template< typename T >
 		static INLINE void destroy(Alloc& a, T* p)
 		{
 			if constexpr(experimental::is_detected_v<has_allocate_destroy, Alloc, T>)
@@ -202,7 +202,7 @@ namespace uuz
 			}
 			else
 			{
-				p->~T();
+				destroy_at(p);
 			}
 		}
 

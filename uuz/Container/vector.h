@@ -20,12 +20,20 @@ namespace uuz
 		template<typename T1, typename A>
 		friend class vector<T1, A>;
 	public:
-		self& operator+=(const int t)noexcept
+
+		using difference_type = ptrdiff_t;
+		using value_type = T;
+		using pointer = T*;
+		using reference = T&;
+		using iterator_category = uuz::random_access_iterator_tag;
+
+	public:
+		self& operator+=(const difference_type t)noexcept
 		{
 			dat += t;
 			return *this;
 		}
-		self& operator-=(const int t)noexcept
+		self& operator-=(const difference_type t)noexcept
 		{
 			dat -= t;
 			return *this;
@@ -54,19 +62,19 @@ namespace uuz
 			return p;
 		}
 
-		T& operator*()noexcept
+		reference operator*()noexcept
 		{
 			return *dat;
 		}
-		const T& operator*()const noexcept
+		const reference operator*()const noexcept
 		{
 			return *dat;
 		}
-		T* operator->()noexcept
+		pointer operator->()noexcept
 		{
 			return dat;
 		}
-		const T* operator->()const noexcept
+		const pointer operator->()const noexcept
 		{
 			return dat;
 		}
@@ -96,21 +104,30 @@ namespace uuz
 			return a > b || a == b;
 		}
 
-		friend self operator+(const self& a, const size_t b)noexcept
+		friend self operator+(const self& a, const difference_type b)noexcept
 		{
 			self c{ a };
 			c += b;
 			return c;
 		}
-		friend int operator-(const self& a, const self& b)noexcept
+		friend difference_type operator-(const self& a, const self& b)noexcept
 		{
 			return a.dat - b.dat;
 		}
-		friend self operator-(const self& a, const int b)noexcept
+		friend self operator-(const self& a, const difference_type b)noexcept
 		{
 			self c{ a };
 			c -= b;
 			return c;
+		}
+
+		reference operator[](const difference_type p)noexcept
+		{
+			return *(*this + p);
+		}
+		const reference operator[](const difference_type p)const noexcept
+		{
+			return *(*this + p);
 		}
 
 		//~vector_iterator(){}
@@ -132,12 +149,12 @@ namespace uuz
 		using difference_type = int;
 		using reference =value_type&;
 		using const_reference = const value_type&;
-//		using pointer = std::allocator_traits<Allocator>::pointer;
-//		using const_pointer = std::allocator_traits<Allocator>::const_pointer;
+		using pointer = typename allocator_traits<Allocator>::pointer;
+		using const_pointer = typename allocator_traits<Allocator>::const_pointer;
 		using iterator = vector_iterator<T>;
 		using const_iterator=const  vector_iterator<T>;
-		using reverse_iterator = std::reverse_iterator<iterator>;
-		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+		//using reverse_iterator = std::reverse_iterator<iterator>;
+		//using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	private:
 		Allocator alloc{};
@@ -148,50 +165,52 @@ namespace uuz
 	public:
 		vector() noexcept(noexcept(Allocator())) :alloc(Allocator()) {}
 		explicit vector(const Allocator& alloc) noexcept : alloc{alloc}{}
-		self(size_t t, const T& value, const Allocator& alloc = Allocator()):vector(alloc)
+		vector(size_t t, const T& value, const Allocator& alloc = Allocator()):vector(alloc)
 		{
 			reserve(t);
 			size_t i = 0;
 			try
 			{
 				for (; i < t; ++i)
-					auto k = new(shuju + i) T{ value };
+					allocator_traits<Allocator>::construct(alloc,shuju + i, value);
 			}
 			catch (...)
 			{
 				for (auto j = 0; j != i; ++j)
-					(*(shuju + j)).~T();
-				alloc.deallocate(shuju, maxsize);
+					allocator_traits<Allocator>::destroy(alloc,shuju + j); 
+				allocator_traits<Allocator>::deallocate(alloc, shuju, maxsize);
 				shuju = nullptr;
 				maxsize = 0;
 				throw;
 			}
 			ssize = t;
 		}
-		self(const size_t t, const Allocator& alloc = Allocator()) :vector(t, T{}, alloc) {}
-		self(const self& t):vector(Allocator())
+		vector(const size_t t, const Allocator& alloc = Allocator()) :vector(t, T{}, alloc) {}
+		vector(const self& t):
+				vector(allocator_traits<Allocator>::select_on_container_copy_construction(t.get_allocator()))
 		{
+
 			initfrom(t.begin(), t.end());
 		}
-		self(const vector& other, const Allocator& alloc) :vector(alloc)
+		vector(const vector& other, const Allocator& alloc) :vector(alloc)
 		{
 			initfrom(other.begin(), other.end());
 		}
-		self(self&& t)noexcept:vector(Allocator())
+		vector(self&& t)noexcept:vector(Allocator())
 		{
 			this->swap(t);
 		}
-		self(const std::initializer_list<T>& init, const Allocator& alloc = Allocator()) :vector(alloc)
+		vector(const std::initializer_list<T>& init, const Allocator& alloc = Allocator()) :vector(alloc)
 		{
 			initfrom(init.begin(), init.end());
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
-		self(self&& other, const Allocator& alloc):vector(alloc)
+		vector(self&& other, const Allocator& alloc):vector(alloc)
 		{
 			this->swap(other);
 		}
 		template<typename InputIt, typename = is_input<T, InputIt>>
-		self(InputIt first, InputIt last,const Allocator& alloc = Allocator()) :vector(alloc)
+		vector(InputIt first, InputIt last,const Allocator& alloc = Allocator()) :vector(alloc)
 		{
 			initfrom(first, last);
 		}
