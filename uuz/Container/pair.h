@@ -192,13 +192,59 @@ namespace uuz
 		lhs.swap(rhs);
 	}
 
-	/*template<typename T1, typename T2, bool = >
-	struct compressed_pair
+	template<typename T1, typename T2, typename =std::enable_if_t<std::is_class_v<T1>&&!std::is_final_v<T1>> >
+	struct compressed_pair:T1
 	{
+		compressed_pair() = default;
+		compressed_pair(const T1& a,const T2& b):T1(a),s(b){}
+		compressed_pair(T1&& a,T2&& b) :T1(std::move(a)), s(std::move(b)) {}
 
-	};*/
+
+		T1& first()noexcept { return *this; }
+		const T1& first()const noexcept { return *this; }
+		T2& second()noexcept { return s; }
+		const T2& second()const noexcept { return s; }
+
+		void swap(const compressed_pair& t)noexcept(std::is_nothrow_swappable_v<T1> && std::is_nothrow_swappable_v<T2>)
+		{
+			using std::swap;
+			swap(this->first(), t.first());
+			swap(this->second(), t.second());
+		}
+
+	private:
+		T2 s;
+	};
+
+	template<typename T1, typename T2>
+	struct compressed_pair<T1,T2,void>
+	{
+		compressed_pair() = default;
+		compressed_pair(const T1& a, const T2& b) :b(a), s(b) {}
+		compressed_pair(T1&& a, T2&& b) :b(std::move(a)), s(std::move(b)) {}
 
 
+		T1& first()noexcept { return b; }
+		const T1& first()const noexcept { return b; }
+		T2& second()noexcept { return s; }
+		const T2& second()const noexcept { return s; }
+
+		void swap(const compressed_pair& t)noexcept(std::is_nothrow_swappable_v<T1> && std::is_nothrow_swappable_v<T2>)
+		{
+			using std::swap;
+			swap(this->first(), t.first());
+			swap(this->second(), t.second());
+		}
+
+	private:
+		T1 b;
+		T2 s;
+	};
+	template< typename T1, typename T2 >
+	void swap(compressed_pair<T1, T2>& lhs, compressed_pair<T1, T2>& rhs) noexcept(noexcept(lhs.swap(rhs)))
+	{
+		lhs.swap(rhs);
+	}
 
 
 }

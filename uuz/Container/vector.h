@@ -9,7 +9,7 @@
 #include<iostream>
 namespace uuz
 {
-	constexpr static float vector_speed = 1.7f;//??
+	
 	template<typename T,typename A>
 	class vector;
 
@@ -130,7 +130,6 @@ namespace uuz
 			return *(*this + p);
 		}
 
-		//~vector_iterator(){}
 	private:
 		vector_iterator(T* t) :dat{ t }{}
 		vector_iterator(const T* t) :dat{ const_cast<T*>(t) } {}
@@ -141,7 +140,7 @@ namespace uuz
 	class vector
 	{
 		using self = vector<T, Allocator>;
-		
+		constexpr static float vector_speed = 1.7f;//??
 	public:
 		using value_type = T;
 		using allocator_type = Allocator;
@@ -157,10 +156,44 @@ namespace uuz
 		//using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 	private:
-		Allocator alloc{};
-		T* shuju = nullptr;
-		size_t ssize = 0;
-		size_t maxsize = 0;
+		compressed_pair<allocator_type, pair<T*, pair<size_t, size_t>>> m_data;
+
+		const T*& shuju()const noexcept
+		{
+			return m_data.second().first;
+		}
+		T*& shuju()noexcept
+		{
+			return m_data.second().first;
+		}
+
+		const size_t& ssize()const noexcept
+		{
+			return m_data.second().second.first;
+		}
+		size_t& ssize()noexcept
+		{
+			return m_data.second().second.first;
+		}
+
+		const size_t& max_size()const noexcept
+		{
+			return m_data.second().second.second;
+		}
+		size_t& max_size()noexcept
+		{
+			return m_data.second().second.second;
+		}
+
+		const allocator_type& alloc()const noexcept
+		{
+			return m_data.first();
+		}
+		allocator_type& alloc()noexcept
+		{
+			return m_data.first();
+		}
+
 
 	public:
 		vector() noexcept(noexcept(Allocator())) :alloc(Allocator()) {}

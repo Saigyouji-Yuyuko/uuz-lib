@@ -18,6 +18,15 @@ namespace
 		using type = op<T...>;
 	};
 
+	/*template<typename F, typename ...Args>
+	class Y_combinator
+	{
+		decltype(auto) operator()(Args&&... args)noexcept(noexcept(F(std::forward<Args>(args)...))) 
+			->decltype(F(std::forward<Args>(args)...)))
+		{
+			
+		}
+	};*/
 
 }
 namespace uuz
@@ -516,12 +525,19 @@ namespace uuz
 	}
 	
 	//将 A<B> 替换为 A<C>
-	template<typename AB,typename C>
-	struct exchange;
-	template<template<typename...>class A,typename B, typename C>
-	struct exchange<A<B>, C>
+	template<typename T, typename U>
+	struct exchage;
+
+	template<template<typename, typename...>class D, typename T, typename U, typename... Args>
+	struct exchage<D<T, Args...>, U>
 	{
-		using type = A<C>;
+		using type = D<U, Args...>;
+	};
+
+	template<template<typename>class D, typename T, typename U>
+	struct exchage<D<T>, U>
+	{
+		using type = D<U>;
 	};
 
 	//使用std::excption

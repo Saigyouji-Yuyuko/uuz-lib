@@ -50,7 +50,6 @@ namespace uuz
 	std::enable_if_t<std::is_trivially_destructible_v<typename iterator_traits<ForwardIt>::value_type>> 
 		destroy(ForwardIt , ForwardIt )noexcept
 	{
-
 	}
 
 	template< typename ForwardIt >

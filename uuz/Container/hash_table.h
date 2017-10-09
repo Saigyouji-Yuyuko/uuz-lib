@@ -1,376 +1,176 @@
 #pragma once
 #include"container.h"
-#include<functional>
+#include"list.h"
 #include"vector.h"
-#include<cmath>
-#include <minwindef.h>
 
 namespace uuz
 {
-	template<typename T>
-	struct bucket_node
+
+	template<typename value>
+	struct hash_node
 	{
-		T data;
-		size_t hash;
-		bucket_node<T>* next = nullptr;
+	public:
+		template<typename... Args>
+		hash_node(Args&&... args) :dat{ value(std::forward<Args>(args)...),nullptr}{}
+
+		value& data()noexcept { return dat.first(); }
+		const value& data() const noexcept { return dat.first(); }
+
+		hash_node*& next()noexcept { return dat.second(); }
+		const hash_node*& next()const noexcept { return dat.second(); }
+
+	private:
+		compressed_pair<value, hash_node*> dat;
+	};
+
+	template<typename value, typename alloc, typename hash, typename equal>
+	struct hash_set_traits
+	{
+		using key_value = value;
+		using value_type = value;
+		using alloc_type = allocator_traits<alloc>::template rebind_alloc<value_type>;
+		using hash_type = exchange_front<hash, key_value>::typename type;
+		using equal_type = exchange_front<equal, key_value>::typename type;
+	};
+
+	template<typename key,typename value, typename alloc, typename hash, typename equal>
+	struct hash_set_traits
+	{
+		using key_value = std::add_const_t<key>;
+		using value_type = pair<key_value, value>;
+		using alloc_type = allocator_traits<alloc>::template rebind_alloc<value_type>;
+		using hash_type = exchange_front<hash, key_value>::typename type;
+		using equal_type = exchange_front<equal, key_value>::typename type;
 	};
 
 
-	template<typename key, typename value_type, typename hash, typename equal, typename Alloc, bool multi>
-	class hash_table;
-	
-	template<typename T>
-	class hash_table_iterator
+
+	template<typename hash_traits,bool multi = false>
+	class hash_type
 	{
-		using vec_it = typename vector<bucket_node<T>*>::iterator;
-		template<typename key, typename value_type, typename hash, typename equal, typename Alloc, bool multi>
-		friend hash_table<key,T,  hash,  equal,  Alloc,  multi>;
+		constexpr static float default_factor = 5.0f;
+		using alloc_type = hash_traits::typename alloc_type;
+		using key_value = hash_traits::typename key_value;
+		using value_type = hash_traits::typename value_type;
+		using hash_type = hash_traits::typename hash_type;
+		using equal_type = hash_traits::typename equal_type;
+		using vec_type = vector<hash_node<value_type>*, typename allocator_traits<alloc_type>::template rebind_alloc<hash_node<value_type>*>>;
+		using size_type = size_t;
 	public:
-		hash_table_iterator& operator++() noexcept
-		{	
-			t = t->next;
-			while (!t)
-			{
-				++it;
-				if (it == end)
-					break;
-				t = *it;
-			} 
-			return *this;
-		}
-		hash_table_iterator operator++(int)noexcept
+		hash_type hash_function() const
 		{
-			auto p{ *this };
-			++*t;
-			return p;
+			return get_hash();
 		}
 
-		T& operator*()noexcept
+		equal_type key_eq() const
 		{
-			return t->data;
-		}
-		const T& operator*()const noexcept
-		{
-			return t->data;
-		}
-		T* operator->()noexcept
-		{
-			return &(t->data);
-		}
-		const T* operator->()const noexcept
-		{
-			return &(t->data);
+			return get_eq();
 		}
 
-		friend bool operator==(const hash_table_iterator& a, const hash_table_iterator& b)noexcept
+		size_type size()const noexcept
 		{
-			return a.t == b.t || a.it == a.end && b.it == b.end;
-		}
-		friend bool operator!=(const hash_table_iterator& a, const hash_table_iterator& b)noexcept
-		{
-			return !(a == b);
-		}
-		friend bool operator<(const hash_table_iterator& a, const hash_table_iterator& b)noexcept
-		{
-			if(a.it == b.it)
-			{
-				if (a.it == a.end)
-					return false;
-				return a.t < b.t;
-			}
-			return a.it < b.it;
-		}
-		friend bool operator>(const hash_table_iterator& a, const hash_table_iterator& b)noexcept
-		{
-			return b < a;
-		}
-		friend bool operator<=(const hash_table_iterator& a, const hash_table_iterator& b)noexcept
-		{
-			return a < b || a == b;
-		}
-		friend bool operator>=(const hash_table_iterator& a, const hash_table_iterator& b)noexcept
-		{
-			return a > b || a == b;
+			return get_size();
 		}
 
-	private:
-		hash_table_iterator(const vec_it it, const vec_it end,const bucket_node<T>* t)
-			:it(const_cast<vec_it>(it)), end(const_cast<vec_it>(end)),t(const_cast<bucket_node<T>*>(end)) {}
-
-		vec_it it;
-		vec_it end;
-		bucket_node<T>* t;
-	};
-
-	template<typename key,typename value_type,typename hash_type,typename equal_type,typename Alloc,bool multi>
-	class hash_table
-	{
-	public:
-		using iterator = hash_table_iterator<value_type>;
-		using node_Allocator = typename exchange<Alloc, bucket_node<value_type>>::type;
-		using node = bucket_node<value_type>;
-		using bucket = node*;
-		constexpr static size_t least_size = 16;
-		constexpr static float bucket_size = 5.0f;
-	private:
-		mutable hash_type hash;
-		mutable equal_type equal;
-		node_Allocator alloc;
-		vector<bucket, typename exchange<Alloc, bucket>::type> buckets{ least_size ,nullptr };
-		size_t ssize = 0;
-	public:
-		hash_table() :hash(hash_type()), equal(equal_type()), alloc(Alloc()) {}
-		hash_table(size_t buckets_size,
-			const hash_type& hash = hash_type(),
-			const equal_type& equal = equal_type(),
-			const Alloc& alloc = Alloc()) :hash(hash), equal(equal), alloc(alloc), buckets(min(buckets_size, least_size), nullptr) {}
-		hash_table(const hash_table& t, const Alloc& alloc) :hash(t.hash), equal(t.equal), alloc(alloc), buckets(t.buckets.size(), nullptr), ssize(t.ssize)
+		alloc_type get_allocator() const
 		{
-			try
-			{
-				for (auto i = 0; i != t.buckets.size(); ++i)
-				{
-					if (i)
-					{
-						buckets[i] = makenode(*(t.buckets[i]));
-						auto k = buckets[i];
-						for (auto j = t.buckets[i].next; j != nullptr; ++j)
-						{
-							k->next = makenode(*j);
-							k = k->next;
-						}
-					}
-				}
-			}
-			catch (...)
-			{
-				clear();
-				throw;
-			}
-		}
-		hash_table(const hash_table& t) :hash_table(t, Alloc()) {}
-		hash_table(hash_table&& t, const Alloc& alloc) :alloc(alloc)
-		{
-			try
-			{
-				this->swap(t);
-				t.clear();
-			}
-			catch (...)
-			{
-				clear();
-				throw;
-			}
-
-		}
-		hash_table(hash_table&& t) :hash_table(t, Alloc()) {}
-
-		hash_table& operator=(const hash_table& other)
-		{
-			if (this != &other)
-			{
-				hash_table temp(other, alloc);
-				this->swap(temp);
-			}
-			return *this;
-		}
-		hash_table& operator=(hash_table&& other)
-		{
-			if (this != &other)
-			{
-				hash_table temp(std::move(other), alloc);
-				this->swap(temp);
-			}
-			return *this;
+			return get_al();
 		}
 
-		node_Allocator get_allocator()const noexcept
-		{
-			return alloc;
-		}
-
-		void clear()noexcept
-		{
-			for(auto i:buckets)
-			{
-				deallocbucket(i);
-				i = nullptr;
-			}	
-			ssize = 0;
-		}
-
-		iterator begin() noexcept
-		{
-			return iterator()
-		}
-		const iterator begin() const noexcept;
-		const iterator cbegin() const noexcept;
-
-
-		size_t size()const noexcept
-		{
-			return ssize;
-		}
-
-		bool empty()const noexcept
+		bool empty() const noexcept
 		{
 			return size() == 0;
 		}
 
-		void swap(hash_table& other)noexcept(is_nothrow_swap_alloc<Alloc>::value)
+		size_type max_size() const noexcept
 		{
-			if(alloc == other.alloc)
-			{
-				char temp[sizeof(hash_table)];
-				memcpy(temp, this, sizeof(hash_table));
-				memcpy(this, &other, sizeof(hash_table));
-				memcpy(&other, temp, sizeof(hash_table));
-			}
-			else
-			{
-#ifdef DEBUG
-				assert(false, "It's not defined that allocator is not equal!");
-#else // DEBUG
-				hash_table t1(other, alloc);
-				hash_table t2(*this, other.alloc);
-				this->swap(t1);
-				other.swap(t2);
-#endif
-			}
+			return allocator_traits<alloc_type>::max_size(get_al());
 		}
 
-		template<typename InputIt,typename = is_input<value_type,InputIt>>
-		void init(InputIt first,InputIt last)
+		float max_load_factor() const
 		{
-			auto k = last - first;
-			buckets.resize(trans(k));
-			auto i = first;
-			try
-			{
-				for(;i!=last;++i)
-				{
-					if constexpr(multi)
-					{
-						node_insert(make(*i));
-					}
-					else
-					{
-						auto k = bucket_wrap(hash(*i));
-						bool flag = true;
-						for (auto j = buckets[k]; j != nullptr; j = j->next)
-							if(equal(j->data,*i))
-							{
-								flag = false;
-								break;
-							}
-						if (!flag)
-							continue;
-						node_insert(make(*i));
-					}
-
-				}
-			}
-			catch(...)
-			{
-				clear();
-				throw;
-			}
-			ssize = k;
+			return get_factor();
+		}
+		void max_load_factor(float ml)
+		{
+			get_factor() = ml;
+			_rehash();
 		}
 
-
+		void rehash(size_type count)
+		{
+			get_vec().reserve(count < size() / max_load_factor() ? size() / max_load_factor() : count);
+			_rehash();
+		}
+		void reserve(size_type count)
+		{
+			rehash(std::ceil(count / max_load_factor()));
+		}
 
 	protected:
-		
-		node* makenode(const node& t)
-		{
-			node* k = nullptr;
-			try
-			{
-				k = alloc.allocate();
-				new(k) node{ t.data,t.hash };
-			}
-			catch(bad_alloc&)
-			{
-				throw;
-			}
-			catch(...)
-			{
-				alloc.deallocate(k, 1);
-				throw;
-			}
-			return k;
-			
-		}
-		template<typename...Args>
-		node* makenode(Args&&...args)
-		{
-			node* k = nullptr;
-			try
-			{
-				k = alloc.allocate();
-				new(k) node{ value_type(std::forward<Args>(args)...),0 };
-				k->hash = hash(k->data);
-			}
-			catch (bad_alloc&)
-			{
-				throw;
-			}
-			catch (...)
-			{
-				alloc.deallocate(k, 1);
-				throw;
-			}
-			return k;
-		}
-		
-		void deallocbucket(node* i)noexcept
-		{
-			node* k = nullptr;
-			while(!i)
-			{
-				k = i->next;
-				(*i).~node();
-				alloc.deallocate(i, 1);
-				i = k;
-			}
-		}
-
-		size_t bucket_wrap(size_t t)
-		{
-			return t&(buckets.size() - 1);
-		}
-
-		void node_insert(node* k)noexcept
-		{
-			auto dd = bucket_wrap(k->hash);
-			if (buckets[dd])
-				k->next = buckets[dd];
-			buckets[dd] = k;
-		}
-
 
 	private:
-		static size_t trans(size_t t)noexcept
+
+		hash_type& get_hash() 
 		{
-			if (!t)
-				return 0;
-#ifdef _MSC_VER
-			DWORD index;
-			auto k = _BitScanReverse(&index, t - 1);
-			if (k)
-				return 1 << (index + 1);
-			//throw("");
-#elif __GNUC__
-			auto k = __builtin_clz(t - 1);
-			return 1 << (k + 1);
-#else
-			size_t k = 1;
-			while (k < t)
-				k << 1;
-			return k;
-#endif
+			return data.first();
 		}
-	
+		const hash_type& get_hash() const
+		{
+			return data.first();
+		}
+
+		equal_type& get_eq() 
+		{
+			return data.second().second().first();
+		}
+		const equal_type& get_eq() const
+		{
+			return data.second().second().first();
+		}
+
+		alloc_type& get_al()
+		{
+			return data.second().first();
+		}
+		const alloc_type& get_al() const
+		{
+			return data.second().first();
+		}
+
+		vec_type& get_vec()
+		{
+			return data.second().second().second().bu;
+		}
+		const vec_type& get_vec() const
+		{
+			return data.second().second().second().bu;
+		}
+
+		size_type& get_size()
+		{
+			return data.second().second().second().size;
+		}
+		const size_type& get_size() const
+		{
+			return data.second().second().second().size;
+		}
+
+		float& get_factor()
+		{
+			return data.second().second().second().factor;
+		}
+		const float& get_factor() const
+		{
+			return data.second().second().second().factor;
+		}
+
+		struct impl
+		{
+			vec_type bu;
+			size_type size = 0;
+			float factor = default_factor;
+		};
+		compressed_pair<hash_type, compressed_pair<alloc_type, compressed_pair<equal_type, impl>>> data;
 	};
 }
